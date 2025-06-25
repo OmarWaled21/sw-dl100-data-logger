@@ -1,0 +1,109 @@
+{% extends 'base.html' %} {% block content %} {% load static %}
+<link rel="stylesheet" href="{% static 'clinical/css/clinical.css' %}" />
+<script src="{% static 'clinical/java/auto_refresh.js' %}"></script>
+<div class="container mt-3">
+  <div class="card">
+    <div class="card-header">
+      <div class="d-flex align-items-center justify-content-between">
+        <h1>Welcome to Clinical Section</h1>
+        <div class="d-flex justify-content-center align-items-baseline">
+          <!-- date -->
+          <p id="current-date" class="mt-1 ms-2 gap-2"></p>
+          <!-- time -->
+          <p
+            id="current-time"
+            class="ms-2 fs-4"
+            data-server-time="{{ current_time|date:'c' }}"
+          ></p>
+          <!-- am or pm -->
+          <p id="am-pm-indicator" class="ms-1" style="font-size: 1rem"></p>
+        </div>
+      </div>
+    </div>
+    <div class="card-body border-top">
+      <!-- Screening Volunteer -->
+      <div>
+        <h2>Volunteer Screening</h2>
+        {% include 'clinical/screening_overview.html' %}
+        <div class="d-flex justify-content-between">
+          <!-- Register Volunteer -->
+          <div class="col-9 pe-2">
+            <a href="{% url 'register_volunteer' %}" class="text-decoration-none">
+              <div class="clinical-card h-80">
+                <div class="text-center">
+                  <div class="clinical-label mb-4 d-flex justify-content-center align-items-center">
+                    <i class="fa-solid fa-user-plus"></i>
+                    <h5 class="ms-2 clinical-title">Register New Volunteer</h5>
+                  </div>
+                </div>
+              </div>
+            </a>
+          </div>
+
+          <!-- See All Volunteers -->
+          <div class="col-3 ps-2">
+            <a href="{% url 'all_volunteers' %}" class="text-decoration-none">
+              <div class="clinical-card h-60">
+                <div class="text-center">
+                  <div class="clinical-label ms-2 d-flex justify-content-center align-items-center">
+                    <i class="fa-solid fa-users"></i>
+                    <h5 class="clinical-title">See All Volunteers</h5>
+                  </div>
+                </div>
+              </div>
+            </a>
+          </div>
+        </div>
+      </div>
+      <div class="align-items-center border-top pt-3">
+        <!-- Master Study File -->
+        <div>
+          <h2>Master Study File</h2>
+          {% include 'clinical/master_overview.html' %}
+          <div class="d-flex justify-content-between">
+            <!-- Register Volunteer -->
+            <div class="col-4 pe-2">
+              <a href="{% url 'enroll_volunteer' %}" class="text-decoration-none">
+                <div class="clinical-card h-80">
+                  <div class="text-center">
+                    <div class="clinical-label mb-4 d-flex justify-content-center align-items-center">
+                      <i class="fa-regular fa-address-card"></i>
+                      <h5 class="ms-2 clinical-title">Enroll Volunteer in Study</h5>
+                    </div>
+                  </div>
+                </div>
+              </a>
+            </div>
+            <!-- Create Study -->
+            <div class="col-4 pe-2">
+              <a href="{% url 'create_study' %}" class="text-decoration-none">
+                <div class="clinical-card h-80">
+                  <div class="text-center">
+                    <div class="clinical-label mb-4 d-flex justify-content-center align-items-center">
+                      <i class="fa-regular fa-file-lines"></i>
+                      <h5 class="ms-2 clinical-title">Create Study File</h5>
+                    </div>
+                  </div>
+                </div>
+              </a>
+            </div>
+            <!-- See All Studies -->
+            <div class="col-4 pe-5">
+              <a href="{% url 'study_list' %}" class="text-decoration-none">
+                <div class="clinical-card h-95">
+                  <div class="text-center">
+                    <div class="clinical-label ms-2 mb-4 d-flex justify-content-center align-items-center">
+                      <i class="fa-solid fa-folder-tree"></i>
+                      <h5 class="clinical-title">See All Studies</h5>
+                    </div>
+                  </div>
+                </div>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

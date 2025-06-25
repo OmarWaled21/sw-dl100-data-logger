@@ -1,0 +1,122 @@
+.device-col {
+  max-width: 400px;
+  min-width: 320px;
+  flex: 1 1 auto;
+  margin: 10px;
+  border-radius: 10px;
+  border: 3px solid #9e9e9e; /* مؤقت لحين التغيير بلون الإبرة */
+  transition: border-color 0.5s ease;
+}
+
+.last-update {
+  font-size: 14px;
+  font-weight: 500;
+  color: #999;
+}
+
+.label-container .label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #494949;
+}
+
+.gauge {
+    position: relative;
+    width: 100%; /* اجعلها تأخذ كل المساحة المتاحة */
+    max-width: 90px;
+    aspect-ratio: 3 / 2; /* يحافظ على النسبة بين العرض والارتفاع */
+  }
+  
+  .bar,
+  .needle {
+    width: 100%;
+    height: auto;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+  
+  .needle {
+    transform-origin: center bottom;
+    transition: transform 0.5s ease, filter 0.5s ease;
+  }
+  
+  .label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #999;
+  }
+  
+  .value {
+    font-size: 20px;
+    font-weight: bold;
+  }
+
+
+  .btn-red {
+    background-color: #fff;
+    color: #c5272f;
+    border: 2px solid #c5272f;
+    border-radius: 50px;
+    padding: 10px 25px;
+    transition: all 0.2s ease;
+  }
+  
+  .btn-red:hover {
+    background-color: #c5272f;
+    color: #fff;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border: 2px solid #c5272f;
+    transition: all 0.2s ease;
+  }
+
+.refresh-button:active {
+  background-color: #0d6dfc !important; /* أزرق */
+  color: white !important;
+  border: #0d6dfc solid 2px !important;
+}
+
+.refresh-button {
+  top: 12px;
+  right: 12px;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: #0d6dfc solid 2px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  z-index: 2;
+}
+.refresh-button:hover {
+  background: #0d6dfc;
+  box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+  transform: rotate(360deg) scale(1.1);
+}
+
+.refresh-button:hover i {
+  color: white !important;
+}
+
+.refresh-button.loading i {
+  animation: spin 1s linear infinite;
+}
+
+.refresh-button.success {
+  background: #1a8754;
+  box-shadow: 0 2px 4px rgba(46, 204, 113, 0.3);
+}
+
+.refresh-button.error {
+  background: #c5272f;
+  box-shadow: 0 2px 4px rgba(231, 76, 60, 0.3);
+}
+
+.refresh-button i {
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+}

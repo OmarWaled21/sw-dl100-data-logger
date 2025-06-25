@@ -1,0 +1,121 @@
+{% extends 'base.html' %} {% block content %}
+
+<div class="container mt-5" style="max-width: 600px">
+  <h2>Edit Device</h2>
+
+  <div class="card mt-4">
+    <div class="card-body">
+      <form method="post">
+        {% csrf_token %} {% if form.errors %}
+        <div class="alert alert-danger mt-3">
+          <ul>
+            {% for field in form %} {% for error in field.errors %}
+            <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+            {% endfor %} {% endfor %} {% for error in form.non_field_errors %}
+            <li>{{ error }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+        <div class="d-flex justify-content-between align-items-center">
+          <div class="form-group mb-0" style="width: 70%">
+            {{ form.name.label_tag }} 
+            {{ form.name }}
+          </div>
+          <div class="d-flex">
+            <div class="mt-4 text-center ml-2">
+              <button
+                type="submit"
+                class="btn text-success border-0 font-weight-bold"
+              >
+                <strong>Save</strong>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <table class="table table-bordered mt-3">
+          <tbody>
+            <tr>
+              <th>Status</th>
+              {% if device.status == 'green' %}
+              <td>Good</td>
+              {% elif device.status == 'red' %}
+              <td class="text-danger">Error</td>
+              {% elif device.status == 'gray' %}
+              <td>Offline</td>
+              {% endif %}
+            </tr>
+            <tr>
+              <th>Temperature</th>
+              <td>{{ device.temperature }} °C</td>
+            </tr>
+            <tr>
+              <th>{{ form.temperature_max_threshold.label }}</th>
+              <td>
+                <div class="d-flex align-items-center">
+                    <div style="width: 100px">
+                      {{ form.temperature_max_threshold }}
+                    </div>
+                    <span class="ml-2">°C</span>
+                  </div>
+              </td>
+            </tr>
+            <tr>
+              <th>{{ form.temperature_min_threshold.label }}</th>
+              <td>
+                <div class="d-flex align-items-center">
+                    <div style="width: 100px">
+                      {{ form.temperature_min_threshold }}
+                    </div>
+                    <span class="ml-2">°C</span>
+                  </div>
+              </td>
+            </tr>
+            <tr>
+              <th>Battery Level</th>
+              <td>{{ device.battery_level }}%</td>
+            </tr>
+            <tr>
+              <th>Wi-Fi Strength</th>
+              <td>{{ device.wifi_strength }}</td>
+            </tr>
+            <tr>
+              <th>Last Update</th>
+              <td>{{ device.last_update }}</td>
+            </tr>
+
+            <tr class="bg-danger bg-opacity-10">
+              <th>{{ form.rtc_error.label }}</th>
+              <td>{{ form.rtc_error }}</td>
+            </tr>
+
+            <tr class="bg-danger bg-opacity-10">
+              <th>{{ form.sensor_error.label }}</th>
+              <td>{{ form.sensor_error }}</td>
+            </tr>
+            <tr class="bg-danger bg-opacity-10">
+                {% if device.low_battery %}
+              <th class="text-danger">Low Battery</th>
+              
+              <td class="text-danger">{{ device.low_battery }}</td>
+              {% else %}
+              <th>Low Battery</th>
+              <td>{{ device.low_battery }}</td>
+              {% endif %}
+                
+            </tr>
+          </tbody>
+        </table>
+
+        <a
+          href="{% url 'device_details' device.id %}"
+          class="btn btn-secondary mt-3"
+          >Cancel</a
+        >
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

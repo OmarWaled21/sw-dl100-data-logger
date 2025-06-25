@@ -1,0 +1,199 @@
+{% block content %}
+{% load i18n %}
+<form method="post" action="{% url 'device_details' device.device_id %}">
+  {% csrf_token %}
+  <div id="contentArea" class="container-lg" dir="{% if LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
+        <!-- Device Settings Modal -->
+      <div class="modal fade" id="deviceSettingsModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-scrollable modal-lg">
+          <div class="modal-content">
+            <div class="offcanvas-header bg-dark text-white">
+              <div class="container-fluid px-4 py-3">
+                <div class="row align-items-center">
+                  <div class="col">
+                    <h5 id="settingsOffcanvasLabel" class="mb-0 d-flex align-items-center gap-2">
+                      <i class="fas fa-cog"></i>
+                      <span>{% trans "Settings" %}</span>
+                    </h5>
+                  </div>
+                  <div class="col-auto">
+                    <button
+                      type="button"
+                      class="btn-close btn-close-white"
+                      data-bs-dismiss="modal"
+                    ></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="modal-body">
+              <!-- Name Card -->
+                <div class="card mb-4">
+                  <div class="card-header text-white bg-dark">
+                    <h6 class="mb-0">
+                      <i class="fas fa-circle-info me-2"></i>
+                      <span>{% trans "Information" %}</span>
+                    </h6>
+                  </div>
+                  <div class="card-body">
+                    <!-- Name field -->
+                    <div class="sensor-threshold mb-4">
+                      <h6 class="d-flex align-items-center">
+                        <i class="fa-solid fa-circle-user me-2"></i>
+                        <span>{% trans "Device Name" %}</span>
+                      </h6>
+                      <input type="text" name="name" class="form-control" value="{{ device.name }}" required>
+                    </div>
+                    <!-- Interval -->
+                    <div class="sensor-threshold mb-4">
+                      <!-- Interval Wifi -->
+                      <h6 class="d-flex align-items-center">
+                        <i class="fa-solid fa-clock-rotate-left me-2"></i>
+                        <span>{% trans "Interval WiFi" %}</span>
+                      </h6>
+
+                      <input type="range" id="interval_wifi_slider" min="0" max="120" step="1" class="form-range" value="{{ device.interval_wifi }}">
+                      <span id="interval_wifi_display"></span>
+                      <input type="hidden" name="interval_wifi" id="interval_wifi_input" value="{{ device.interval_wifi }}">
+
+                      <!-- Interval Local -->
+                      <h6 class="d-flex align-items-center mt-4">
+                        <i class="fa-solid fa-clock-rotate-left me-2"></i>
+                        <span>{% trans "Interval Local" %}</span>
+                      </h6>
+
+                      <input type="range" id="interval_local_slider" min="0" max="120" step="1" class="form-range" value="{{ device.interval_local }}">
+                      <span id="interval_local_display"></span>
+                      <input type="hidden" name="interval_local" id="interval_local_input" value="{{ device.interval_local }}">
+                    </div>
+
+                  </div>
+                </div>
+
+              <!-- Sensor Thresholds Card -->
+              <div class="card mb-4">
+                <div class="card-header text-white bg-dark">
+                  <h6 class="mb-0">
+                    <i class="fas fa-thermometer-half me-2"></i>
+                    <span>{% trans "Sensor Thresholds" %}</span>
+                  </h6>
+                </div>
+                <div class="card-body">
+                  <!-- Temperature Thresholds -->
+                  <div class="sensor-threshold mb-4">
+                    <h6 class="d-flex align-items-center">
+                      <i class="fa-solid fa-temperature-three-quarters text-danger me-2"></i>
+                      <span>{% trans "Temperature Settings" %}</span>
+                    </h6>
+                    <div class="row g-3">
+                      <div class="col-md-6">
+                        <label
+                          class="form-label"
+                          data-translate="minTemperature">
+                          <i class="fa-solid fa-angles-down"></i>
+                          {% trans "Minimum Temperature" %}
+                        </label>
+                        <div class="d-flex">
+                          <input type="number" step="0.1" name="min_temp" class="form-control"  value="{{ device.min_temp}}" required>
+                          <span class="input-group-text">°C</span>
+                        </div>
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">
+                          <i class="fa-solid fa-angles-up"></i>
+                          {% trans "Maximum Temperature" %}
+                        </label>
+                        <div class="d-flex">
+                          <input type="number" step="0.1" name="max_temp" class="form-control" value="{{ device.max_temp}}" required>
+                          <span class="input-group-text">°C</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Humidity Thresholds -->
+                  <div class="sensor-threshold mb-4">
+                    <h6 class="d-flex align-items-center">
+                      <i class="fas fa-droplet text-primary me-2"></i>
+                      <span>{% trans "Humidity Settings" %}</span>
+                    </h6>
+                    <div class="row g-3">
+                      <div class="col-md-6">
+                        <i class="fa-solid fa-angles-down"></i>
+                        <label class="form-label">{% trans "Minimum Humidity" %}</label>
+                        <div class="d-flex">
+                          <input type="number" step="0.1" name="min_hum" class="form-control" value="{{ device.min_hum}}" required>
+                          <span class="input-group-text">%</span>
+                        </div>
+                      </div>
+                      <div class="col-md-6">
+                        <i class="fa-solid fa-angles-up"></i>
+                        <label class="form-label">{% trans "Maximum Humidity" %}</label>
+                        <div class="d-flex">
+                          <input type="number" step="0.1" name="max_hum" class="form-control" value="{{ device.max_hum}}" required>
+                          <span class="input-group-text">%</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+                <div id="settingsMessage" class="alert mb-0" style="display: none"></div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-danger" data-bs-dismiss="modal">
+                {% trans "Close" %}
+              </button>
+              <button type="submit" class="btn btn-outline-success" id="submitSettingbtn">
+                <i class="fas fa-save me-2"></i>
+                <span data-translate="saveChanges">{% trans "Save Changes" %}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+  </div>
+</form>
+<script>
+  const intervalValues = [60]; // 1 دقيقة = 60 ثانية
+  for (let i = 5; i <= 600; i += 5) {
+    intervalValues.push(i * 60);
+  }
+
+  function secondsToString(sec) {
+    const hours = Math.floor(sec / 3600);
+    const minutes = Math.floor((sec % 3600) / 60);
+    if (hours > 0 && minutes > 0) {
+      return `${hours}h ${minutes}min`;
+    } else if (hours > 0) {
+      return `${hours}h`;
+    } else {
+      return `${minutes}min`;
+    }
+  }
+
+  function initSlider(sliderId, displayId, hiddenInputId) {
+    const slider = document.getElementById(sliderId);
+    const display = document.getElementById(displayId);
+    const hiddenInput = document.getElementById(hiddenInputId);
+
+    const currentValue = parseInt(hiddenInput.value) || 0;
+    const index = intervalValues.findIndex(v => v === currentValue);
+    slider.value = index >= 0 ? index : 0;
+    display.textContent = secondsToString(intervalValues[slider.value]);
+    hiddenInput.value = intervalValues[slider.value];
+
+    slider.addEventListener('input', function () {
+      const val = intervalValues[this.value];
+      display.textContent = secondsToString(val);
+      hiddenInput.value = val;
+    });
+  }
+
+  window.addEventListener('DOMContentLoaded', function () {
+    initSlider("interval_wifi_slider", "interval_wifi_display", "interval_wifi_input");
+    initSlider("interval_local_slider", "interval_local_display", "interval_local_input");
+  });
+</script>
+{% endblock %}

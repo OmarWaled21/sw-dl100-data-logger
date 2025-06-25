@@ -1,0 +1,66 @@
+{% extends 'base.html' %} 
+{% block content %}
+{% load i18n %}
+<div class="container mt-5" dir="{% if LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card shadow-lg">
+        <div class="card-body">
+          <h2 class="text-center mb-4">{% trans "Edit Master Clock" %}</h2>
+          <form method="post" id="master-clock-form">
+            {% csrf_token %}
+
+            <div class="mb-3">
+                <label for="id_current_time" class="form-label">{% trans "Current Time" %}</label>
+                {{ form.current_time }}
+                <button type="button" onclick="setNow()" class="btn btn-primary mt-2">{% trans "Set Now" %}</button>
+              <!-- Button to set current time -->
+            </div>
+
+            <div class="d-grid gap-2">
+              <button type="submit" class="btn btn-success">
+                {% trans "Save Changes" %}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function setNow() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+
+    const formattedNow = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+    document.getElementById("id_current_time").value = formattedNow;
+
+    // الآن إرسال التحديث إلى السيرفر باستخدام AJAX
+    const form = document.getElementById("master-clock-form");
+    const formData = new FormData(form);
+    fetch(form.action, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (response.ok) {
+            window.location.href = '/';  // إعادة التوجيه للصفحة الرئيسية
+        } else {
+            alert("Error saving data");
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while saving.');
+    });
+}
+</script>
+
+{% endblock %}

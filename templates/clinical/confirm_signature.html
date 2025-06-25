@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block content %}
+{% load static %}
+{% get_media_prefix as MEDIA_URL %}
+<div class="container mt-4">
+  <h3>Confirm Volunteer Data</h3>
+
+  <div class="mb-3">
+    <a href="{{ volunteer.pdf_file.url }}" target="_blank" class="btn btn-secondary">
+      <i class="fa fa-file-pdf me-2"></i> Open PDF in New Tab
+    </a>
+  </div>
+
+  <form method="post" class="d-flex justify-content-between">
+    {% csrf_token %}
+    <button type="submit" name="action" value="cancel" class="btn btn-danger" 
+            onclick="return confirm('Are you sure you want to delete this volunteer and the PDF?');">
+      <i class="fas fa-trash me-2"></i> Delete
+    </button>
+    
+    <button type="submit" name="action" value="reassign" class="btn btn-warning">
+        <i class="fas fa-edit me-2"></i> Reassign
+    </button>
+    
+    <button type="submit" name="action" value="confirm" class="btn btn-success">
+      <i class="fas fa-check me-2"></i> Confirm
+    </button>
+  </form>
+</div>
+{% endblock %}

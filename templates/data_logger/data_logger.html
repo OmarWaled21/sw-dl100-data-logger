@@ -1,0 +1,49 @@
+{% extends 'base.html' %} 
+{% block content %}
+{% load static %}
+{% load i18n %}
+<link rel="stylesheet" href="{% static 'data_logger/css/data_logger.css' %}">
+<link rel="stylesheet" href="{% static 'data_logger/css/card.css' %}">
+<script src="{% static 'data_logger/java/needle.js' %}" defer></script>
+<script src="{% static 'data_logger/java/last_update.js' %}" defer></script>
+<script src="{% static 'data_logger/java/auto_refresh.js' %}" defer></script>
+<div class="container mt-3" id="data_loggerContainer">
+  <div class="card">
+    <div class="card-header" dir="{% if request.LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
+      <div class="d-flex align-items-center justify-content-between">
+        <h3 class="mb-0" data-translate="deviceOverview">{% trans "Devices Overview" %}</h3>
+        <div class="d-flex justify-content-center align-items-baseline">
+          <!-- date -->
+          <p id="current-date" class="mt-1 ms-2 gap-2"></p>
+          <!-- time -->
+          <p id="current-time" class="ms-2 fs-4" data-server-time="{{ translated_date|date:'c' }}"></p>
+          <!-- am or pm -->
+          <p id="am-pm-indicator" class="ms-1" style="font-size: 1rem"></p>
+        </div>
+      </div>
+    </div>
+    <div class="card-body ps-4 pe-4 mt0">
+      {% include 'data_logger/device_overview.html' %}
+    </div>
+    <hr class="ms-5 me-5 border-1 border-subtle" />
+    <div class="card-header" dir="{% if request.LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
+      <h3>{% trans "Devices" %}</h3>
+    </div>
+    <div class="card-body d-flex flex-wrap justify-content-start ms-5 gap-4" dir="{% if request.LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
+      
+      {% if devices.count == 0 %}
+          <div class="text-center py-5 w-100">
+            <i class="fas fa-exclamation-triangle fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted" data-translate="noDevices">{% trans "No devices available" %}</h5>
+            <p class="text-secondary">{% trans "Please add a new device." %}</p>
+          </div>
+        {% endif %}
+        <div class="d-flex flex-wrap justify-content-start gap-4" id="devices-cards">
+          {% for device in devices %}
+            {% include 'data_logger/devices_card.html' %}
+          {% endfor %}
+        </div>
+      </div>
+  </div>
+</div>
+{% endblock %} 

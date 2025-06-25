@@ -1,0 +1,101 @@
+<!-- المودال -->
+<div class="modal fade" id="roleModal{{ user.id }}" tabindex="-1" aria-labelledby="roleModalLabel{{ user.id }}" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content shadow-lg rounded-4">
+      <form method="post" action="{% url 'edit_user' user.id %}">
+        {% csrf_token %}
+        <div class="modal-header bg-dark text-white rounded-top-4">
+          <h5 class="modal-title d-flex" id="roleModalLabel{{ user.id }}">
+            <i class="fas fa-user-cog me-2"></i> Change Role for <span class="ms-2 text-info">{{ user.username }}</span>
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div class="modal-body px-4 py-3">
+          <p class="text-muted text-start">Select the new role for this user:</p> <!-- محاذاة النص لليسار -->
+  
+          <!-- User Role -->
+          <div class="form-check mb-3">
+            <input class="form-check-input" type="radio" name="role" value="user" id="user{{ user.id }}"
+              {% if user.role == 'user' %}checked{% endif %}>
+            <label class="form-check-label fw-semibold text-start" for="user{{ user.id }}">
+              <i class="fas fa-eye me-1 text-secondary"></i> User
+            </label>
+          </div>
+
+          <!-- Supervisor Role -->
+          <div class="form-check mb-3">
+            <input class="form-check-input" type="radio" name="role" value="supervisor" id="supervisor{{ user.id }}"
+              {% if user.role == 'supervisor' %}checked{% endif %}>
+            <label class="form-check-label fw-semibold text-start" for="supervisor{{ user.id }}">
+              <i class="fas fa-user-tie me-1 text-warning"></i> Supervisor
+            </label>
+          </div>
+
+          <!-- Volunteer Categories (Checkboxes) -->
+          <div class="mb-3">
+            <label class="form-label fw-semibold text-start">
+              <i class="fas fa-folder-open me-1 text-primary"></i> Categories
+            </label>
+            <div class="form-check-group">
+              {% for category in categories %}
+                <div class="form-check">
+                  <input class="form-check-input category-checkbox" 
+                        type="checkbox" 
+                        name="categories" 
+                        value="{{ category.id }}" 
+                        id="category{{ user.id }}_{{ category.id }}"
+                        {% if category in user.categories.all %}checked{% endif %}>
+                        <div class="d-flex align-items-center">
+                          <i class="{{ category.icon }} px-1"></i>
+                          <label class="form-check-label" for="category{{ user.id }}_{{ category.id }}">
+                            {{ category.name }}
+                          </label>
+                        </div>
+                </div>
+              {% endfor %}
+            </div>
+            <small class="form-text text-danger d-none" id="categoryError{{ user.id }}">Please select at least one category.</small>
+          </div>
+
+
+        <div class="modal-footer bg-light rounded-bottom-4">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+            <i class="fas fa-times me-1"></i> Cancel
+          </button>
+          <button type="submit" class="btn btn-outline-success me-4">
+            <i class="fas fa-save me-1"></i> Save Changes
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<style>
+/* تحويل شكل الـ radio button إلى مربع */
+input[type="radio"].form-check-input {
+  width: 1.2em;
+  height: 1.2em;
+  border: 2px solid #ccc; /* تغيير الحدود */
+  transition: border-color 0.3s ease-in-out; /* إضافة تأثير عند التحديد */
+}
+
+/* تأثير التحديد عند المرور على الـ radio */
+input[type="radio"].form-check-input:checked {
+  background-color: #007bff; /* اللون الأزرق عند التحديد */
+  border-color: #007bff; /* تغيير اللون */
+}
+
+/* تأثير الـ radio عند التمرير عليها */
+input[type="radio"].form-check-input:hover {
+  border-color: #0056b3;
+}
+
+/* تعديل التسمية (label) لتكون على اليسار */
+.form-check-label {
+  text-align: left; /* محاذاة النص لليسار */
+  display: inline-block; /* تفعيل المحاذاة */
+  margin-left: 10px; /* مسافة بين الـ radio والنص */
+}
+</style>

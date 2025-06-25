@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block content %}
+{% load static %}
+{% get_media_prefix as MEDIA_URL %}
+<div class="container mt-4">
+  <h3>Confirm Volunteer Data</h3>
+
+  <div class="mb-3">
+    <a href="{{ volunteer.pdf_file.url }}" target="_blank" class="btn btn-secondary">
+      <i class="fa fa-file-pdf me-2"></i> Open PDF in New Tab
+    </a>
+  </div>
+
+  <div class="d-flex justify-content-between">
+    <a href="{% url 'edit_volunteer' volunteer.volunteer_id %}?edit=1" class="btn btn-warning">
+      <i class="fas fa-edit me-2"></i> Edit
+    </a>
+
+    <a href="{% url 'clinical'%}" class="btn btn-danger">
+      <i class="fa-solid fa-house"></i> Back Home
+    </a>
+
+    <a href="{% url 'sign_pdf_page' volunteer.volunteer_id%}" class="btn btn-success">
+      <i class="fas fa-check me-2"></i> Confirm and Sign
+    </a>
+  </div>
+</div>
+{% endblock %}

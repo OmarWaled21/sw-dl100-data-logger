@@ -1,0 +1,135 @@
+{% load static %}
+{% load i18n %}
+<!-- device_card.html -->
+<div class=" device-col">
+  <div class="card h-100 shadow-sm border-success device-card" style="border-width: 3px">
+    <div class="card-header text-center">
+      <div class="d-flex justify-content-between align-items-center">
+        <h5 class="card-title" style="font-weight: bold">{{ device.name }}</h5>
+        <div class="d-flex align-items-center gap-2"> 
+          <a class="refresh-button" href="{% url 'data_logger' %}"> 
+            <i class="fas fa-sync-alt"></i>
+          </a>
+        </div>
+      </div>
+      <div class="d-flex justify-content-between align-items-center ">
+        <div class="d-flex align-items-center ms-3">
+          <span class="last-update">{{ device.last_update }}</span>
+        </div>
+      </div>
+      <div class="d-flex justify-content-between align-items-center ">
+        <div class="d-flex align-items-center ms-3">
+          <span>{% trans "interval"%}: {{ device.interval_wifi }}</span>
+        </div>
+        <div class="d-flex align-items-center ms-3">
+          <i class="fa-solid fa-battery-full"></i>
+          <span> {{ device.battery_level }}%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-body text-center ps-5 pe-5">
+      <!-- المؤشرات -->
+      <div class="device-status">
+        <div class="d-flex justify-content-between align-items-center gap-4 flex-wrap">
+          <!-- Temperature indicators -->
+          <div class="d-flex flex-column align-items-center" style="width: 40%">
+            <div class="gauge">
+              <img src="{% static 'images/gauge-bar.png' %}" class="bar" />
+              <img src="{% static 'images/needle.png' %}"  class="needle temp-needle" />
+            </div>
+            <div class="label-container d-flex align-items-center justify-content-center gap-2 mt-2">
+              <i class="fa-solid fa-temperature-three-quarters fs-5"></i>
+              <span class="label">Temperature</span>
+            </div>
+            <div class="value fs-5 mt-1 temp-value"
+                data-status="{{ device.status }}"
+                data-min="{{ device.min_temp }}"
+                data-max="{{ device.max_temp }}">
+              {{ device.temperature }}°C
+            </div>
+          </div>
+
+          <!-- Humidity indicators -->
+          <div class="d-flex flex-column align-items-center" style="width: 40%">
+            <div class="gauge">
+              <img src="{% static 'images/gauge-bar.png' %}" class="bar" />
+              <img src="{% static 'images/needle.png' %}"  class="needle hum-needle"/>
+            </div>
+            <div class="label-container d-flex align-items-center justify-content-center gap-2 mt-2">
+              <i class="fa-solid fa-droplet"></i>
+              <span class="label">Humidity</span>
+            </div>
+            <div class="value fs-5 mt-1 hum-value"
+                data-status="{{ device.status }}"
+                data-min="{{ device.min_hum }}"
+                data-max="{{ device.max_hum}}">
+              {{ device.humidity }}%
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- sensors icons -->
+      <div class="sensors-icons gap-2">
+        <div class="d-flex justify-content-between">
+
+          {# SD Card icon #}
+          <i class="fa-solid fa-sd-card me-2 
+              {% if device.status != 'offline' %}
+                  {% if device.sdcard_error %}
+                      text-danger
+                  {% else %}
+                      text-success
+                  {% endif %}
+              {% else %}
+                  text-dark
+              {% endif %}
+          "> Sd Card</i>
+
+          {# RTC icon #}
+          <i class="fa-regular fa-clock me-2 
+              {% if device.status != 'offline' %}
+                  {% if device.rtc_error %}
+                      text-danger
+                  {% else %}
+                      text-success
+                  {% endif %}
+              {% else %}
+                  text-dark
+              {% endif %}
+          "> Rtc</i>
+
+          {# WiFi strength #}
+          <i class="fa-solid fa-wifi me-2 
+              {% if device.status != 'offline' %}
+                  text-primary
+              {% else %}
+                  text-dark
+              {% endif %}
+          ">{{ device.wifi_strength }}</i>
+
+        </div>
+      </div>
+
+
+      <!-- زر التفاصيل -->
+      <form action="/device/{{ device.device_id }}" method="get">
+        <button type="submit" class="btn-red mt-3">
+          <span data-translate="showDetails">{% trans "Show Details" %}</span>
+          <i class="fas fa-chevron-right"></i>
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+<script>
+  const i18n = {
+    interval: "{% trans 'interval' %}",
+    Temperature: "{% trans 'Temperature' %}",
+    Humidity: "{% trans 'Humidity' %}",
+    ShowDetails: "{% trans 'Show Details' %}",
+    noDevices: "{% trans 'No devices available' %}",
+    pleaseAdd: "{% trans 'Please add a new device.' %}",
+  };
+</script>

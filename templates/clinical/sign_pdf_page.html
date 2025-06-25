@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Sign the form for volunteer {{ volunteer.volunteer_id }}</h2>
+
+<div class="mb-3">
+  <a href="{{ pdf_url }}" target="_blank" class="btn btn-secondary">
+      <i class="fa fa-file-pdf me-2"></i> Open PDF in New Tab
+  </a>
+</div>
+
+<canvas id="signature-pad" width="600" height="200" style="border:1px solid #ccc;"></canvas>
+
+<button class="btn btn-danger mt-3" onclick="clearCanvas()">Clear</button>
+<button class="btn btn-success mt-3" onclick="submitSignature()">Submit</button>
+
+<form id="signature-form" method="post" action="{% url 'submit_signature' volunteer.volunteer_id %}">
+    {% csrf_token %}
+    <input type="hidden" name="signature" id="signature-data">
+</form>
+
+<script>
+  const canvas = document.getElementById('signature-pad');
+  const ctx = canvas.getContext('2d');
+  let drawing = false;
+
+  canvas.addEventListener('mousedown', (e) => {
+    drawing = true;
+    ctx.beginPath();  // <-- هنا يبدأ مسار جديد
+    ctx.moveTo(e.offsetX, e.offsetY);
+});
+
+canvas.addEventListener('mouseup', () => {
+    drawing = false;
+    ctx.closePath();  // <-- هنا يقفل المسار
+});
+
+canvas.addEventListener('mouseout', () => {
+    drawing = false;
+    ctx.closePath();
+});
+
+canvas.addEventListener('mousemove', draw);
+
+function draw(e) {
+  if (!drawing) return;
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = 'black';
+  ctx.lineTo(e.offsetX, e.offsetY);
+  ctx.stroke();
+}
+
+
+  function clearCanvas() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+
+  function submitSignature() {
+    const dataURL = canvas.toDataURL();
+    document.getElementById('signature-data').value = dataURL;
+    document.getElementById('signature-form').submit();
+  }
+</script>
+{% endblock %}

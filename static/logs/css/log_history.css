@@ -1,0 +1,111 @@
+.card-header {
+    background-color: white;
+    color: #212529;
+    border-radius: 10px 10px 0 0 !important;
+    font-weight: 600;
+    border-bottom: none;
+}
+
+.card-header.offline, .card-body.offline{
+    background-color: #dfe2e6;
+}
+
+
+thead.bg-gradient {
+    background: linear-gradient(to right, #212529, #444c53) !important;
+}
+
+/* Sticky Table Header */
+thead.sticky-header th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: transparent;
+    color: #fff;
+    font-weight: 600;
+    padding: 12px;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    border-top: 2px solid #dee2e6;
+}
+
+/* Striped Table */
+.table-striped tbody tr:nth-of-type(odd) {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* Table Hover Effect */
+.table td:hover {
+    background-color: rgba(13, 110, 253, 0.03);
+}
+
+/* Scrollbar Styling */
+.table-responsive::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: #0d6efd;
+    border-radius: 10px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #084298;
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+.btn {
+    transition: all 0.3s ease;
+}
+
+.btn-accent {
+    background-color: white;
+    color: #0d6dfc;
+    border: 2px solid #0d6dfc;
+    border-radius: 50px;
+    padding: 10px 25px;
+}
+
+.btn-accent:hover {
+    background-color: #0d6dfc;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border: 2px solid #0d6dfc;
+}
+btn-red:active{
+  background-color: #c5272f !important; /* أزرق */
+  color: white !important;
+  border: #c5272f solid 2px !important;
+}
+
+.btn-red {
+    background-color: white;
+    color: #c5272f;
+    border: 2px solid #c5272f;
+    border-radius: 50px;
+    padding: 10px 25px;
+}
+
+.btn-red:hover {
+    background-color: #c5272f;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border: 2px solid #c5272f;
+}
+
+#filterModal label,
+#filterModal select,
+#filterModal input {
+  text-align: left !important;
+  direction: ltr !important;
+}

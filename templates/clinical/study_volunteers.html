@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% block content %} 
+{% load static %}
+<link rel="stylesheet" href="#">
+<div id="contentArea" class="container-lg">
+  <!-- All Volunteers Screen -->
+  <div id="allVolunteersScreen" class="mt-4">
+    <div class="card shadow">
+      <!-- Card Header -->
+      <div class="card-header bg-dark text-white" style="height: 80px;">  <!-- حدد ارتفاع -->
+        <div class="d-flex flex-row justify-content-between align-items-stretch gap-2 py-1 px-3 h-100">
+          
+          <!-- Left: Title -->
+          <div class="flex-grow-1 text-start d-flex align-items-center">
+            <span class="fw-bold" style="font-size: calc(1rem + 0.5vw);">Volunteers for Study: {{ study.study_name }} ({{ study.study_code }})</span>
+          </div>
+
+          <!-- Right: Search -->
+          <div class="flex-grow-1 text-end d-flex flex-row justify-content-end align-items-center">
+            <div class="d-flex align-items-center mt-1 ms-2">
+              <form method="get" class="d-inline-block me-2">
+                <div class="input-group input-group-md">
+                  <input type="text" name="search" class="form-control" placeholder="Search..." value="{{ request.GET.search }}" title="Search by name or volunteer ID.">
+                  <button class="btn btn-outline-light" type="submit">
+                    <i class="fa fa-search"></i>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="card-body p-0">
+        <div class="table-responsive" style="max-height: 500px; overflow-y: auto; overflow-x: auto">
+          <table class="table table-striped table-hover mb-0 text-center align-middle" style="table-layout: auto">
+            <thead class="bg-gradient sticky-header">
+              <tr>
+                <th>Study Code</th>
+                <th>Volunteer Code</th>
+                <th>Volunteer Name</th>
+                <th>Study Status</th>
+                <th>Staffs</th>
+                <th>PDF File</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if volunteers %}
+                {% for v in volunteers %}
+                <tr>
+                  <td>{{ v.study.study_code }}</td>
+                  <td>{{ v.volunteer.volunteer_id }}</td>
+                  <td>{{ v.volunteer.first_name }} {{ v.volunteer.last_name }}</td>
+                  <td>
+                  {% if v.study.status == "created" %}
+                      <span class="badge bg-success text-white">Created</span>
+                  {% elif v.study.status == "in_progress" %}
+                      <span class="badge bg-primary text-white">In Progress</span>
+                  {% elif v.study.status == "finalized" %}
+                      <span class="badge bg-danger text-white">Finilized</span>
+                  {% else %}
+                      <span class="badge bg-secondary">Unknown</span>
+                  {% endif %}
+                  </td>
+                  <td>
+                    {% if assigned_staffs %}
+                      {% for staff in assigned_staffs %}{{ staff.username }}{% if not forloop.last %},{% endif %}{% endfor %}
+                    {% else %}
+                      <span class="text-muted">Not Assigned</span>                    
+                    {% endif %}
+                  </td>
+                  <td>
+                  {% if v.pdf_file %}
+                      <a href="{{ v.pdf_file.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                      View PDF
+                      </a>
+                  {% else %}
+                      <span class="text-muted">Not Available</span>
+                  {% endif %}
+                  </td>
+                  <td>
+                    <a href="{% url 'all_volunteers' %}?search={{ v.volunteer.volunteer_id }}" class="btn btn-sm btn-warning">
+                      Volunteer Details
+                    </a>
+                    <a href="{% url 'delete_enrollment' v.id %}" class="btn btn-sm btn-danger"
+                      onclick="return confirm('Are you sure you want to delete this enrollment?');">
+                      Delete
+                    </a>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8">No volunteers found.</td>
+                </tr>
+                {% endfor %}
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

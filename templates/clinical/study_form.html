@@ -1,0 +1,181 @@
+<!-- templates/clinical/create_study.html -->
+
+{% extends 'base.html' %} {% block content %} {% load static %}
+<div class="container-lg mt-4" style="width: 800px">
+  <div class="card shadow">
+    <div class="card-header bg-dark text-white">
+      <h5 class="mb-0"> 
+      {% if is_edit %}
+        Edit Master Study
+      {% else %}
+        Create New Master Study 
+      {% endif %}
+      </h5>
+    </div>
+    <div class="card-body">
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <!--Study Name -->
+        <div >
+          <div class="mb-4">
+            <label for="id_study_name" class="form-label">Study Name</label>
+            <div class="input-group flex-nowrap">
+              <span class="input-group-text rounded-start-pill" id="addon-wrapping">
+                <i class="fa-solid fa-tag text-primary"></i>
+              </span>
+              <input
+                type="text"
+                name="study_name"
+                class="form-control rounded-end-pill no-focus-ring {% if form.study_name.errors %}is-invalid{% endif %}"
+                id="id_study_name"
+                value="{% if is_edit %}{{ study.study_name }}{% endif %}"
+                placeholder="Study Name"
+                aria-label="Study Name"
+                aria-describedby="addon-wrapping"
+                required
+              />
+            </div>
+            {% for error in form.study_name.errors %}
+            <div class="invalid-feedback d-block">{{ error }}</div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Code -->
+        <div class="mb-4">
+          <label for="id_study_code" class="form-label">Study Code</label>
+          <div class="input-group flex-nowrap">
+            <span class="input-group-text rounded-start-pill" id="addon-wrapping">
+              <i class="fa-solid fa-terminal text-danger"></i>
+            </span>
+            <input
+              type="text"
+              name="study_code"
+              class="form-control rounded-end-pill no-focus-ring {% if form.study_code.errors %}is-invalid{% endif %}"
+              id="id_study_code"
+              value="{% if is_edit %}{{ study.study_code }}{% endif %}"
+              placeholder="Study Code"
+              aria-label="Study Code"
+              aria-describedby="addon-wrapping"
+              required
+            />
+          </div>
+          {% for error in form.study_code.errors %}
+          <div class="invalid-feedback d-block">{{ error }}</div>
+          {% endfor %}
+        </div>
+
+        <!-- PDF File -->
+        <div class="mb-3">
+          <label for="id_pdf_file" class="form-label">Upload PDF</label>
+          {{ form.pdf_file }}
+
+          {% if is_edit and study.pdf_file %}
+            <div class="mt-2">
+              <a href="{{ study.pdf_file.url }}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                <i class="fa-solid fa-file-pdf me-1 text-danger"></i> View current PDF
+              </a>
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Start and End Date -->
+        {% if is_edit %}
+        <div class="row row-cols-2 mb-3">
+          {% if study.start %}
+            
+          {% endif %}
+          <div class="col">
+            <label for="id_start_date" class="form-label">Start Date</label>
+            <input
+              type="date"
+              name="start_date"
+              id="id_start_date"
+              class="form-control"
+              value="{% if is_edit %}{{ study.start_date|date:'Y-m-d' }}{% endif %}"
+            />
+          </div>
+          <div class="col">
+            <label for="id_end_date" class="form-label">End Date</label>
+            <input
+              type="date"
+              name="end_date"
+              id="id_end_date"
+              class="form-control"
+              value="{% if is_edit %}{{ study.end_date|date:'Y-m-d' }}{% endif %}"
+            />
+          </div>
+        </div>
+        {% endif %}
+          
+        <!-- Assigned Staffs Dual Listbox -->
+        <div class="mb-4">
+          <select
+            multiple="multiple"
+            size="5"
+            name="assigned_staffs"
+            id="id_assigned_staffs"
+            class="form-control dual-listbox {% if form.assigned_staffs.errors %}is-invalid{% endif %}"
+          >
+            {% for user in form.assigned_staffs.field.queryset %}
+              <option value="{{ user.id }}"
+                {% if user.id in selected_staffs %}
+                  selected
+                {% endif %}
+              >
+                {{ user.get_full_name|default:user.username }}
+              </option>
+            {% endfor %}
+          </select>
+          {% for error in form.assigned_staffs.errors %}
+            <div class="invalid-feedback d-block">{{ error }}</div>
+          {% endfor %}
+        </div>
+
+        <!-- Save and Cancel Buttons -->
+        <div class="d-flex justify-content-between">
+          <a href="{% url 'clinical' %}" class="btn btn-outline-danger">
+            <i class="fas fa-times me-2"></i>
+            <span data-translate="cancel">Cancel</span>
+          </a>
+          <button type="submit" class="btn btn-outline-primary me-4">
+            <span>Next</span>
+            <i class="fa-solid fa-chevron-right"></i>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const nameField = document.getElementById("id_study_name");
+    const codeField = document.getElementById("id_study_code");
+
+    nameField.addEventListener("input", function () {
+      const nameValue = nameField.value;
+      if (nameValue.length > 2) {
+        fetch(`/clinical/suggest-code/?name=${encodeURIComponent(nameValue)}`)
+          .then((response) => response.json())
+          .then((data) => {
+            codeField.value = data.suggested_code;
+          });
+      }
+    });
+  });
+
+  $(document).ready(function () {
+    $('#id_assigned_staffs').bootstrapDualListbox({
+      nonSelectedListLabel: 'Available Staffs',
+      selectedListLabel: 'Assigned Staffs',
+      preserveSelectionOnMove: 'moved',
+      moveOnSelect: false,
+      infoText: 'Total {0}',
+      infoTextEmpty: 'Empty list',
+      filterPlaceHolder: 'Filter',
+      filterTextClear: 'Show all',
+    });
+  });
+</script>
+{% endblock %}
