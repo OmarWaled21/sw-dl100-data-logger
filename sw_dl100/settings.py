@@ -62,7 +62,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',  # for cross-origin support
-    'authentication',
+    'authentication.apps.AuthenticationConfig',
     'home',
     'data_logger',
     'users',
