@@ -1,5 +1,5 @@
 from pyexpat.errors import messages
-from django.shortcuts import get_object_or_404, render, redirect
+from django.shortcuts import render, redirect
 
 from data_logger.utils import get_master_time
 from .models import Category

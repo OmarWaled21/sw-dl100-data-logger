@@ -11,12 +11,24 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
-from decouple import config
+import sys
+from decouple import Config, RepositoryEnv
 import os
 from django.utils.translation import gettext_lazy as _
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+if getattr(sys, 'frozen', False):
+    # شغال كـ exe → جرب تدور على .env بجانب run.exe
+    env_external = os.path.join(os.path.dirname(sys.executable), '.env')
+    if os.path.exists(env_external):
+        config = Config(RepositoryEnv(env_external))
+    else:
+        config = Config(RepositoryEnv(os.path.join(sys._MEIPASS, 'sw_dl100', '.env')))
+else:
+    # شغال كسورس كود
+    config = Config(RepositoryEnv(os.path.join(BASE_DIR, 'sw_dl100', '.env')))
+
 
 STATIC_URL = '/static/'
 
