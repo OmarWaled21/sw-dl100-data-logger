@@ -123,7 +123,6 @@ def add_device(request):
     temperature = request.data.get('temperature')
     humidity = request.data.get('humidity')
     wifi_strength = request.data.get('wifi_strength')
-    firmware_url = request.data.get('firmware_url')
     last_update = request.data.get('last_update')
     
 
@@ -145,7 +144,6 @@ def add_device(request):
         temperature=temperature,
         wifi_strength=wifi_strength,
         humidity=humidity,
-        firmware_url=firmware_url,
         last_update=last_update
     )
 

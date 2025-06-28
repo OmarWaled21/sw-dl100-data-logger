@@ -4,8 +4,6 @@ from rest_framework.permissions import IsAuthenticated
 from .models import Device, MasterClock, DeviceReading
 from .serializers import DeviceSerializer, MasterClockSerializer, DeviceReadingSerializer
 from .utils import get_master_time
-from django.utils.dateparse import parse_datetime
-from django.utils.timezone import make_aware
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -65,7 +63,7 @@ def api_add_device_reading(request):
         device_id = request.data.get('device_id')
         temperature = float(request.data.get('temperature'))
         humidity = float(request.data.get('humidity'))
-        time = request.data.get('last_update')
+        time = get_master_time()
     except (TypeError, ValueError):
         return Response({'message': 'Invalid or missing fields'}, status=400)
 
@@ -83,3 +81,32 @@ def api_add_device_reading(request):
 
     serializer = DeviceReadingSerializer(reading)
     return Response({'success': True, 'message': 'Device reading added successfully' ,'results': serializer.data})
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_update_firmware_info(request):
+    try:
+        device_id = request.data.get('device_id')
+        firmware_version = request.data.get('firmware_version')
+    except:
+        return Response({'message': 'Missing device_id or firmware_version'}, status=400)
+
+    try:
+        device = Device.objects.get(device_id=device_id)
+    except Device.DoesNotExist:
+        return Response({'message': 'Device not found'}, status=404)
+
+    # تحديث البيانات
+    device.firmware_version = firmware_version
+    device.firmware_updated_at = get_master_time()
+    device.save()
+
+    return Response({
+        'success': True,
+        'message': 'Firmware version updated successfully',
+        'results': {
+            'device_id': device.device_id,
+            'firmware_version': device.firmware_version,
+            'firmware_updated_at': device.firmware_updated_at
+        }
+    })

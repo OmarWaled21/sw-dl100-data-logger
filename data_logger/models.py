@@ -3,7 +3,6 @@ from django.core.exceptions import ValidationError
 from django.conf import settings
 from django.utils import timezone
 from datetime import timedelta
-import requests 
 from .utils import get_master_time
 from logs.models import DeviceLog
 
@@ -48,7 +47,7 @@ class Device(models.Model):
     sd_card_error = models.BooleanField(default=False)
     last_update = models.DateTimeField(null=True, blank=True)
     firmware_version = models.CharField(max_length=20, default='1.0.0')
-    firmware_url = models.URLField(blank=True, null=True)
+    firmware_updated_at = models.DateTimeField(null=True, blank=True, default=None)
     last_calibrated = models.DateTimeField(default=timezone.now)
     interval_wifi = models.IntegerField(default=60)
     interval_local = models.IntegerField(default=60)
@@ -150,30 +149,6 @@ class Device(models.Model):
             self.save()
 
         return self.status
-
-    def update_firmware(self):
-        """تحديث الفيرموير بناءً على الـ firmware_url"""
-        if not self.firmware_url:
-            raise ValueError("No firmware URL provided.")
-        
-        try:
-            # استدعاء الرابط لتنزيل الفيرموير (فقط كمثال)
-            response = requests.get(self.firmware_url)
-            if response.status_code == 200:
-                # عملية التحديث الفعلي هنا (مثلاً تحميل الفيرموير إلى الجهاز)
-                # تحتاج إلى تخصيص هذه العملية حسب كيفية تحديث الفيرموير في جهازك
-                self.firmware_version = 'Updated Version'  # تحديث النسخة الجديدة
-                self.save()  # حفظ التحديث في قاعدة البيانات
-                return True
-            else:
-                raise ValueError(f"Failed to download firmware. Status code: {response.status_code}")
-        except Exception as e:
-            raise ValueError(f"Error updating firmware: {str(e)}")
-    
-    def clear_firmware_url_if_updated(self, new_version):
-        if new_version == self.firmware_version:
-            self.firmware_url = None
-            self.save()
 
 class DeviceReading(models.Model):
     device = models.ForeignKey('Device', on_delete=models.CASCADE)
