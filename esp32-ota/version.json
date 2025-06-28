@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "url": "https://github.com/OmarWaled21/esp32-ota/releases/download/v1.2.0/firmware.bin",
+  "url": "https://github.com/OmarWaled21/esp32-ota/releases/download/v1.0.1/firmware_v1.0.1.bin",
   "notes": "تحسين استقرار الحساسات - تقليل استهلاك الطاقة",
   "mandatory": false
 }
