@@ -182,7 +182,7 @@ TIME_ZONE = 'Africa/Cairo'
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 
 # Media settings
 MEDIA_URL = '/media/'
