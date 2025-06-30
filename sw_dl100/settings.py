@@ -81,6 +81,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'corsheaders.middleware.CorsMiddleware',
+    'sw_dl100.middleware.OnlyAllowFromCaddyMiddleware',
 ]
 
 REST_FRAMEWORK = {
@@ -98,6 +99,8 @@ ROOT_URLCONF = 'sw_dl100.urls'
 
 CSRF_TRUSTED_ORIGINS = [
     'https://*.ngrok-free.app',
+    'https://192.168.1.50',
+    'https://127.0.0.1'
 ]
 
 TWILIO_ACCOUNT_SID = config('TWILIO_ACCOUNT_SID')
@@ -183,6 +186,7 @@ TIME_ZONE = 'Africa/Cairo'
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Media settings
 MEDIA_URL = '/media/'

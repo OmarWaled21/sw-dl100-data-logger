@@ -24,12 +24,12 @@ def start_udp_discovery():
         for port in range(base_port, max_port + 1):
             try:
                 sock.bind(('', port))
-                print(f"📡 UDP discovery server started on port {port}")
+                print(f"UDP discovery server started on port {port}")
                 break
             except OSError:
                 continue
         else:
-            print("❌ No available UDP ports found.")
+            print("No available UDP ports found.")
             return
 
         while True:
@@ -37,10 +37,10 @@ def start_udp_discovery():
                 data, addr = sock.recvfrom(1024)
                 if data.decode().strip() == "DISCOVER_SERVER":
                     ip = get_local_ip()
-                    print(f"📨 Request from {addr}, replying with {ip}")
+                    print(f"Request from {addr}, replying with {ip}")
                     response = f"TOMATIKI_SERVER_IP:{ip}:{SERVER_HTTP_PORT}"
                     sock.sendto(response.encode(), addr)
             except Exception as e:
-                print("❌ UDP Error:", e)
+                print("UDP Error:", e)
 
     threading.Thread(target=run, daemon=True).start()
