@@ -17,28 +17,37 @@
         <h2>Device Data - {{ device.name }}</h2>
         <img class="logo" src="data:image/png;base64,{{ logo_base64 }}" alt="Logo">
     </div>
-    <p>Date: {{ filter_date }}</p>
+    <p>Date Range: {{ start_date }} - {{ end_date }}</p>
     <p>Generated at: {{ now }}</p>
 
     <table>
         <thead>
             <tr>
                 <th>Timestamp</th>
+                {% if include_temp %}
                 <th>Temperature (°C)</th>
+                {% endif %}
+                {% if include_hum %}
                 <th>Humidity (%)</th>
+                {% endif %}
             </tr>
         </thead>
         <tbody>
             {% for row in rows %}
                 <tr>
-                    <td>{{ row.timestamp }}</td>
+                <td>{{ row.timestamp }}</td>
+                {% if include_temp %}
                     <td>{{ row.temperature }}</td>
+                {% endif %}
+                {% if include_hum %}
                     <td>{{ row.humidity }}</td>
+                {% endif %}
                 </tr>
             {% empty %}
                 <tr><td colspan="3">No data found for this date.</td></tr>
             {% endfor %}
-        </tbody>
+            </tbody>
+
     </table>
 </body>
 </html>

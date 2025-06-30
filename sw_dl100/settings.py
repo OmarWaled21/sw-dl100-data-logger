@@ -81,7 +81,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'corsheaders.middleware.CorsMiddleware',
-    'sw_dl100.middleware.OnlyAllowFromCaddyMiddleware',
+    # 'sw_dl100.middleware.OnlyAllowFromCaddyMiddleware',
 ]
 
 REST_FRAMEWORK = {

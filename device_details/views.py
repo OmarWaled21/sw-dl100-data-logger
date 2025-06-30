@@ -100,17 +100,23 @@ def device_details(request, device_id):
        
         # ========== كل القراءات للجدول ==========
         # قراءة التاريخ من طلب الـ GET
-        date_str = request.GET.get('filter_date')
+        start_date_str = request.GET.get('start_date')
+        end_date_str = request.GET.get('end_date')
 
-        if date_str:
-            filter_date = parse_date(date_str)
+        if start_date_str and end_date_str:
+            try:
+                start_date = parse_date(start_date_str)
+                end_date = parse_date(end_date_str)
+                day_start = datetime.combine(start_date, datetime.min.time())
+                day_end = datetime.combine(end_date, datetime.max.time())
+            except ValueError:
+                day_end = get_master_time()
+                day_start = day_end - timedelta(days=1)
         else:
-            # إذا لم يحدد المستخدم، نعتمد تاريخ آخر قراءة أو اليوم
-            filter_date = last_reading.timestamp.date() if last_reading else get_master_time().date()
+            fallback_date = last_reading.timestamp.date() if last_reading else get_master_time().date()
+            day_start = datetime.combine(fallback_date, datetime.min.time())
+            day_end = datetime.combine(fallback_date, datetime.max.time())
 
-        # بداية ونهاية اليوم المختار للتصفية
-        day_start = datetime.combine(filter_date, datetime.min.time())
-        day_end = datetime.combine(filter_date, datetime.max.time())
 
         # تصفية القراءات للجدول حسب التاريخ المختار
         filtered_readings = DeviceReading.objects.filter(
@@ -148,7 +154,8 @@ def device_details(request, device_id):
                 'temp_data': chart_temp_data,
                 'hum_data': chart_hum_data,
                 'combined_data': combined_data,
-                'filter_date': filter_date.strftime('%Y-%m-%d'),
+                'start_date': start_date_str or day_start.strftime('%Y-%m-%d'),
+                'end_date': end_date_str or day_end.strftime('%Y-%m-%d'),
                 # البطارية
                 'battery_icon': battery_icon,
                 'battery_class': battery_class,
@@ -177,7 +184,8 @@ def device_details(request, device_id):
             'temp_data': chart_temp_data,
             'hum_data': chart_hum_data,
             'combined_data': combined_data,
-            'filter_date': filter_date.strftime('%Y-%m-%d'),  # ✅ أضف هذا السطر
+            'start_date': start_date_str or day_start.strftime('%Y-%m-%d'),
+            'end_date': end_date_str or day_end.strftime('%Y-%m-%d'),
             'battery_icon': battery_icon,
             'battery_class': battery_class,
             'battery_status': battery_status,
@@ -187,30 +195,31 @@ def device_details(request, device_id):
     except Device.DoesNotExist:
         return redirect('data_logger')
     
-    
-
 @login_required
 def download_device_data_pdf(request, device_id):
     try:
         device = Device.objects.get(device_id=device_id)
     except Device.DoesNotExist:
         return redirect('data_logger')
-
-    filter_date = request.GET.get('filter_date')
     
-    if filter_date:
+    start_date_str = request.GET.get('start_date')
+    end_date_str = request.GET.get('end_date')
+    include_temp = request.GET.get('include_temp') == '1'
+    include_hum = request.GET.get('include_hum') == '1'
+
+    if start_date_str and end_date_str:
         try:
-            # بداية ونهاية اليوم بالتوقيت الموحد
-            naive_start = datetime.strptime(filter_date, "%Y-%m-%d")
-            start_time = datetime.combine(naive_start, datetime.min.time())
-            end_time = datetime.combine(naive_start, datetime.max.time())
+            start_date = datetime.strptime(start_date_str, "%Y-%m-%d")
+            end_date = datetime.strptime(end_date_str, "%Y-%m-%d")
+            start_time = datetime.combine(start_date, datetime.min.time())
+            end_time = datetime.combine(end_date, datetime.max.time())
         except ValueError:
-            start_time = get_master_time().replace(hour=0, minute=0, second=0, microsecond=0)
-            end_time = start_time + timedelta(days=1)
+            end_time = get_master_time()
+            start_time = end_time - timedelta(hours=12)
     else:
-        # بدون فلترة نأخذ آخر 12 ساعة كافتراضي
         end_time = get_master_time()
         start_time = end_time - timedelta(hours=12)
+
 
     # جلب القراءات
     readings = DeviceReading.objects.filter(
@@ -219,13 +228,15 @@ def download_device_data_pdf(request, device_id):
         timestamp__lte=end_time
     ).order_by('-timestamp')
 
-    data_rows = [
-        {
-            'timestamp': r.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-            'temperature': r.temperature,
-            'humidity': r.humidity
-        } for r in readings
-    ]
+    # بناء الأعمدة حسب ما هو مطلوب
+    data_rows = []
+    for r in readings:
+        row = {'timestamp': r.timestamp.strftime("%Y-%m-%d %H:%M:%S")}
+        if include_temp:
+            row['temperature'] = r.temperature
+        if include_hum:
+            row['humidity'] = r.humidity
+        data_rows.append(row)
 
     # تجهيز اللوجو (اختياري)
     logo_path = 'static/images/tomatiki_logo.png'
@@ -238,9 +249,12 @@ def download_device_data_pdf(request, device_id):
     context = {
         'device': device,
         'rows': data_rows,
-        'filter_date': filter_date,
+        'start_date': start_date_str or start_time.strftime('%Y-%m-%d'),
+        'end_date': end_date_str or end_time.strftime('%Y-%m-%d'),
         'now': get_master_time(),
         'logo_base64': logo_base64,
+        'include_temp': include_temp,
+        'include_hum': include_hum,
     }
 
     html_string = render_to_string('device_details/device_data_pdf.html', context)

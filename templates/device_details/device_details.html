@@ -229,48 +229,66 @@
             <h4 class="fw-bold mb-3">{% trans "All Device Readings" %}</h4>
             <!-- إضافة فورم صغير لفلترة التاريخ -->
             <div class="d-flex align-items-center justify-content-between">
-                <form method="get" class="mb-3 d-flex align-items-center gap-2" id="filter_date_form">
-                  <label for="filter_date" class="form-label mb-0 fw-bold">{% trans "choose a date" %}:</label>
-                  <input type="date" id="filter_date" name="filter_date" class="form-control w-auto" value="{{ filter_date }}">
-                  <button type="submit" class="btn btn-primary mt-2">{% trans "filter" %}</button>
-                </form>
+              <form method="get" class="mb-3 d-flex align-items-center gap-2" id="filter_date_form">
+                <label for="start_date" class="form-label mb-0 fw-bold">{% trans "From" %}:</label>
+                <input type="date" id="start_date" name="start_date" class="form-control w-auto" value="{{ start_date }}">
 
-                <form method="get" action="{% url 'download_device_data_pdf' device.device_id %}" target="_blank">
-                  <input type="hidden" name="filter_date" value="{{ filter_date }}">
-                  <button type="submit" class="btn btn-sm btn-success">
-                      <i class="fa-solid fa-file-export"></i>
-                      {% trans "Download PDF" %}
-                  </button>
-                </form>
+                <label for="end_date" class="form-label mb-0 fw-bold">{% trans "To" %}:</label>
+                <input type="date" id="end_date" name="end_date" class="form-control w-auto" value="{{ end_date }}">
+
+                <button type="submit" class="btn btn-primary mt-2">{% trans "filter" %}</button>
+              </form>
+
+              <form method="get" action="{% url 'download_device_data_pdf' device.device_id %}" target="_blank">
+                <input type="hidden" name="start_date" value="{{ start_date }}">
+                <input type="hidden" name="end_date" value="{{ end_date }}">
+                <input type="hidden" name="include_temp" id="pdf_include_temp" value="1">
+                <input type="hidden" name="include_hum" id="pdf_include_hum" value="1">
+                <button type="submit" class="btn btn-sm btn-success">
+                    <i class="fa-solid fa-file-export"></i>
+                    {% trans "Download PDF" %}
+                </button>
+              </form>
             </div>
 
-              <!-- عرض التاريخ المختار فوق الجدول -->
-              <h5 id="current_filter_date">{% trans "Choose a Date" %}: {{ filter_date }}</h5>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="checkbox" id="toggle_temp" checked>
+              <label class="form-check-label fw-bold" for="toggle_temp">{% trans "Show Temperature" %}</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="checkbox" id="toggle_hum" checked>
+              <label class="form-check-label fw-bold" for="toggle_hum">{% trans "Show Humidity" %}</label>
+            </div>
 
-              <div class="table-responsive data-table" style="max-height: 400px; overflow-y: auto;">
-                  <table class="table table-bordered table-striped mb-0" id="readings_table">
-                      <thead>
-                          <tr>
-                            <th>{% trans "Time" %}</th>
-                            <th>{% trans "Temperature" %} (°C)</th>
-                            <th>{% trans "Humidity" %} (%)</th>
-                          </tr>
-                      </thead>
-                      <tbody>
-                        {% for label, temp, hum in combined_data %}
-                            <tr>
-                                <td>{{ label }}</td>
-                                <td>{{ temp }}</td>
-                                <td>{{ hum }}</td>
-                            </tr>
-                        {% empty %}
-                            <tr>
-                                <td colspan="3" class="text-center">{% trans "No data available for the selected date" %}.</td>
-                            </tr>
-                        {% endfor %}
-                      </tbody>
-                  </table>
-              </div>
+            <!-- عرض التاريخ المختار فوق الجدول -->
+            <h5 id="current_filter_date">
+              {% trans "Date Range" %}: {{ start_date }} - {{ end_date }}
+            </h5>
+
+            <div class="table-responsive data-table" style="max-height: 400px; overflow-y: auto;">
+              <table class="table table-bordered table-striped mb-0" id="readings_table">
+                <thead>
+                  <tr>
+                    <th>{% trans "Time" %}</th>
+                    <th class="temp-col">{% trans "Temperature" %} (°C)</th>
+                    <th class="hum-col">{% trans "Humidity" %} (%)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for label, temp, hum in combined_data %}
+                    <tr>
+                      <td>{{ label }}</td>
+                      <td class="temp-col">{{ temp }}</td>
+                      <td class="hum-col">{{ hum }}</td>
+                    </tr>
+                  {% empty %}
+                    <tr>
+                      <td colspan="3" class="text-center">{% trans "No data available for the selected date" %}.</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
@@ -295,5 +313,43 @@
     error: "{% trans 'Error' %}",
     offline: "{% trans 'Offline' %}",
   };
+
+  const tempCheckbox = document.getElementById("toggle_temp");
+  const humCheckbox = document.getElementById("toggle_hum");
+
+  const pdfIncludeTemp = document.getElementById("pdf_include_temp");
+  const pdfIncludeHum = document.getElementById("pdf_include_hum");
+
+  function updateVisibility() {
+    const tempVisible = tempCheckbox.checked;
+    const humVisible = humCheckbox.checked;
+
+    // منع إخفاء الاتنين معًا
+    if (!tempVisible && !humVisible) {
+      if (event.target.id === "toggle_temp") {
+        humCheckbox.checked = true;
+      } else {
+        tempCheckbox.checked = true;
+      }
+      return;
+    }
+
+    // إظهار/إخفاء الأعمدة
+    document.querySelectorAll(".temp-col").forEach(el => {
+      el.style.display = tempVisible ? "" : "none";
+    });
+    document.querySelectorAll(".hum-col").forEach(el => {
+      el.style.display = humVisible ? "" : "none";
+    });
+
+    // تعديل بيانات الفورم بتاع الـ PDF
+    pdfIncludeTemp.value = tempVisible ? "1" : "0";
+    pdfIncludeHum.value = humVisible ? "1" : "0";
+  }
+
+  tempCheckbox.addEventListener("change", updateVisibility);
+  humCheckbox.addEventListener("change", updateVisibility);
+
+  updateVisibility();  // مبدئيًا عند التحميل
 </script>
 {% endblock %}
