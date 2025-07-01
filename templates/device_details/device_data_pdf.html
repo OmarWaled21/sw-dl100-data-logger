@@ -20,6 +20,11 @@
     <p>Date Range: {{ start_date }} - {{ end_date }}</p>
     <p>Generated at: {{ now }}</p>
 
+    {% if graph_base64 %}
+        <h4>Device Graph</h4>
+        <img src="data:image/png;base64,{{ graph_base64 }}" alt="Graph" style="width:100%; max-height:400px; margin-top:10px;">
+    {% endif %}
+
     <table>
         <thead>
             <tr>
@@ -47,7 +52,48 @@
                 <tr><td colspan="3">No data found for this date.</td></tr>
             {% endfor %}
             </tbody>
-
     </table>
+    {% if temp_summary or hum_summary %}
+<h4>Summary</h4>
+<table style="width: 100%; border: 1px solid #ccc; margin-top: 10px;">
+    <thead>
+        <tr>
+            <th></th>
+            {% if temp_summary %}
+              <th>Temperature (°C)</th>
+            {% endif %}
+            {% if hum_summary %}
+              <th>Humidity (%)</th>
+            {% endif %}
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Max</td>
+            {% if temp_summary %}<td>{{ temp_summary.max }}</td>{% endif %}
+            {% if hum_summary %}<td>{{ hum_summary.max }}</td>{% endif %}
+        </tr>
+        <tr>
+            <td>Min</td>
+            {% if temp_summary %}<td>{{ temp_summary.min }}</td>{% endif %}
+            {% if hum_summary %}<td>{{ hum_summary.min }}</td>{% endif %}
+        </tr>
+        <tr>
+            <td>Average</td>
+            {% if temp_summary %}<td>{{ temp_summary.avg }}</td>{% endif %}
+            {% if hum_summary %}<td>{{ hum_summary.avg }}</td>{% endif %}
+        </tr>
+        <tr>
+            <td>Most Repeated</td>
+            {% if temp_summary %}<td>{{ temp_summary.mode }}</td>{% endif %}
+            {% if hum_summary %}<td>{{ hum_summary.mode }}</td>{% endif %}
+        </tr>
+    </tbody>
+</table>
+{% endif %}
+{% if bar_chart_base64 %}
+  <h4>Bar Chart (Extremes)</h4>
+  <img src="data:image/png;base64,{{ bar_chart_base64 }}" style="width: 100%; max-height: 300px;">
+{% endif %}
 </body>
 </html>

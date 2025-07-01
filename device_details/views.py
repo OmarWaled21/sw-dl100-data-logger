@@ -15,6 +15,12 @@ from PIL import Image
 import io
 from django.template.loader import render_to_string
 import base64
+from statistics import mean, mode, StatisticsError
+import matplotlib.pyplot as plt
+from matplotlib.dates import DateFormatter
+import matplotlib
+matplotlib.use('Agg')  # مهم جدًا علشان نولد صورة بدون واجهة GUI
+
 
 def calculate_hourly_averages(readings):
     # مجموعة البيانات حسب كل ساعة
@@ -195,6 +201,63 @@ def device_details(request, device_id):
     except Device.DoesNotExist:
         return redirect('data_logger')
     
+    
+def aggregate_data_for_graph(data_rows):
+    from collections import defaultdict
+
+    total_points = len(data_rows)
+
+    if total_points <= 100:
+        # استخدم البيانات كما هي
+        return [
+            {
+                'timestamp': datetime.strptime(r['timestamp'], "%Y-%m-%d %H:%M:%S"),
+                'temperature': r.get('temperature'),
+                'humidity': r.get('humidity')
+            }
+            for r in data_rows
+        ]
+
+    # قرر مستوى التجميع
+    if total_points <= 1000:
+        group_by = 'hour'
+    else:
+        group_by = 'day'
+
+    grouped = defaultdict(lambda: {'temp': 0, 'hum': 0, 'count': 0})
+    for r in data_rows:
+        ts = datetime.strptime(r['timestamp'], "%Y-%m-%d %H:%M:%S")
+        if group_by == 'hour':
+            key = ts.replace(minute=0, second=0, microsecond=0)
+        else:
+            key = ts.replace(hour=0, minute=0, second=0, microsecond=0)
+
+        grouped[key]['temp'] += r.get('temperature', 0)
+        grouped[key]['hum'] += r.get('humidity', 0)
+        grouped[key]['count'] += 1
+
+    # تجهيز المتوسطات
+    aggregated_data = []
+    for key in sorted(grouped.keys()):
+        count = grouped[key]['count']
+        aggregated_data.append({
+            'timestamp': key,
+            'temperature': round(grouped[key]['temp'] / count, 2) if count else None,
+            'humidity': round(grouped[key]['hum'] / count, 2) if count else None
+        })
+
+    return aggregated_data
+
+
+def get_summary_stats(values):
+    return {
+        'max': max(values) if values else None,
+        'min': min(values) if values else None,
+        'avg': round(mean(values), 2) if values else None,
+        'mode': round(mode(values), 2) if values else None if values else None,
+    }
+    
+    
 @login_required
 def download_device_data_pdf(request, device_id):
     try:
@@ -237,6 +300,68 @@ def download_device_data_pdf(request, device_id):
         if include_hum:
             row['humidity'] = r.humidity
         data_rows.append(row)
+        
+    # تجهيز بيانات الجراف
+    graph_data = aggregate_data_for_graph(data_rows)
+    timestamps = [row['timestamp'] for row in graph_data]
+    temps = [row['temperature'] for row in graph_data if include_temp]
+    hums = [row['humidity'] for row in graph_data if include_hum]
+
+    temp_summary = get_summary_stats(temps) if include_temp else None
+    hum_summary = get_summary_stats(hums) if include_hum else None
+
+    fig, ax = plt.subplots(figsize=(10, 4))
+
+    if include_temp:
+        ax.plot(timestamps, temps, label="Temperature (°C)", color="red", marker='o')
+    if include_hum:
+        ax.plot(timestamps, hums, label="Humidity (%)", color="blue", marker='x')
+
+    ax.set_title(f"Device Data: {device.name}")
+    ax.set_xlabel("Time")
+    ax.set_ylabel("Value")
+    ax.legend()
+    ax.xaxis.set_major_formatter(DateFormatter("%Y-%m-%d\n%H:%M"))
+
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+
+    # حفظ الصورة في base64
+    img_buffer = io.BytesIO()
+    plt.savefig(img_buffer, format="png")
+    img_buffer.seek(0)
+    graph_base64 = base64.b64encode(img_buffer.getvalue()).decode('utf-8')
+    plt.close(fig)
+
+    bar_chart_base64 = None
+
+    if (include_temp and temps) or (include_hum and hums):
+        fig, ax = plt.subplots(figsize=(6, 4))
+
+        categories = []
+        values = []
+        colors = []
+
+        if include_temp:
+            categories += ["Temp Max", "Temp Min"]
+            values += [temp_summary['max'], temp_summary['min']]
+            colors += ["red", "lightcoral"]
+
+        if include_hum:
+            categories += ["Hum Max", "Hum Min"]
+            values += [hum_summary['max'], hum_summary['min']]
+            colors += ["blue", "lightblue"]
+
+        ax.bar(categories, values, color=colors)
+        ax.set_title("Temperature & Humidity Extremes")
+        ax.set_ylabel("Value")
+
+        buf = io.BytesIO()
+        plt.tight_layout()
+        plt.savefig(buf, format="png")
+        buf.seek(0)
+        bar_chart_base64 = base64.b64encode(buf.read()).decode('utf-8')
+        plt.close(fig)
 
     # تجهيز اللوجو (اختياري)
     logo_path = 'static/images/tomatiki_logo.png'
@@ -255,6 +380,10 @@ def download_device_data_pdf(request, device_id):
         'logo_base64': logo_base64,
         'include_temp': include_temp,
         'include_hum': include_hum,
+        'graph_base64': graph_base64,
+        'temp_summary': temp_summary,
+        'hum_summary': hum_summary,
+        'bar_chart_base64': bar_chart_base64,
     }
 
     html_string = render_to_string('device_details/device_data_pdf.html', context)
