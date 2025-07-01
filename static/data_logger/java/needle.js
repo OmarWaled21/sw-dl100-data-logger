@@ -92,3 +92,6 @@ function updateNeedle(valueText, needle) {
 
   console.log(`Value: ${value}, Min: ${min}, Max: ${max}, Color: ${color}`);
 }
+
+document.addEventListener("DOMContentLoaded", updateNeedles);
+

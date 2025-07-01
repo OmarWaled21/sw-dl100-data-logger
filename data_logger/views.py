@@ -1,14 +1,20 @@
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
-from .utils import get_master_time
-from .forms import  MasterClockForm
-from .models import Device, MasterClock
-from rest_framework.authtoken.models import Token
+from django.contrib import messages
+from django.urls import reverse
+from django.shortcuts import get_object_or_404
 from django.db.models import Case, When, Value, IntegerField
 from django.views.decorators.cache import never_cache
-from django.urls import reverse
-from django.contrib import messages
 from django.utils.formats import date_format
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
+from rest_framework.authtoken.models import Token
+from .utils import get_master_time
+from .forms import  MasterClockForm, AutoReportForm
+from .models import Device, MasterClock, AutoReportSchedule, AutoReportSettings
+
+
+DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
 @never_cache
 def data_logger(request):
@@ -17,14 +23,13 @@ def data_logger(request):
 
     if not request.user.categories.filter(slug='data_logger').exists():
         messages.error(request, "You don't have permission to access this page.")
-        return redirect('home')  # أو لأي قسم عنده صلاحية
+        return redirect('home')
 
     if request.user.role == 'admin':
-        device_qs  = Device.objects.filter(admin=request.user)
+        device_qs = Device.objects.filter(admin=request.user)
     else:
-        device_qs  = Device.objects.filter(admin=request.user.admin)
-    
-     # ترتيب حسب الحالة: green -> red -> gray
+        device_qs = Device.objects.filter(admin=request.user.admin)
+
     status_order = Case(
         When(status='working', then=Value(0)),
         When(status='error', then=Value(1)),
@@ -32,19 +37,43 @@ def data_logger(request):
         default=Value(3),
         output_field=IntegerField()
     )
-
     devices = device_qs.annotate(status_order=status_order).order_by('status_order', 'name')
-    
-    # تحديث جميع الحالات قبل عرض الصفحة
+
+    # 🕓 تحديث الحالات والوقت
     for device in devices:
         device.update_status()
-    
-    # تحديث الوقت
     master_time = get_master_time()
 
-     # 👇 هنا أضف التوكين للكونتكست
+    # 🔐 توكن
     token = Token.objects.get(user=request.user).key
 
+    # ⏱️ Auto Report Schedule Logic
+    schedules = AutoReportSchedule.objects.all()
+    for s in schedules:
+        if s.schedule_type == 'weekly' and s.weekday is not None:
+            s.day_display = DAY_NAMES[s.weekday]
+        elif s.schedule_type == 'monthly' and s.month_day:
+            s.day_display = f"Day {s.month_day}"
+        else:
+            s.day_display = "Daily"
+
+    # ✅ خزن الـ IDs بتاعة الأجهزة المستخدمة
+    used_device_ids = set(
+        str(device_id)
+        for schedule in AutoReportSchedule.objects.prefetch_related('devices')
+        for device_id in schedule.devices.values_list('id', flat=True)
+    )
+
+
+    form = AutoReportForm(request.POST or None, used_device_ids=used_device_ids)
+    
+    auto_report_enabled = AutoReportSettings.objects.get_or_create(id=1)[0].enabled
+
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        return redirect('data_logger')  # 👈 بيرجع لنفس الصفحة ويعرض الجدول الجديد
+
+    # 🔁 التعامل مع Ajax refresh
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         data = {
             'current_time': master_time.strftime("%Y-%m-%d %H:%M:%S"),
@@ -61,14 +90,15 @@ def data_logger(request):
                 'wifi_strength', 'sd_card_error',
                 'rtc_error', 'temp_sensor_error', 'hum_sensor_error',
                 'min_temp', 'max_temp', 'min_hum', 'max_hum', 'interval_wifi', 'interval_local', 'battery_level'
-            ))
+            )),
         }
         return JsonResponse(data)
 
+    # ✅ تجميع كل حاجة في الـ context
     context = {
         'page_title': 'Data Logger',
         'token': token,
-        'current_time': master_time,  # اعرض الوقت المحدث هنا
+        'current_time': master_time,
         'translated_date': date_format(master_time.date(), format='DATE_FORMAT', use_l10n=True),
         'devices': devices,
         'total_devices': devices.count(),
@@ -78,8 +108,35 @@ def data_logger(request):
             'error': devices.filter(status='error').count(),
             'offline': devices.filter(status='offline').count(),
         },
+        'schedules': schedules,
+        'form': form,
+        'used_device_ids': used_device_ids,
+        'auto_report_enabled': auto_report_enabled, 
     }
+
     return render(request, 'data_logger/data_logger.html', context)
+
+@require_POST
+def toggle_auto_report(request):
+    setting, _ = AutoReportSettings.objects.get_or_create(id=1)
+    setting.enabled = not setting.enabled
+    setting.save()
+    return redirect('data_logger')
+
+@require_POST
+@login_required
+def delete_schedule(request, schedule_id):
+    schedule = get_object_or_404(AutoReportSchedule, id=schedule_id)
+
+    # صلاحية: admin فقط أو مالك الجهاز؟
+    if request.user.role != 'admin':
+        messages.error(request, "You don't have permission to delete schedules.")
+        return redirect('data_logger')
+
+    schedule.delete()
+    messages.success(request, "Schedule deleted successfully.")
+    return redirect('data_logger')
+
 
 @never_cache
 def edit_master_clock(request):

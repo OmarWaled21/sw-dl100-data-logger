@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-06-24 13:30+0300\n"
+"POT-Creation-Date: 2025-07-01 23:02+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -19,11 +19,11 @@ msgstr ""
 "Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 "
 "&& n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5;\n"
 
-#: .\sw_dl100\settings.py:147
+#: .\sw_dl100\settings.py:162
 msgid "Arabic"
 msgstr "عربي"
 
-#: .\sw_dl100\settings.py:148
+#: .\sw_dl100\settings.py:163
 msgid "English"
 msgstr "إنحليزي"
 
@@ -41,12 +41,14 @@ msgstr "مرحبًا"
 msgid "Please login to your account"
 msgstr "يرجى تسجيل الدخول إلى حسابك"
 
-#: .\templates\authentication\login.html:26 .\templates\users\add_user.html:21
-#: .\templates\users\my_users.html:23
+#: .\templates\authentication\login.html:26
+#: .\templates\authentication\update_account.html:17
+#: .\templates\authentication\update_account.html:28
+#: .\templates\users\add_user.html:16 .\templates\users\my_users.html:23
 msgid "Username"
 msgstr "اسم المستخدم"
 
-#: .\templates\authentication\login.html:40 .\templates\users\add_user.html:62
+#: .\templates\authentication\login.html:40 .\templates\users\add_user.html:57
 msgid "Password"
 msgstr "كلمة المرور"
 
@@ -63,7 +65,7 @@ msgid "Forgot Password"
 msgstr "هل نسيت كلمة المرور؟"
 
 #: .\templates\authentication\password_reset.html:17
-#: .\templates\users\add_user.html:41 .\templates\users\my_users.html:24
+#: .\templates\users\add_user.html:36 .\templates\users\my_users.html:24
 msgid "Email"
 msgstr "البريد الإلكتروني"
 
@@ -111,7 +113,8 @@ msgid "Set New Password"
 msgstr "إعادة تعيين كلمة مرور جديدة"
 
 #: .\templates\authentication\password_reset_confirm.html:12
-#: .\templates\authentication\update_account.html:63
+#: .\templates\authentication\update_account.html:67
+#: .\templates\authentication\update_account.html:77
 msgid "New Password"
 msgstr "كلمة المرور جديدة"
 
@@ -127,25 +130,89 @@ msgstr "إعادة تعيين كلمة المرور"
 msgid "Update my account"
 msgstr "تحديث الحساب"
 
-#: .\templates\authentication\update_account.html:36
+#: .\templates\authentication\update_account.html:40
+#: .\templates\authentication\update_account.html:50
 msgid "Old Password"
 msgstr "كلمة المرور القديمة"
 
-#: .\templates\authentication\update_account.html:86
-#: .\templates\users\add_user.html:84
+#: .\templates\authentication\update_account.html:92
+#: .\templates\authentication\update_account.html:102
+#: .\templates\users\add_user.html:79
 msgid "Confirm Password"
 msgstr "تأكيد كلمة المرور"
 
-#: .\templates\authentication\update_account.html:112
+#: .\templates\authentication\update_account.html:119
 #: .\templates\data_logger\edit_master_clock.html:22
 #: .\templates\device_details\device_settings_modal.html:150
 msgid "Save Changes"
 msgstr "حفظ"
 
-#: .\templates\authentication\update_account.html:122
-#: .\templates\users\add_user.html:137
+#: .\templates\authentication\update_account.html:129
+#: .\templates\data_logger\auto_reports.html:128
+#: .\templates\users\add_user.html:134
 msgid "Cancel"
 msgstr "إلغاء"
+
+#: .\templates\data_logger\auto_reports.html:5
+msgid "Auto Reports"
+msgstr "التقارير التلقائية"
+
+#: .\templates\data_logger\auto_reports.html:33
+msgid "every"
+msgstr "كل"
+
+#: .\templates\data_logger\auto_reports.html:39
+msgid "Delete Schedule"
+msgstr "حذف الجدولة"
+
+#: .\templates\data_logger\auto_reports.html:51
+msgid "No schedules created yet."
+msgstr "لم يتم إنشاء أي جدول بعد."
+
+#: .\templates\data_logger\auto_reports.html:57
+msgid "Add Schedule"
+msgstr "إضافة جدول"
+
+#: .\templates\data_logger\auto_reports.html:67
+msgid "Add Auto Report Schedule"
+msgstr "إضافة جدول تقرير تلقائي"
+
+#: .\templates\data_logger\auto_reports.html:73
+msgid "Schedule Type"
+msgstr "نوع الجدولة"
+
+#: .\templates\data_logger\auto_reports.html:81
+msgid "Weekday"
+msgstr "يوم من الأسبوع"
+
+#: .\templates\data_logger\auto_reports.html:89
+msgid "Day of Month"
+msgstr "يوم من الشهر"
+
+#: .\templates\data_logger\auto_reports.html:97
+msgid "Email to receive report"
+msgstr "البريد الإلكتروني لتلقي التقرير"
+
+#: .\templates\data_logger\auto_reports.html:105
+msgid "Select Devices"
+msgstr "اختر الأجهزة"
+
+#: .\templates\data_logger\auto_reports.html:129
+#: .\templates\users\add_user.html:167
+msgid "Save"
+msgstr "حفظ"
+
+#: .\templates\data_logger\auto_reports.html:138
+msgid "Auto Reports are currently"
+msgstr "التقارير التلقائية حالياً"
+
+#: .\templates\data_logger\auto_reports.html:138
+msgid "disabled"
+msgstr "معطّلة"
+
+#: .\templates\data_logger\auto_reports.html:138
+msgid "Enable them to view and manage your schedules."
+msgstr "فعّلها لعرض وإدارة الجداول الخاصة بك."
 
 #: .\templates\data_logger\data_logger.html:14
 msgid "Devices Overview"
@@ -172,14 +239,14 @@ msgstr "جميع الأجهزة"
 #: .\templates\data_logger\device_overview.html:18
 #: .\templates\device_details\device_details.html:124
 #: .\templates\device_details\device_details.html:149
-#: .\templates\device_details\device_details.html:294
+#: .\templates\device_details\device_details.html:312
 msgid "Working"
 msgstr "يعمل"
 
 #: .\templates\data_logger\device_overview.html:26
 #: .\templates\device_details\device_details.html:122
 #: .\templates\device_details\device_details.html:147
-#: .\templates\device_details\device_details.html:295
+#: .\templates\device_details\device_details.html:313
 msgid "Error"
 msgstr "يوجد مشكلة"
 
@@ -187,7 +254,7 @@ msgstr "يوجد مشكلة"
 #: .\templates\device_details\device_details.html:120
 #: .\templates\device_details\device_details.html:145
 #: .\templates\device_details\device_details.html:166
-#: .\templates\device_details\device_details.html:296
+#: .\templates\device_details\device_details.html:314
 msgid "Offline"
 msgstr "غير متصل"
 
@@ -203,15 +270,15 @@ msgstr "عرض التفاصيل"
 
 #: .\templates\data_logger\devices_card.html:129
 #: .\templates\device_details\device_details.html:67
-#: .\templates\device_details\device_details.html:255
-#: .\templates\device_details\device_details.html:290
+#: .\templates\device_details\device_details.html:273
+#: .\templates\device_details\device_details.html:308
 msgid "Temperature"
 msgstr "درجة الحرارة"
 
 #: .\templates\data_logger\devices_card.html:130
 #: .\templates\device_details\device_details.html:85
-#: .\templates\device_details\device_details.html:256
-#: .\templates\device_details\device_details.html:291
+#: .\templates\device_details\device_details.html:274
+#: .\templates\device_details\device_details.html:309
 msgid "Humidity"
 msgstr "الرطوبة"
 
@@ -251,7 +318,7 @@ msgid "Interval local"
 msgstr "الفاصل المحلي"
 
 #: .\templates\device_details\device_details.html:59
-#: .\templates\device_details\device_details.html:293
+#: .\templates\device_details\device_details.html:311
 msgid "Status"
 msgstr "الحالة"
 
@@ -280,34 +347,46 @@ msgid "All Device Readings"
 msgstr "كل قراءات الجهاز"
 
 #: .\templates\device_details\device_details.html:233
-msgid "choose a date"
-msgstr "اختر تاريخًا"
+msgid "From"
+msgstr "من"
 
-#: .\templates\device_details\device_details.html:235
+#: .\templates\device_details\device_details.html:236
+msgid "To"
+msgstr "الى"
+
+#: .\templates\device_details\device_details.html:239
 msgid "filter"
 msgstr "فلتر"
 
-#: .\templates\device_details\device_details.html:242
+#: .\templates\device_details\device_details.html:249
 msgid "Download PDF"
 msgstr "تحميل <span dir=\"ltr\">PDF</span>"
 
-#: .\templates\device_details\device_details.html:248
-msgid "Choose a Date"
-msgstr "اختر تاريخًا"
+#: .\templates\device_details\device_details.html:256
+msgid "Show Temperature"
+msgstr "عرض درجة الحرارة"
 
-#: .\templates\device_details\device_details.html:254
+#: .\templates\device_details\device_details.html:260
+msgid "Show Humidity"
+msgstr "عرض درجةالرطوبة"
+
+#: .\templates\device_details\device_details.html:265
+msgid "Date Range"
+msgstr "نطاق التاريخ"
+
+#: .\templates\device_details\device_details.html:272
 msgid "Time"
 msgstr "الوقت"
 
-#: .\templates\device_details\device_details.html:268
+#: .\templates\device_details\device_details.html:286
 msgid "No data available for the selected date"
 msgstr "لا توجد بيانات متاحة للتاريخ المحدد"
 
-#: .\templates\device_details\device_details.html:281
+#: .\templates\device_details\device_details.html:299
 msgid "Delete Device"
 msgstr "حذف الجهاز"
 
-#: .\templates\device_details\device_details.html:292
+#: .\templates\device_details\device_details.html:310
 msgid "Chosen Date"
 msgstr "التاريخ المختار"
 
@@ -352,7 +431,7 @@ msgid "Maximum Humidity"
 msgstr "الحد الأقصى للرطوبة"
 
 #: .\templates\device_details\device_settings_modal.html:146
-#: .\templates\users\add_user.html:171
+#: .\templates\users\add_user.html:168
 msgid "Close"
 msgstr "إغلاق"
 
@@ -380,33 +459,29 @@ msgstr "سجلات جهاز التسجيل"
 msgid "LogOut"
 msgstr "تسجيل الخروج"
 
-#: .\templates\users\add_user.html:106 .\templates\users\my_users.html:25
+#: .\templates\users\add_user.html:101 .\templates\users\my_users.html:25
 msgid "Role"
 msgstr "الدور"
 
-#: .\templates\users\add_user.html:114
+#: .\templates\users\add_user.html:109
 msgid "Admin"
 msgstr "مدير"
 
-#: .\templates\users\add_user.html:115
+#: .\templates\users\add_user.html:110
 msgid "Supervisor"
 msgstr "مشرف"
 
-#: .\templates\users\add_user.html:116
+#: .\templates\users\add_user.html:111
 msgid "User"
 msgstr "مستخدم"
 
-#: .\templates\users\add_user.html:123 .\templates\users\add_user.html:149
+#: .\templates\users\add_user.html:119 .\templates\users\add_user.html:146
 msgid "Select Categories"
 msgstr "اختر الفئات"
 
-#: .\templates\users\add_user.html:132
+#: .\templates\users\add_user.html:129
 msgid "Save User"
 msgstr "حفظ المستخدم"
-
-#: .\templates\users\add_user.html:170
-msgid "Save"
-msgstr "حفظ"
 
 #: .\templates\users\my_users.html:26
 msgid "Categories"
@@ -416,9 +491,15 @@ msgstr "الفئات"
 msgid "Actions"
 msgstr "الإجراءات"
 
-#: .\templates\users\my_users.html:62
+#: .\templates\users\my_users.html:65
 msgid "Change Role"
 msgstr "تغيير الدور"
+
+#~ msgid "choose a date"
+#~ msgstr "اختر تاريخًا"
+
+#~ msgid "Choose a Date"
+#~ msgstr "اختر تاريخًا"
 
 #~ msgid "Device Settings"
 #~ msgstr "إعدادات الجهاز"

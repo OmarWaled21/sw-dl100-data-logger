@@ -1,7 +1,8 @@
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from .models import Device, MasterClock, DeviceReading
+from .models import Device, MasterClock
+from device_details.models import DeviceReading
 from .serializers import DeviceSerializer, MasterClockSerializer, DeviceReadingSerializer
 from .utils import get_master_time
 

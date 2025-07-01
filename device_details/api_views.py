@@ -3,7 +3,8 @@ from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
-from data_logger.models import Device, DeviceReading
+from data_logger.models import Device
+from device_details.models import DeviceReading
 from data_logger.serializers import DeviceSerializer
 from django.utils.dateparse import parse_date
 from collections import defaultdict

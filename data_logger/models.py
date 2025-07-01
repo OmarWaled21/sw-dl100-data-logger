@@ -5,6 +5,7 @@ from django.utils import timezone
 from datetime import timedelta
 from .utils import get_master_time
 from logs.models import DeviceLog
+from django.db import models
 
 class MasterClock(models.Model):
     time_difference = models.IntegerField(default=0)  # الفرق بالثواني بين الوقت الفعلي والوقت الذي اختاره المستخدم
@@ -150,12 +151,27 @@ class Device(models.Model):
 
         return self.status
 
-class DeviceReading(models.Model):
-    device = models.ForeignKey('Device', on_delete=models.CASCADE)
-    temperature = models.FloatField()
-    humidity = models.FloatField()
-    timestamp = models.DateTimeField(default=timezone.now)
+class AutoReportSchedule(models.Model):
+    SCHEDULE_CHOICES = [
+        ('daily', 'Daily'),
+        ('weekly', 'Weekly'),
+        ('monthly', 'Monthly'),
+    ]
+
+    schedule_type = models.CharField(max_length=10, choices=SCHEDULE_CHOICES, blank=False, null=False)
+    weekday = models.IntegerField(null=True, blank=True)  # 0=Monday
+    month_day = models.IntegerField(null=True, blank=True)  # 1–31
+    email = models.EmailField()
+    devices = models.ManyToManyField(Device)
+    enabled = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.device.name} - {self.timestamp}"
-    
+        return f"{self.schedule_type.title()} - {self.email}"
+        return f"Auto Report is {'Enabled' if self.enabled else 'Disabled'}"
+
+class AutoReportSettings(models.Model):
+    enabled = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"Auto Reports are {'Enabled' if self.enabled else 'Disabled'}"

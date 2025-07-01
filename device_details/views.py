@@ -5,7 +5,7 @@ from data_logger.utils import get_master_time
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from datetime import datetime, timedelta
-from data_logger.models import DeviceReading
+from device_details.models import DeviceReading
 from django.contrib import messages
 from collections import defaultdict
 from django.utils.dateparse import parse_date
@@ -15,7 +15,7 @@ from PIL import Image
 import io
 from django.template.loader import render_to_string
 import base64
-from statistics import mean, mode, StatisticsError
+from statistics import mean, mode
 import matplotlib.pyplot as plt
 from matplotlib.dates import DateFormatter
 import matplotlib

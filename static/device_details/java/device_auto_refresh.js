@@ -1,3 +1,9 @@
+function getCurrentFilterDate() {
+  const input = document.querySelector('#start_date');
+  if (input && input.value) return input.value;
+  return new Date().toISOString().split('T')[0];
+}
+
 
 function fetchAndUpdateDeviceData(deviceId, filterDate) {
   // نحصل على تاريخ اليوم بصيغة yyyy-mm-dd
@@ -125,7 +131,7 @@ function fetchAndUpdateDeviceData(deviceId, filterDate) {
   .catch(error => console.error("Error fetching data:", error));
 }
 
-let currentFilterDate = document.querySelector('#filter_date').value || new Date().toISOString().split('T')[0];
+let currentFilterDate = getCurrentFilterDate();
 
 // Call it every 10 seconds
 const deviceId = window.location.pathname.split("/").filter(Boolean).pop();
@@ -134,15 +140,15 @@ fetchAndUpdateDeviceData(deviceId, currentFilterDate);
 fetchFilteredData(deviceId, currentFilterDate);
 
 setInterval(() => {
-  const filterDate = document.querySelector('#filter_date').value || new Date().toISOString().split('T')[0];
-  fetchAndUpdateDeviceData(deviceId, filterDate);
+  const filterDate = getCurrentFilterDate();
+fetchAndUpdateDeviceData(deviceId, filterDate);
 }, 5000);
 
 // تحديث كل 10 ثوانٍ للجدول فقط إذا كان التبويب ظاهر
 setInterval(() => {
   const tableTab = document.querySelector('#table-view');
   if (tableTab && tableTab.classList.contains('show') && tableTab.classList.contains('active')) {
-    const filterDate = document.querySelector('#filter_date').value;
+    const filterDate = getCurrentFilterDate();
     fetchFilteredData(deviceId, filterDate);
   }
 }, 10000);
@@ -184,3 +190,30 @@ function updateTableData(data) {
         tbody.appendChild(tr);
     });
 }
+
+document.addEventListener("DOMContentLoaded", function () {
+  const deviceId = window.location.pathname.split("/").filter(Boolean).pop();
+
+  function getCurrentFilterDate() {
+    const input = document.querySelector('#start_date');
+    return input && input.value ? input.value : new Date().toISOString().split('T')[0];
+  }
+
+  let currentFilterDate = getCurrentFilterDate();
+  updateNeedles();
+  fetchAndUpdateDeviceData(deviceId, currentFilterDate);
+  fetchFilteredData(deviceId, currentFilterDate);
+
+  setInterval(() => {
+    const filterDate = getCurrentFilterDate();
+    fetchAndUpdateDeviceData(deviceId, filterDate);
+  }, 5000);
+
+  setInterval(() => {
+    const tableTab = document.querySelector('#table-view');
+    if (tableTab && tableTab.classList.contains('show') && tableTab.classList.contains('active')) {
+      const filterDate = getCurrentFilterDate();
+      fetchFilteredData(deviceId, filterDate);
+    }
+  }, 10000);
+});

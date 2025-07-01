@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from .models import Device, DeviceReading, MasterClock
+from .models import Device, MasterClock
+from device_details.models import DeviceReading
 
 class DeviceSerializer(serializers.ModelSerializer):
     class Meta:

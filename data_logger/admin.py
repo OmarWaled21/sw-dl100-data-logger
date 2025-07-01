@@ -1,7 +1,9 @@
 from django.contrib import admin
 from .models import Device
 from authentication.models import CustomUser
-from data_logger.models import Device, DeviceReading
+from data_logger.models import Device
+from device_details.models import DeviceReading
+from data_logger.models import AutoReportSchedule
 
 class DeviceReadingInline(admin.TabularInline):
     model = DeviceReading
@@ -20,3 +22,13 @@ class DeviceAdmin(admin.ModelAdmin):
 
 admin.site.register(Device, DeviceAdmin)
 admin.site.register(DeviceReading)  # لو حبيت تشوف القراءات لوحدها كمان
+
+
+@admin.register(AutoReportSchedule)
+class AutoReportScheduleAdmin(admin.ModelAdmin):
+    list_display = ('get_devices', 'schedule_type', 'enabled')
+    list_editable = ('enabled',)
+
+    def get_devices(self, obj):
+        return ", ".join([d.name for d in obj.devices.all()])
+    get_devices.short_description = "Devices"
