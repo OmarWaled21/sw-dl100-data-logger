@@ -29,14 +29,16 @@
     <div class="card-header" dir="{% if request.LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
       <h3>{% trans "Devices" %}</h3>
     </div>
-    <div class="card-body d-flex flex-wrap justify-content-start ms-5 gap-4" dir="{% if request.LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
+    <div 
+      class="card-body d-flex flex-wrap justify-content-start ms-5 gap-4" 
+      dir="{% if request.LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
       
       {% if devices.count == 0 %}
-          <div class="text-center py-5 w-100">
-            <i class="fas fa-exclamation-triangle fa-3x text-muted mb-3"></i>
-            <h5 class="text-muted" data-translate="noDevices">{% trans "No devices available" %}</h5>
-            <p class="text-secondary">{% trans "Please add a new device." %}</p>
-          </div>
+        <div class="text-center py-5 w-100">
+          <i class="fas fa-exclamation-triangle fa-3x text-muted mb-3"></i>
+          <h5 class="text-muted" data-translate="noDevices">{% trans "No devices available" %}</h5>
+          <p class="text-secondary">{% trans "Please add a new device." %}</p>
+        </div>
         {% endif %}
         <div class="d-flex flex-wrap justify-content-start gap-4" id="devices-cards">
           {% for device in devices %}
@@ -44,9 +46,31 @@
           {% endfor %}
         </div>
       </div>
-      <div class="mt-4">
+    <div class="row row-cols-1 row-cols-md-2 g-4 mt-4">
+      <div class="col">
         {% include 'data_logger/auto_reports.html' %}
       </div>
+      <div class="col">
+        <a href="{% url 'controls_page' %}" class="clickable-card text-decoration-none">
+          <div class="card shadow-sm rounded h-100 control-card">
+            <div class="card-body text-center p-4" dir="{% if request.LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
+              <div class="control-icon mb-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" class="bi bi-sliders" viewBox="0 0 16 16">
+                  <path fill-rule="evenodd" d="M11.5 2a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM9.05 3a2.5 2.5 0 0 1 4.9 0H16v1h-2.05a2.5 2.5 0 0 1-4.9 0H0V3h9.05zM4.5 7a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM2.05 8a2.5 2.5 0 0 1 4.9 0H16v1H6.95a2.5 2.5 0 0 1-4.9 0H0V8h2.05zm9.45 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm-2.45 1a2.5 2.5 0 0 1 4.9 0H16v1h-2.05a2.5 2.5 0 0 1-4.9 0H0v-1h9.05z"/>
+                </svg>
+              </div>
+              <h5 class="card-title mb-2 fw-bold text-primary">{% trans "Device Control" %}</h5>
+              <p class="card-text text-muted mb-3">{% trans "Advanced settings and real-time device management" %}</p>
+              <div class="d-flex justify-content-center gap-2">
+                <span class="badge bg-light text-dark border">{% trans "Remote" %}</span>
+                <span class="badge bg-light text-dark border">{% trans "Automation" %}</span>
+                <span class="badge bg-light text-dark border">{% trans "Settings" %}</span>
+              </div>
+            </div>
+          </div>
+        </a>
+      </div>
     </div>
+  </div>
 </div>
 {% endblock %} 

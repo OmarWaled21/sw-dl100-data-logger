@@ -1,0 +1,108 @@
+{% load i18n %}
+<div class="card p-3 mt-4">
+  <!-- View Tabs -->
+  <ul class="nav nav-tabs mb-3" id="viewTabs" role="tablist">
+    <!-- Chart Tab -->
+    <li class="nav-item" role="presentation">
+      <button
+        class="nav-link active"
+        id="chart-tab"
+        data-bs-toggle="tab"
+        data-bs-target="#chart-view"
+        type="button"
+        role="tab">
+        <i class="fa-solid fa-chart-line"></i> {% trans "Chart View" %}
+      </button>
+    </li>
+    <!-- Table Tab -->
+    <li class="nav-item" role="presentation">
+      <button
+        class="nav-link"
+        id="table-tab"
+        data-bs-toggle="tab"
+        data-bs-target="#table-view"
+        type="button"
+        role="tab">
+        <i class="fa-solid fa-table"></i> {% trans "Table View" %}
+      </button>
+    </li>
+  </ul>
+
+  <div class="tab-content">
+    <!-- Chart View -->
+    <div class="tab-pane fade show active" id="chart-view" role="tabpanel">
+      <h4 class="fw-bold mb-3">{% trans "Last 12 Hours Reading" %}</h4>
+      {{ labels|json_script:"labels-data" }}
+      {{ temp_data|json_script:"temp-data" }}
+      {{ hum_data|json_script:"hum-data" }}
+      <canvas id="sensorChart"></canvas>
+    </div>
+
+    <!-- Table View -->
+    <div class="tab-pane fade" id="table-view" role="tabpanel">
+      <h4 class="fw-bold mb-3">{% trans "All Device Readings" %}</h4>
+      <!-- إضافة فورم صغير لفلترة التاريخ -->
+      <div class="d-flex align-items-center justify-content-between">
+        <form method="get" class="mb-3 d-flex align-items-center gap-2" id="filter_date_form">
+          <label for="start_date" class="form-label mb-0 fw-bold">{% trans "From" %}:</label>
+          <input type="date" id="start_date" name="start_date" class="form-control w-auto" value="{{ start_date }}">
+
+          <label for="end_date" class="form-label mb-0 fw-bold">{% trans "To" %}:</label>
+          <input type="date" id="end_date" name="end_date" class="form-control w-auto" value="{{ end_date }}">
+
+          <button type="submit" class="btn btn-primary mt-2">{% trans "filter" %}</button>
+        </form>
+
+        <form method="get" action="{% url 'download_device_data_pdf' device.device_id %}" target="_blank">
+          <input type="hidden" name="start_date" value="{{ start_date }}">
+          <input type="hidden" name="end_date" value="{{ end_date }}">
+          <input type="hidden" name="include_temp" id="pdf_include_temp" value="1">
+          <input type="hidden" name="include_hum" id="pdf_include_hum" value="1">
+          <button type="submit" class="btn btn-sm btn-success">
+              <i class="fa-solid fa-file-export"></i>
+              {% trans "Download PDF" %}
+          </button>
+        </form>
+      </div>
+
+      <div class="form-check form-check-inline">
+        <input class="form-check-input" type="checkbox" id="toggle_temp" checked>
+        <label class="form-check-label fw-bold" for="toggle_temp">{% trans "Show Temperature" %}</label>
+      </div>
+      <div class="form-check form-check-inline">
+        <input class="form-check-input" type="checkbox" id="toggle_hum" checked>
+        <label class="form-check-label fw-bold" for="toggle_hum">{% trans "Show Humidity" %}</label>
+      </div>
+
+      <!-- عرض التاريخ المختار فوق الجدول -->
+      <h5 id="current_filter_date">
+        {% trans "Date Range" %}: {{ start_date }} - {{ end_date }}
+      </h5>
+
+      <div class="table-responsive data-table" style="max-height: 400px; overflow-y: auto;">
+        <table class="table table-bordered table-striped mb-0" id="readings_table">
+          <thead>
+            <tr>
+              <th>{% trans "Time" %}</th>
+              <th class="temp-col">{% trans "Temperature" %} (°C)</th>
+              <th class="hum-col">{% trans "Humidity" %} (%)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for label, temp, hum in combined_data %}
+              <tr>
+                <td>{{ label }}</td>
+                <td class="temp-col">{{ temp }}</td>
+                <td class="hum-col">{{ hum }}</td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="3" class="text-center">{% trans "No data available for the selected date" %}.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

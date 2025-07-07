@@ -30,3 +30,5 @@ class UpdateUserForm(forms.ModelForm):
 
         if new_password and confirm_new_password and new_password != confirm_new_password:
             self.add_error('confirm_new_password', "Passwords do not match.")
+            
+        return cleaned_data 

@@ -1,19 +1,19 @@
+from django.http import HttpResponse
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework import status
-from data_logger.models import Device
-from device_details.models import DeviceReading
-from data_logger.serializers import DeviceSerializer
-from django.utils.dateparse import parse_date
-from collections import defaultdict
-from django.utils import timezone
-from datetime import datetime, timedelta
 from rest_framework.exceptions import PermissionDenied
-from data_logger.utils import get_master_time
-from django.http import HttpResponse
+from rest_framework import status
+from django.utils.dateparse import parse_date
+from django.utils import timezone
 from django.template.loader import render_to_string
+from data_logger.models import Device
+from data_logger.utils import get_master_time
+from data_logger.serializers import DeviceSerializer
+from device_details.models import DeviceReading
+from collections import defaultdict
+from datetime import datetime, timedelta
 from weasyprint import HTML
 from PIL import Image
 import base64
@@ -335,3 +335,17 @@ def download_device_data_pdf_api(request, device_id):
     response = HttpResponse(pdf_file, content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="device_data_{device.device_id}.pdf"'
     return response
+
+
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def toggle_device(request, device_id):
+    try:
+        device = Device.objects.get(device_id=device_id, admin=request.user)
+    except Device.DoesNotExist:
+        return Response({"error": "Device not found"}, status=404)
+
+    device.is_on = not device.is_on
+    device.save()
+    return Response({"status": "success", "is_on": device.is_on})

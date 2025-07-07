@@ -12,7 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import sys
-from decouple import Config, RepositoryEnv
+from decouple import Config, RepositoryEnv, Csv
 import os
 from django.utils.translation import gettext_lazy as _
 
@@ -33,9 +33,11 @@ else:
 STATIC_URL = '/static/'
 
 # Specify the path that contains static files in the project
-STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'static'),  # in static root folder
-]
+if getattr(sys, 'frozen', False):
+    # داخل EXE → static موجود في sys._MEIPASS/static
+    STATICFILES_DIRS = [os.path.join(sys._MEIPASS, 'static')]
+else:
+    STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 
 
 # Quick-start development settings - unsuitable for production
@@ -68,6 +70,7 @@ INSTALLED_APPS = [
     'users',
     'logs',
     'device_details',
+    'controls',
     'clinical',
 ]
 
@@ -81,7 +84,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'corsheaders.middleware.CorsMiddleware',
-    'sw_dl100.middleware.OnlyAllowFromCaddyMiddleware',
+    # 'sw_dl100.middleware.OnlyAllowFromCaddyMiddleware',
 ]
 
 REST_FRAMEWORK = {
@@ -97,11 +100,9 @@ CORS_ALLOW_ALL_ORIGINS = True  # In production, specify origins
 
 ROOT_URLCONF = 'sw_dl100.urls'
 
-CSRF_TRUSTED_ORIGINS = [
-    'https://*.ngrok-free.app',
-    'https://192.168.1.50',
-    'https://127.0.0.1'
-]
+BASE_URL = config("BASE_URL")
+
+CSRF_TRUSTED_ORIGINS = config('BASE_URL', cast=Csv())
 
 TWILIO_ACCOUNT_SID = config('TWILIO_ACCOUNT_SID')
 TWILIO_AUTH_TOKEN = config('TWILIO_AUTH_TOKEN')
