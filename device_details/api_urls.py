@@ -10,4 +10,12 @@ urlpatterns = [
     path('<str:device_id>/dashboard/', device_dashboard_data, name='device_dashoard_data'),
     path('<str:device_id>/download-pdf/', download_device_data_pdf_api, name='download_device_data_pdf_api'),
     path('<str:device_id>/toggle/', toggle_device, name='toggle-device'),
+    path('<str:device_id>/control-info/', get_device_control_info,name='device_control_info'),
+    path('<str:device_id>/schedule/toggle/', toggle_schedule, name='toggle_auto_schedule'),
+    path('<str:device_id>/schedule/update/', update_auto_time, name='update_auto_time'),
+    path('<str:device_id>/temp/settings/', get_temp_settings, name='get_temp_settings'),
+    path('<str:device_id>/temp/update/', update_temp_settings, name='update_temp_settings'),
+    path('<str:device_id>/schedule/refresh/', auto_control_refresh, name='auto_control_refresh'),
+    path('<str:device_id>/priority/get/', get_priority_settings, name='get_priority_settings'),
+    path('<str:device_id>/priority/', update_priority_settings, name='update_priority_settings'),
 ]

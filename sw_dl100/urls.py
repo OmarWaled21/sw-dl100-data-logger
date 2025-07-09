@@ -14,7 +14,6 @@ urlpatterns = [
     path('users/', include('users.urls')),
     path('logs/', include('logs.urls')),
     path('device/', include('device_details.urls')),
-    path('controls/', include('controls.urls')),
     path('clinical/', include('clinical.urls')),
     # API
     path('api/data_logger/', include('data_logger.api_urls')),

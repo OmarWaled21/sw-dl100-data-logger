@@ -1,0 +1,95 @@
+{% load static %}
+<!-- Modal for Schedule Settings -->
+ <link rel="stylesheet" href="{% static 'device_details/css/controls_modal.css' %}">
+<div class="modal fade" id="scheduleModal" tabindex="-1" aria-labelledby="scheduleModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <!-- Modal Header -->
+      <div class="modal-header border-0">
+        <h5 class="modal-title fw-bold text-primary" id="scheduleModalLabel">
+          <i class="fas fa-clock me-2"></i>Schedule Settings
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      
+      <!-- Modal Body -->
+      <div class="modal-body py-4">
+        <!-- Auto Schedule Toggle -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <div>
+            <h6 class="fw-bold mb-1">Auto Schedule</h6>
+            <p class="small text-muted mb-0">Automatically turn device ON/OFF at specific times</p>
+          </div>
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="autoScheduleSwitch" 
+                   {% if device.control.auto_schedule %}checked{% endif %}>
+            <label class="form-check-label" for="autoScheduleSwitch"></label>
+          </div>
+        </div>
+        
+        <!-- Time Settings -->
+        <div id="timeSettings" class="{% if not device.control.auto_schedule %}d-none{% endif %}">
+          <div class="row g-3">
+            <!-- Auto ON Time -->
+            <div class="col-md-6">
+              <label for="autoOnTime" class="form-label fw-bold">Auto ON Time</label>
+              <input type="time" class="form-control" id="autoOnTime" 
+                     value="{{ device.control.auto_on|default:'08:00' }}"
+                     {% if not device.control.auto_schedule %}disabled{% endif %}>
+            </div>
+            
+            <!-- Auto OFF Time -->
+            <div class="col-md-6">
+              <label for="autoOffTime" class="form-label fw-bold">Auto OFF Time</label>
+              <input type="time" class="form-control" id="autoOffTime" 
+                     value="{{ device.control.auto_off|default:'20:00' }}"
+                     {% if not device.control.auto_schedule %}disabled{% endif %}>
+            </div>
+          </div>
+        </div>
+
+        <!-- ✅ Temperature Control Toggle -->
+        <div class="d-flex justify-content-between align-items-center mt-4 mb-3">
+          <div>
+            <h6 class="fw-bold mb-1">Temperature Control</h6>
+            <p class="small text-muted mb-0">Turn device ON/OFF based on temperature</p>
+          </div>
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="tempControlSwitch"
+                  {% if device.control.temp_control_enabled %}checked{% endif %}>
+            <label class="form-check-label" for="tempControlSwitch"></label>
+          </div>
+        </div>
+
+        <!-- ✅ Temperature Thresholds -->
+        <div id="tempSettings" class="{% if not device.control.temp_control_enabled %}d-none{% endif %}">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label for="tempOnThreshold" class="form-label fw-bold">Turn ON ≥</label>
+              <input type="number" step="0.1" class="form-control" id="tempOnThreshold"
+                    value="{{ device.control.temp_on_threshold|default:'' }}"
+                    {% if not device.control.temp_control_enabled %}disabled{% endif %}>
+            </div>
+            <div class="col-md-6">
+              <label for="tempOffThreshold" class="form-label fw-bold">Turn OFF ≤</label>
+              <input type="number" step="0.1" class="form-control" id="tempOffThreshold"
+                    value="{{ device.control.temp_off_threshold|default:'' }}"
+                    {% if not device.control.temp_control_enabled %}disabled{% endif %}>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      
+      <!-- Modal Footer -->
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times me-1"></i> Cancel
+        </button>
+        <button type="button" class="btn btn-primary" id="saveScheduleBtn">
+          <i class="fas fa-save me-1"></i> Save Changes
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

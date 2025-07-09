@@ -70,7 +70,6 @@ INSTALLED_APPS = [
     'users',
     'logs',
     'device_details',
-    'controls',
     'clinical',
 ]
 

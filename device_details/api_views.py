@@ -11,10 +11,11 @@ from django.template.loader import render_to_string
 from data_logger.models import Device
 from data_logger.utils import get_master_time
 from data_logger.serializers import DeviceSerializer
-from device_details.models import DeviceReading
+from device_details.models import ControlFeaturePriority, DeviceControl, DeviceReading
 from collections import defaultdict
-from datetime import datetime, timedelta
 from weasyprint import HTML
+from datetime import datetime, timedelta, time
+import datetime
 from PIL import Image
 import base64
 import io
@@ -337,15 +338,277 @@ def download_device_data_pdf_api(request, device_id):
     return response
 
 
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def auto_control_refresh(request, device_id):
+    master_now = get_master_time()
+    current_time = master_now.time()
+
+    controls = DeviceControl.objects.filter(device__device_id=device_id, device__admin=request.user)
+
+    for control in controls:
+        # ⏸ Pause Check
+        if control.auto_pause_until and master_now < control.auto_pause_until:
+            continue
+        if control.auto_pause_until and master_now >= control.auto_pause_until:
+            control.auto_pause_until = None
+            control.save()
+
+        # ✅ Get priority list
+        priority_features = list(control.feature_priorities.order_by("priority").values_list("feature", flat=True))
+        desired_state = control.is_on  # الحالة المرغوبة
+        decision_made = False
+
+        for feature in priority_features:
+            if feature == "temp_control" and control.temp_control_enabled:
+                temperature = control.device.temperature
+                if (
+                    control.temp_on_threshold is not None and
+                    temperature >= control.temp_on_threshold
+                ):
+                    desired_state = True
+                    decision_made = True
+                elif (
+                    control.temp_off_threshold is not None and
+                    temperature <= control.temp_off_threshold
+                ):
+                    desired_state = False
+                    decision_made = True
+                break  # ❗ stop after first valid decision
+
+            elif feature == "auto_schedule" and control.auto_schedule:
+                if control.auto_on and control.auto_off:
+                    if control.auto_on <= current_time <= control.auto_off:
+                        desired_state = True
+                        decision_made = True
+                    else:
+                        desired_state = False
+                        decision_made = True
+                break  # ❗ stop after first valid decision
+
+        # 🟨 fallback لو مفيش priority features
+        if not decision_made:
+            if control.control_priority == "temp" and control.temp_control_enabled:
+                temperature = control.device.temperature
+                if control.temp_on_threshold is not None and temperature >= control.temp_on_threshold:
+                    desired_state = True
+                elif control.temp_off_threshold is not None and temperature <= control.temp_off_threshold:
+                    desired_state = False
+
+            elif control.control_priority == "schedule" and control.auto_schedule:
+                if control.auto_on and control.auto_off:
+                    if control.auto_on <= current_time <= control.auto_off:
+                        desired_state = True
+                    else:
+                        desired_state = False
+
+        # ✅ Update only if needed
+        if control.is_on != desired_state:
+            control.is_on = desired_state
+            control.save()
+
+    # ✅ Return current states
+    data = [
+        {
+            "device_id": control.device.device_id,
+            "is_on": control.is_on
+        }
+        for control in controls
+    ]
+
+    return Response({"status": "success", "device_controls": data})
+
+
 @api_view(['POST'])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 def toggle_device(request, device_id):
     try:
         device = Device.objects.get(device_id=device_id, admin=request.user)
+        control, _ = DeviceControl.objects.get_or_create(device=device)
     except Device.DoesNotExist:
         return Response({"error": "Device not found"}, status=404)
 
-    device.is_on = not device.is_on
-    device.save()
-    return Response({"status": "success", "is_on": device.is_on})
+    control.is_on = not control.is_on
+    control.save()
+    
+    if control.auto_schedule:
+        master_now = get_master_time()
+        control.auto_pause_until = master_now + timedelta(hours=1)
+        control.save()
+        print(f"⏸ Auto-schedule paused until {control.auto_pause_until}")
+    
+    return Response({"status": "success", "is_on": control.is_on})
+
+
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def get_device_control_info(request, device_id):
+    try:
+        device = Device.objects.get(device_id=device_id, admin=request.user)
+        control, _ = DeviceControl.objects.get_or_create(device=device)
+    except Device.DoesNotExist:
+        return Response({"error": "Device not found"}, status=404)
+
+    return Response({
+        "device_id": device.device_id,
+        "device_name": device.name,
+        "is_on": control.is_on,
+        "name": control.name,
+        "auto_schedule": control.auto_schedule,
+        "auto_on": control.auto_on.strftime('%H:%M') if control.auto_on else None,
+        "auto_off": control.auto_off.strftime('%H:%M') if control.auto_off else None,
+    })
+
+
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def toggle_schedule(request, device_id):
+    auto_schedule = str(request.data.get("auto_schedule")).lower() in ["true", "1"]
+
+    try:
+        device = Device.objects.get(device_id=device_id, admin=request.user)
+        control, _ = DeviceControl.objects.get_or_create(device=device)
+        control.auto_schedule = auto_schedule
+        control.save()
+        return Response({"status": "success", "auto_schedule": control.auto_schedule})
+    except Device.DoesNotExist:
+        return Response({"error": "Device not found"}, status=404)
+
+
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def update_auto_time(request, device_id):
+    auto_on = request.data.get("auto_on")
+    auto_off = request.data.get("auto_off")
+    auto_schedule = str(request.data.get("auto_schedule")).lower() in ["true", "1"]
+
+    try:
+        device = Device.objects.get(device_id=device_id, admin=request.user)
+        control, _ = DeviceControl.objects.get_or_create(device=device)
+
+        control.auto_schedule = auto_schedule
+
+        if auto_on:
+            hour, minute = map(int, auto_on.split(":"))
+            control.auto_on = time(hour, minute)
+
+        if auto_off:
+            hour, minute = map(int, auto_off.split(":"))
+            control.auto_off = time(hour, minute)
+
+        control.save()
+
+        return Response({
+            "status": "success",
+            "auto_schedule": control.auto_schedule,
+            "auto_on": control.auto_on.strftime('%H:%M') if control.auto_on else None,
+            "auto_off": control.auto_off.strftime('%H:%M') if control.auto_off else None
+        })
+
+    except Device.DoesNotExist:
+        return Response({"status": "error", "message": "Device not found"}, status=404)
+    except Exception as e:
+        print("⛔ Error:", e)
+        return Response({"status": "error", "message": str(e)}, status=400)
+    
+
+# ✅ Get current temperature control settings
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def get_temp_settings(request, device_id):
+    try:
+        device = Device.objects.get(device_id=device_id, admin=request.user)
+        control = device.control
+    except Device.DoesNotExist:
+        return Response({"error": "Device not found"}, status=404)
+
+    return Response({
+        "temp_control_enabled": control.temp_control_enabled,
+        "temp_on_threshold": control.temp_on_threshold,
+        "temp_off_threshold": control.temp_off_threshold
+    })
+
+
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def update_temp_settings(request, device_id):
+    try:
+        device = Device.objects.get(device_id=device_id, admin=request.user)
+        control = device.control
+    except Device.DoesNotExist:
+        return Response({"error": "Device not found"}, status=404)
+
+    data = request.data
+
+    try:
+        # 🟡 تأكد إنك بتحول boolean صح
+        temp_control_enabled = data.get("temp_control_enabled")
+        if temp_control_enabled is not None:
+            control.temp_control_enabled = str(temp_control_enabled).lower() in ['true', '1']
+
+        # 🟡 حول الـ threshold لو مش فاضي
+        temp_on_threshold = data.get("temp_on_threshold")
+        if temp_on_threshold not in [None, ""]:
+            control.temp_on_threshold = float(temp_on_threshold)
+        else:
+            control.temp_on_threshold = None
+
+        temp_off_threshold = data.get("temp_off_threshold")
+        if temp_off_threshold not in [None, ""]:
+            control.temp_off_threshold = float(temp_off_threshold)
+        else:
+            control.temp_off_threshold = None
+
+        control.save()
+        return Response({"status": "success"})
+
+    except Exception as e:
+        return Response({"status": "error", "message": str(e)}, status=400)
+
+
+@api_view(["POST"])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def update_priority_settings(request, device_id):
+    try:
+        device = Device.objects.get(device_id=device_id, admin=request.user)
+        control = device.control
+    except Device.DoesNotExist:
+        return Response({"error": "Device not found"}, status=404)
+
+    priorities = request.data.get("priorities", [])
+    if not priorities:
+        return Response({"error": "No priorities provided"}, status=400)
+
+    # امسح الأولويات القديمة
+    control.feature_priorities.all().delete()
+
+    # خزّن الأولويات الجديدة
+    for item in priorities:
+        ControlFeaturePriority.objects.create(
+            control=control,
+            feature=item["feature"],
+            priority=item["priority"]
+        )
+
+    return Response({"status": "success"})
+
+@api_view(["GET"])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def get_priority_settings(request, device_id):
+    try:
+        device = Device.objects.get(device_id=device_id, admin=request.user)
+        control = device.control
+    except Device.DoesNotExist:
+        return Response({"error": "Device not found"}, status=404)
+
+    priorities = control.feature_priorities.order_by("priority").values("feature", "priority")
+    return Response({"priorities": list(priorities)})

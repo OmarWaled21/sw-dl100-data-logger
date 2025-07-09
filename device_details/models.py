@@ -1,4 +1,5 @@
 from django.db import models
+from data_logger.models import Device
 from data_logger.utils import get_master_time
 
 class DeviceReading(models.Model):
@@ -10,3 +11,50 @@ class DeviceReading(models.Model):
     def __str__(self):
         return f"{self.device.name} - {self.timestamp}"
     
+
+class DeviceControl(models.Model):
+    PRIORITY_CHOICES = [
+        ('schedule', 'Auto Schedule'),
+        ('temp', 'Temperature Control'),
+        # ممكن تضيف غيرهم في المستقبل
+    ]
+    
+    device = models.OneToOneField(Device, on_delete=models.CASCADE, related_name='control')
+    name = models.CharField(max_length=50, default='Relay')
+    is_on = models.BooleanField(default=False)
+
+    # Auto schedule fields
+    auto_schedule = models.BooleanField(default=False)
+    auto_on = models.TimeField(null=True, blank=True)
+    auto_off = models.TimeField(null=True, blank=True)
+    auto_pause_until = models.DateTimeField(null=True, blank=True)
+    
+    # ✅ Temperature-based control
+    temp_control_enabled = models.BooleanField(default=False)
+    temp_on_threshold = models.FloatField(null=True, blank=True)
+    temp_off_threshold = models.FloatField(null=True, blank=True) 
+    
+    esp_ip_address = models.GenericIPAddressField(null=True, blank=True, help_text="ESP32 IP Address")
+    
+    # Priority control
+    control_priority = models.CharField(
+        max_length=10,
+        choices=PRIORITY_CHOICES,
+        default='schedule',
+        help_text="Control priority: 'schedule' or 'temp'"
+    )
+
+    def __str__(self):
+        return f"{self.device.name or self.device.device_id} - {self.name}: {'On' if self.is_on else 'Off'}"
+
+class ControlFeaturePriority(models.Model):
+    control = models.ForeignKey(DeviceControl, on_delete=models.CASCADE, related_name="feature_priorities")
+    feature = models.CharField(max_length=50)  # مثلاً: auto_schedule, temp_control, humidity_control
+    priority = models.PositiveIntegerField()
+
+    class Meta:
+        unique_together = ("control", "feature")
+        ordering = ["priority"]
+
+    def __str__(self):
+        return f"{self.control.device.device_id} - {self.feature} (Priority: {self.priority})"

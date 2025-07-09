@@ -181,7 +181,26 @@ def device_details(request, device_id):
         else:
             form = DeviceForm(instance=device)  # ✅ هذا السطر يحل المشكلة
 
-                
+
+        # في مكان إعداد الـ context
+        control = device.control
+
+        # ✅ كل الميزات مع اسم العرض و شرط التفعيل
+        all_features = [
+            ('auto_schedule', 'Auto Schedule', control.auto_schedule),
+            ('temp_control', 'Temperature Control', control.temp_control_enabled),
+        ]
+
+        # ✅ فلترة المزايا المفعّلة فقط
+        enabled_features = [
+            (key, name) for key, name, is_enabled in all_features if is_enabled
+        ]
+
+        # ✅ ترتيبهم حسب الأولوية الموجودة في control_priority
+        enabled_features.sort(
+            key=lambda x: 0 if control.control_priority == x[0].split('_')[0] else 1
+        )
+
         context = {
             'device': device,
             'page_title': 'Device Details',
@@ -196,6 +215,7 @@ def device_details(request, device_id):
             'battery_class': battery_class,
             'battery_status': battery_status,
             'form': form,
+            "feature_priorities": enabled_features,
         }
         return render(request, 'device_details/device_details.html', context)
     except Device.DoesNotExist:
@@ -410,4 +430,6 @@ def delete_device(request, device_id):
     except Device.DoesNotExist:
         messages.error(request, 'Device not found.')
         return redirect('data_logger')
+    
+    
     
