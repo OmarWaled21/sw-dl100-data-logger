@@ -76,7 +76,8 @@ document.addEventListener("DOMContentLoaded", function() {
       updateScheduleUI(data);
       const modal = bootstrap.Modal.getInstance(scheduleModal);
       modal.hide();
-      location.reload();
+      updateScheduleUI(data);
+      updateDeviceStatus(data.is_on); // لو رجعت الحالة من الـ API
     })
     .catch(error => {
       console.error('Save error:', error);

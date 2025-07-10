@@ -15,10 +15,8 @@ from device_details.models import ControlFeaturePriority, DeviceControl, DeviceR
 from collections import defaultdict
 from weasyprint import HTML
 from datetime import datetime, timedelta, time
-import datetime
 from PIL import Image
-import base64
-import io
+import datetime, base64, io
 
 def calculate_hourly_averages(readings):
     hourly_data = defaultdict(lambda: {'temp_sum': 0, 'hum_sum': 0, 'count': 0})
@@ -44,7 +42,6 @@ def calculate_hourly_averages(readings):
         avg_hums.append(data['hum_sum'] / data['count'])
 
     return labels, avg_temps, avg_hums
-
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -355,39 +352,57 @@ def auto_control_refresh(request, device_id):
             control.auto_pause_until = None
             control.save()
 
-        # ✅ Get priority list
+        # ✅ Check for pending confirmation timeout
+        if control.pending_confirmation and control.confirmation_deadline:
+            if get_master_time() > control.confirmation_deadline:
+                print(f"❌ Timeout! No confirmation from device {control.device.device_id} — Reverting to last confirmed state.")
+
+                # ✅ تأكد من وجود قيمة last_confirmed_state
+                if control.last_confirmed_state is not None:
+                    control.is_on = control.last_confirmed_state
+                else:
+                    # إذا لم تكن هناك قيمة محفوظة، ارجع إلى القيمة الافتراضية (False)
+                    control.is_on = False
+
+                control.pending_confirmation = False
+                control.confirmation_deadline = None
+                control.save()
+                print(f"✅ State reverted to: {'ON' if control.is_on else 'OFF'}")
+
+            else:
+                # لسه منتظر confirmation، متعملش حاجة
+                continue
+
+        # ⛔ Skip devices waiting confirmation
+        if control.pending_confirmation:
+            continue
+
+        # ✅ Get priority decision
         priority_features = list(control.feature_priorities.order_by("priority").values_list("feature", flat=True))
-        desired_state = control.is_on  # الحالة المرغوبة
+        desired_state = None
         decision_made = False
 
         for feature in priority_features:
             if feature == "temp_control" and control.temp_control_enabled:
                 temperature = control.device.temperature
-                if (
-                    control.temp_on_threshold is not None and
-                    temperature >= control.temp_on_threshold
-                ):
+                if control.temp_on_threshold is not None and temperature >= control.temp_on_threshold:
                     desired_state = True
                     decision_made = True
-                elif (
-                    control.temp_off_threshold is not None and
-                    temperature <= control.temp_off_threshold
-                ):
+                elif control.temp_off_threshold is not None and temperature <= control.temp_off_threshold:
                     desired_state = False
                     decision_made = True
-                break  # ❗ stop after first valid decision
+                break
 
             elif feature == "auto_schedule" and control.auto_schedule:
                 if control.auto_on and control.auto_off:
                     if control.auto_on <= current_time <= control.auto_off:
                         desired_state = True
-                        decision_made = True
                     else:
                         desired_state = False
-                        decision_made = True
-                break  # ❗ stop after first valid decision
+                    decision_made = True
+                break
 
-        # 🟨 fallback لو مفيش priority features
+        # fallback لو مفيش priority
         if not decision_made:
             if control.control_priority == "temp" and control.temp_control_enabled:
                 temperature = control.device.temperature
@@ -395,7 +410,6 @@ def auto_control_refresh(request, device_id):
                     desired_state = True
                 elif control.temp_off_threshold is not None and temperature <= control.temp_off_threshold:
                     desired_state = False
-
             elif control.control_priority == "schedule" and control.auto_schedule:
                 if control.auto_on and control.auto_off:
                     if control.auto_on <= current_time <= control.auto_off:
@@ -403,16 +417,34 @@ def auto_control_refresh(request, device_id):
                     else:
                         desired_state = False
 
-        # ✅ Update only if needed
-        if control.is_on != desired_state:
-            control.is_on = desired_state
-            control.save()
+        # ✅ Apply change only if current != desired
+        if desired_state is not None and control.is_on != desired_state:
+
+            # ✅ لو عايز تطفيه مفيش مشكلة
+            if desired_state is False:
+                control.is_on = False
+                control.pending_confirmation = True
+                control.confirmation_deadline = get_master_time() + timedelta(seconds=30)
+                control.save()
+
+            # ⛔ لو عايز تشغله، بس الجهاز مش موصل، متعملش حاجة
+            elif desired_state is True:
+                last_seen = control.last_seen  # ده مثال، لازم تضيفه لو مش عندك
+                if last_seen and get_master_time() - last_seen < timedelta(seconds=30):
+                    control.is_on = True
+                    control.pending_confirmation = True
+                    control.confirmation_deadline = get_master_time() + timedelta(seconds=30)
+                    control.save()
+                else:
+                    print(f"⚠️ Device {control.device.device_id} is offline. Skipping ON action.")
+
 
     # ✅ Return current states
     data = [
         {
             "device_id": control.device.device_id,
-            "is_on": control.is_on
+            "is_on": control.is_on,
+            "pending_confirmation": control.pending_confirmation
         }
         for control in controls
     ]
@@ -430,17 +462,40 @@ def toggle_device(request, device_id):
     except Device.DoesNotExist:
         return Response({"error": "Device not found"}, status=404)
 
+    force_restore = request.data.get("force_restore", False)
+
+    if control.pending_confirmation and not force_restore:
+        return Response({
+            "status": "waiting",
+            "message": "Still waiting for previous confirmation."
+        }, status=409)
+
+    # ✅ في حالة force_restore رجّع آخر حالة مؤكدة
+    if force_restore:
+        control.is_on = control.last_confirmed_state
+        control.pending_confirmation = False
+        control.confirmation_deadline = None
+        control.save()
+        return Response({
+            "status": "restored",
+            "restored_to": control.is_on
+        })
+
+    # ✅ تأكد من حفظ الحالة المؤكدة الحالية قبل التغيير
+    if not control.last_confirmed_state and control.last_confirmed_state != control.is_on:
+        control.last_confirmed_state = control.is_on
+
+    # ⬇️ Toggle
     control.is_on = not control.is_on
-    control.save()
-    
+    control.pending_confirmation = True
+    control.confirmation_deadline = timezone.now() + timedelta(seconds=30)
+
     if control.auto_schedule:
         master_now = get_master_time()
-        control.auto_pause_until = master_now + timedelta(hours=1)
-        control.save()
-        print(f"⏸ Auto-schedule paused until {control.auto_pause_until}")
-    
-    return Response({"status": "success", "is_on": control.is_on})
+        control.auto_pause_until = master_now + timedelta(minutes=1)
 
+    control.save()
+    return Response({"status": "pending"})
 
 @api_view(['GET'])
 @authentication_classes([TokenAuthentication])
@@ -460,6 +515,8 @@ def get_device_control_info(request, device_id):
         "auto_schedule": control.auto_schedule,
         "auto_on": control.auto_on.strftime('%H:%M') if control.auto_on else None,
         "auto_off": control.auto_off.strftime('%H:%M') if control.auto_off else None,
+        "pending_confirmation": control.pending_confirmation,
+        "last_confirmed_state": control.last_confirmed_state
     })
 
 
@@ -468,12 +525,13 @@ def get_device_control_info(request, device_id):
 @permission_classes([IsAuthenticated])
 def toggle_schedule(request, device_id):
     auto_schedule = str(request.data.get("auto_schedule")).lower() in ["true", "1"]
-
+    print("Request data:", request.data)
     try:
         device = Device.objects.get(device_id=device_id, admin=request.user)
         control, _ = DeviceControl.objects.get_or_create(device=device)
         control.auto_schedule = auto_schedule
         control.save()
+        
         return Response({"status": "success", "auto_schedule": control.auto_schedule})
     except Device.DoesNotExist:
         return Response({"error": "Device not found"}, status=404)
@@ -507,7 +565,8 @@ def update_auto_time(request, device_id):
             "status": "success",
             "auto_schedule": control.auto_schedule,
             "auto_on": control.auto_on.strftime('%H:%M') if control.auto_on else None,
-            "auto_off": control.auto_off.strftime('%H:%M') if control.auto_off else None
+            "auto_off": control.auto_off.strftime('%H:%M') if control.auto_off else None,
+            "is_on": control.is_on
         })
 
     except Device.DoesNotExist:
@@ -524,7 +583,8 @@ def update_auto_time(request, device_id):
 def get_temp_settings(request, device_id):
     try:
         device = Device.objects.get(device_id=device_id, admin=request.user)
-        control = device.control
+        control = DeviceControl.objects.get(device=device)
+
     except Device.DoesNotExist:
         return Response({"error": "Device not found"}, status=404)
 
@@ -612,3 +672,28 @@ def get_priority_settings(request, device_id):
 
     priorities = control.feature_priorities.order_by("priority").values("feature", "priority")
     return Response({"priorities": list(priorities)})
+
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def confirm_device_action(request):
+    device_id = request.data.get('device_id')
+    status = request.data.get('status')  # "on" or "off"
+
+    try:
+        device = Device.objects.get(device_id=device_id)
+        control = DeviceControl.objects.get(device=device)
+
+        # ✅ ثبت الحالة الفعلية اللي الجهاز نفذها
+        control.is_on = True if status == "on" else False
+        control.last_confirmed_state = control.is_on  # ✅ سجل الحالة المؤكدة
+        control.pending_confirmation = False
+        control.confirmation_deadline = None
+        control.save()
+
+        print(f"✅ Confirmation from device {device_id}: {status}")
+        return Response({'status': 'ok'}, status=200)
+
+    except Device.DoesNotExist:
+        return Response({'error': 'Device not found'}, status=404)
+

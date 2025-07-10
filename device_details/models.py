@@ -33,9 +33,7 @@ class DeviceControl(models.Model):
     temp_control_enabled = models.BooleanField(default=False)
     temp_on_threshold = models.FloatField(null=True, blank=True)
     temp_off_threshold = models.FloatField(null=True, blank=True) 
-    
-    esp_ip_address = models.GenericIPAddressField(null=True, blank=True, help_text="ESP32 IP Address")
-    
+        
     # Priority control
     control_priority = models.CharField(
         max_length=10,
@@ -43,6 +41,17 @@ class DeviceControl(models.Model):
         default='schedule',
         help_text="Control priority: 'schedule' or 'temp'"
     )
+    
+    pending_confirmation = models.BooleanField(default=False)
+    confirmation_deadline = models.DateTimeField(null=True, blank=True)
+    last_seen = models.DateTimeField(null=True, blank=True)
+    last_confirmed_state = models.BooleanField(default=False)
+
+    def confirm_action(self):
+        self.pending_confirmation = False
+        self.confirmation_deadline = None
+        self.last_seen = None
+        self.save()
 
     def __str__(self):
         return f"{self.device.name or self.device.device_id} - {self.name}: {'On' if self.is_on else 'Off'}"

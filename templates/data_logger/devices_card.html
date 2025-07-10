@@ -112,7 +112,6 @@
         </div>
       </div>
 
-
       <!-- زر التفاصيل -->
       <form action="/device/{{ device.device_id }}" method="get">
         <button type="submit" class="btn-red mt-3">
@@ -123,13 +122,4 @@
     </div>
   </div>
 </div>
-<script>
-  const i18n = {
-    interval: "{% trans 'interval' %}",
-    Temperature: "{% trans 'Temperature' %}",
-    Humidity: "{% trans 'Humidity' %}",
-    ShowDetails: "{% trans 'Show Details' %}",
-    noDevices: "{% trans 'No devices available' %}",
-    pleaseAdd: "{% trans 'Please add a new device.' %}",
-  };
-</script>
+

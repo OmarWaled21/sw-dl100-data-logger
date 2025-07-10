@@ -29,24 +29,57 @@ document.addEventListener("DOMContentLoaded", function () {
   function refreshDeviceStatus() {
     if (!deviceId) return;
 
+    console.log("🚀 Calling /schedule/refresh/");
+    // ✅ Force timeout check and apply correction if needed
+    fetch(`/api/device/${deviceId}/schedule/refresh/`, {
+      headers: getRequestHeaders(false)
+    })
+    .then(handleResponse)
+    .then((data) => {
+      console.log("✅ Refreshed control state from /schedule/refresh/");
+      // optionally: process data.device_controls لو حابب
+    })
+    .catch((err) => {
+      console.error("Error refreshing control state:", err);
+    });
+
     // 🌀 1. Refresh ON/OFF state
     fetch(`/api/device/${deviceId}/schedule/refresh/`, {
       headers: getRequestHeaders(false),
     })
       .then(handleResponse)
       .then((data) => {
-        if (data.status === "success") {
-          const deviceData = data.device_controls.find(
-            (d) => d.device_id === deviceId
-          );
-          if (deviceData) {
-            updateDeviceStatus(deviceData.is_on);
+        const deviceData = data.device_controls.find(
+          (d) => d.device_id === deviceId
+        );
+        const toggleSwitch = document.getElementById("toggleDeviceSwitch");
+        const statusText = document.getElementById("deviceStatusText");
+        const statusBadge = document.querySelector(".device-info .badge");
+
+        if (deviceData && toggleSwitch && !toggleSwitch.disabled) {
+          // ✅ فقط إذا مش منتظر confirmation
+          if (!deviceData.pending_confirmation) {
+            const currentStatus = toggleSwitch.checked;
+            if (currentStatus !== deviceData.is_on) {
+              toggleSwitch.checked = deviceData.is_on;
+              statusText.innerHTML = `<i class="fas fa-power-off me-1"></i>${deviceData.is_on ? 'POWER ON' : 'POWER OFF'}`;
+              statusText.className = `status-indicator ${deviceData.is_on ? 'text-success' : 'text-secondary'}`;
+
+              if (statusBadge) {
+                statusBadge.className = `badge me-2 ${deviceData.is_on ? 'bg-success' : 'bg-secondary'}`;
+                statusBadge.textContent = deviceData.is_on ? 'ONLINE' : 'OFFLINE';
+              }
+            }
+          } else {
+            console.log("⏳ Still waiting for confirmation, skip refresh update.");
           }
         }
       })
       .catch((error) => {
         console.error("Refresh ON/OFF error:", error);
       });
+
+
 
     // 🌡️ 2. Refresh Temp Control Settings
     fetch(`/api/device/${deviceId}/temp/settings/`, {

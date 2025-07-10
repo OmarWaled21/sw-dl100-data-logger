@@ -6,10 +6,7 @@
 <script src="{% static 'data_logger/java/auto_refresh.js' %}" defer></script>
 <div class="container mt-3" id="data_loggerContainer">
   <div class="card">
-    <div
-      class="card-header"
-      dir="{% if request.LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}"
-    >
+    <div class="card-header" dir="{% if request.LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
       <div class="d-flex align-items-center justify-content-between">
         <h3 class="mb-0" data-translate="deviceOverview">
           {% trans "Devices Overview" %}
@@ -18,11 +15,7 @@
           <!-- date -->
           <p id="current-date" class="mt-1 ms-2 gap-2"></p>
           <!-- time -->
-          <p
-            id="current-time"
-            class="ms-2 fs-4"
-            data-server-time="{{ translated_date|date:'c' }}"
-          ></p>
+          <p id="current-time" class="ms-2 fs-4" data-server-time="{{ translated_date|date:'c' }}"></p>
           <!-- am or pm -->
           <p id="am-pm-indicator" class="ms-1" style="font-size: 1rem"></p>
         </div>
@@ -32,16 +25,12 @@
       {% include 'data_logger/device_overview.html' %}
     </div>
     <hr class="ms-5 me-5 border-1 border-subtle" />
-    <div
-      class="card-header"
-      dir="{% if request.LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}"
-    >
+    <div class="card-header" dir="{% if request.LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
       <h3>{% trans "Devices" %}</h3>
     </div>
     <div
       class="card-body d-flex flex-wrap justify-content-start ms-5 gap-4"
-      dir="{% if request.LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}"
-    >
+      dir="{% if request.LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
       {% if devices.count == 0 %}
       <div class="text-center py-5 w-100">
         <i class="fas fa-exclamation-triangle fa-3x text-muted mb-3"></i>
@@ -51,12 +40,10 @@
         <p class="text-secondary">{% trans "Please add a new device." %}</p>
       </div>
       {% endif %}
-      <div
-        class="d-flex flex-wrap justify-content-start gap-4"
-        id="devices-cards"
-      >
-        {% for device in devices %} {% include 'data_logger/devices_card.html'
-        %} {% endfor %}
+      <div class="d-flex flex-wrap justify-content-start gap-4" id="devices-cards">
+        {% for device in devices %}
+          {% include 'data_logger/devices_card.html'%} 
+        {% endfor %}
       </div>
     </div>
     <div class="row row-cols-1 row-cols-md-2 g-4 mt-4">
@@ -64,4 +51,14 @@
     </div>
   </div>
 </div>
+<script>
+  const i18n = {
+    interval: "{% trans 'interval' %}",
+    Temperature: "{% trans 'Temperature' %}",
+    Humidity: "{% trans 'Humidity' %}",
+    ShowDetails: "{% trans 'Show Details' %}",
+    noDevices: "{% trans 'No devices available' %}",
+    pleaseAdd: "{% trans 'Please add a new device.' %}",
+  };
+</script>
 {% endblock %}

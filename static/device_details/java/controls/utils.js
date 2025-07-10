@@ -131,7 +131,15 @@ function saveSettings(deviceId, buttonElement, modalElement = null) {
     body: JSON.stringify(tempPayload),
   }).then(handleResponse);
 
-  Promise.all([saveSchedule, saveTemp])
+  const toggleSchedule = fetch(`/api/device/${deviceId}/schedule/toggle/`, {
+    method: "POST",
+    headers: getRequestHeaders(),
+    body: JSON.stringify({
+      auto_schedule: autoScheduleSwitch.checked
+    })
+  }).then(handleResponse);
+
+  Promise.all([toggleSchedule, saveSchedule, saveTemp])
     .then(([scheduleData, tempData]) => {
       updateScheduleUI(scheduleData);
 

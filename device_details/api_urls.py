@@ -2,6 +2,7 @@ from django.urls import path
 from .api_views import * 
 urlpatterns = [
     path('add-device/', add_device, name='add_device'),
+    path('confirm/', confirm_device_action, name='confirm_device_action'),
     path('<str:device_id>/', api_device_details, name='api_device_details'),
     path('<str:device_id>/edit/', edit_device, name='device-edit'),
     path('<str:device_id>/delete/', delete_device_api, name='delete_device_api'),

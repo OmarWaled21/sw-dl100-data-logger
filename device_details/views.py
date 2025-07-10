@@ -5,7 +5,7 @@ from data_logger.utils import get_master_time
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from datetime import datetime, timedelta
-from device_details.models import DeviceReading
+from device_details.models import DeviceControl, DeviceReading
 from django.contrib import messages
 from collections import defaultdict
 from django.utils.dateparse import parse_date
@@ -183,7 +183,7 @@ def device_details(request, device_id):
 
 
         # في مكان إعداد الـ context
-        control = device.control
+        control, _ = DeviceControl.objects.get_or_create(device=device)
 
         # ✅ كل الميزات مع اسم العرض و شرط التفعيل
         all_features = [
