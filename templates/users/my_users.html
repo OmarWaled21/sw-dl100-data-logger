@@ -23,7 +23,6 @@
                 <th>{% translate "Username" %}</th>
                 <th class="text-center">{% translate "Email" %}</th>
                 <th class="text-center">{% translate "Role" %}</th>
-                <th class="text-center">{% translate "Categories" %}</th>
                 <th class="text-center">{% translate "Actions" %}</th>
               </tr>
             </thead>
@@ -33,27 +32,6 @@
                 <td class="align-middle">{{ user.username }}</td>
                 <td class="text-center align-middle">{{ user.email }}</td>
                 <td class="text-center align-middle">{{ user.role }}</td>
-                <td class="text-center align-middle">
-                  {% with user.categories.all as all_categories %}
-                    {% with all_categories|slice:":2" as first_two %}
-                      {% with extra=all_categories|length|add:"-2" %}
-                        <span data-bs-toggle="tooltip"
-                              data-bs-placement="top"
-                              title="{% for category in all_categories|slice:'2:' %}{{ category.name }}{% if not forloop.last %}, {% endif %}{% endfor %}">
-                          
-                          {% for category in first_two %}
-                            <span class="badge bg-primary">{{ category.name }}</span>
-                          {% endfor %}
-                          
-                          {% if extra > 0 %}
-                            <span class="badge bg-secondary">+{{ extra }}</span>
-                          {% endif %}
-                        </span>
-                      {% endwith %}
-                    {% endwith %}
-                  {% endwith %}
-                </td>
-
                 <td class="text-center align-middle">
                   <!-- زر يفتح المودال -->
                   <button

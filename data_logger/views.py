@@ -21,10 +21,6 @@ def data_logger(request):
     if not request.user.is_authenticated:
         return redirect('login')
 
-    if not request.user.categories.filter(slug='data_logger').exists():
-        messages.error(request, "You don't have permission to access this page.")
-        return redirect('home')
-
     if request.user.role == 'admin':
         device_qs = Device.objects.filter(admin=request.user)
     else:

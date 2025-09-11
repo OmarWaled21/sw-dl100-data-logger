@@ -15,8 +15,7 @@ from device_details.models import ControlFeaturePriority, DeviceControl, DeviceR
 from collections import defaultdict
 from weasyprint import HTML
 from datetime import datetime, timedelta, time
-from PIL import Image
-import datetime, base64, io
+from device_details.mqtt_client import send_mqtt_command
 
 def calculate_hourly_averages(readings):
     hourly_data = defaultdict(lambda: {'temp_sum': 0, 'hum_sum': 0, 'count': 0})
@@ -308,23 +307,11 @@ def download_device_data_pdf_api(request, device_id):
         } for r in readings
     ]
 
-    # اللوجو Base64
-    logo_path = 'static/images/tomatiki_logo.png'
-    try:
-        with Image.open(logo_path) as img:
-            img.thumbnail((150, 150))
-            img_bytes = io.BytesIO()
-            img.save(img_bytes, format='PNG')
-            logo_base64 = base64.b64encode(img_bytes.getvalue()).decode('utf-8')
-    except Exception:
-        logo_base64 = ''
-
     context = {
         'device': device,
         'rows': data_rows,
         'filter_date': filter_date,
         'now': get_master_time(),
-        'logo_base64': logo_base64,
     }
 
     html_string = render_to_string('device_details/device_data_pdf.html', context)
@@ -352,32 +339,8 @@ def auto_control_refresh(request, device_id):
             control.auto_pause_until = None
             control.save()
 
-        # ✅ Check for pending confirmation timeout
-        if control.pending_confirmation and control.confirmation_deadline:
-            if get_master_time() > control.confirmation_deadline:
-                print(f"❌ Timeout! No confirmation from device {control.device.device_id} — Reverting to last confirmed state.")
 
-                # ✅ تأكد من وجود قيمة last_confirmed_state
-                if control.last_confirmed_state is not None:
-                    control.is_on = control.last_confirmed_state
-                else:
-                    # إذا لم تكن هناك قيمة محفوظة، ارجع إلى القيمة الافتراضية (False)
-                    control.is_on = False
-
-                control.pending_confirmation = False
-                control.confirmation_deadline = None
-                control.save()
-                print(f"✅ State reverted to: {'ON' if control.is_on else 'OFF'}")
-
-            else:
-                # لسه منتظر confirmation، متعملش حاجة
-                continue
-
-        # ⛔ Skip devices waiting confirmation
-        if control.pending_confirmation:
-            continue
-
-        # ✅ Get priority decision
+        # ✅ Decision logic
         priority_features = list(control.feature_priorities.order_by("priority").values_list("feature", flat=True))
         desired_state = None
         decision_made = False
@@ -392,7 +355,6 @@ def auto_control_refresh(request, device_id):
                     desired_state = False
                     decision_made = True
                 break
-
             elif feature == "auto_schedule" and control.auto_schedule:
                 if control.auto_on and control.auto_off:
                     if control.auto_on <= current_time <= control.auto_off:
@@ -402,7 +364,7 @@ def auto_control_refresh(request, device_id):
                     decision_made = True
                 break
 
-        # fallback لو مفيش priority
+        # fallback
         if not decision_made:
             if control.control_priority == "temp" and control.temp_control_enabled:
                 temperature = control.device.temperature
@@ -417,27 +379,23 @@ def auto_control_refresh(request, device_id):
                     else:
                         desired_state = False
 
-        # ✅ Apply change only if current != desired
+        # ✅ Apply only if change is needed
         if desired_state is not None and control.is_on != desired_state:
-
-            # ✅ لو عايز تطفيه مفيش مشكلة
-            if desired_state is False:
-                control.is_on = False
-                control.pending_confirmation = True
-                control.confirmation_deadline = get_master_time() + timedelta(seconds=30)
-                control.save()
-
-            # ⛔ لو عايز تشغله، بس الجهاز مش موصل، متعملش حاجة
-            elif desired_state is True:
-                last_seen = control.last_seen  # ده مثال، لازم تضيفه لو مش عندك
+            # ⛔ Check if device is online before turning ON
+            if desired_state is True:
+                last_seen = control.last_seen
                 if last_seen and get_master_time() - last_seen < timedelta(seconds=30):
-                    control.is_on = True
-                    control.pending_confirmation = True
-                    control.confirmation_deadline = get_master_time() + timedelta(seconds=30)
+                    control.is_on = desired_state
+                    control.last_confirmed_state = desired_state
                     control.save()
+                    send_mqtt_command(device_id=control.device.device_id, state=desired_state)
                 else:
                     print(f"⚠️ Device {control.device.device_id} is offline. Skipping ON action.")
-
+            elif desired_state is False:
+                control.is_on = desired_state
+                control.last_confirmed_state = desired_state
+                control.save()
+                send_mqtt_command(device_id=control.device.device_id, state=False)
 
     # ✅ Return current states
     data = [
@@ -451,7 +409,6 @@ def auto_control_refresh(request, device_id):
 
     return Response({"status": "success", "device_controls": data})
 
-
 @api_view(['POST'])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
@@ -462,40 +419,18 @@ def toggle_device(request, device_id):
     except Device.DoesNotExist:
         return Response({"error": "Device not found"}, status=404)
 
-    force_restore = request.data.get("force_restore", False)
-
-    if control.pending_confirmation and not force_restore:
-        return Response({
-            "status": "waiting",
-            "message": "Still waiting for previous confirmation."
-        }, status=409)
-
-    # ✅ في حالة force_restore رجّع آخر حالة مؤكدة
-    if force_restore:
-        control.is_on = control.last_confirmed_state
-        control.pending_confirmation = False
-        control.confirmation_deadline = None
-        control.save()
-        return Response({
-            "status": "restored",
-            "restored_to": control.is_on
-        })
-
-    # ✅ تأكد من حفظ الحالة المؤكدة الحالية قبل التغيير
-    if not control.last_confirmed_state and control.last_confirmed_state != control.is_on:
-        control.last_confirmed_state = control.is_on
-
-    # ⬇️ Toggle
+    # Toggle the current state
     control.is_on = not control.is_on
-    control.pending_confirmation = True
-    control.confirmation_deadline = timezone.now() + timedelta(seconds=30)
+    control.last_confirmed_state = control.is_on
 
-    if control.auto_schedule:
-        master_now = get_master_time()
-        control.auto_pause_until = master_now + timedelta(minutes=1)
+    # ⏸ Pause auto control for 1 hour
+    control.auto_pause_until = get_master_time() + timedelta(hours=1)
 
     control.save()
-    return Response({"status": "pending"})
+
+    send_mqtt_command(device_id=device.device_id, state=control.is_on)
+
+    return Response({"status": "ok", "new_state": control.is_on})
 
 @api_view(['GET'])
 @authentication_classes([TokenAuthentication])

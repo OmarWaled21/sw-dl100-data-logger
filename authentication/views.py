@@ -15,7 +15,7 @@ from authentication.forms import UpdateUserForm
 @never_cache
 def user_login(request):
     if request.user.is_authenticated:
-        return redirect('home')
+        return redirect('data_logger')
     else: 
         if request.method == 'POST':
             username = request.POST.get('username')
@@ -42,7 +42,7 @@ def user_login(request):
                     request.session.set_expiry(0)  # الجلسة تنتهي مع غلق المتصفح
                 
                 messages.success(request, 'You are now logged in.. Welcome :)')
-                return redirect('home')
+                return redirect('data_logger')
             else:
                 messages.error(request, 'Invalid username or password, Please try again...')
                 return redirect('login')

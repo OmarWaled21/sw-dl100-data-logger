@@ -146,20 +146,12 @@ def generate_device_pdf(device, start_time, end_time, include_temp=True, include
         bar_chart_base64 = base64.b64encode(buf.read()).decode('utf-8')
         plt.close(fig)
 
-    logo_path = 'static/images/tomatiki_logo.png'
-    with Image.open(logo_path) as img:
-        img.thumbnail((150, 150))
-        img_bytes = io.BytesIO()
-        img.save(img_bytes, format='PNG')
-        logo_base64 = base64.b64encode(img_bytes.getvalue()).decode('utf-8')
-
     context = {
         'device': device,
         'rows': data_rows,
         'start_date': start_time.strftime('%Y-%m-%d'),
         'end_date': end_time.strftime('%Y-%m-%d'),
         'now': get_master_time(),
-        'logo_base64': logo_base64,
         'include_temp': include_temp,
         'include_hum': include_hum,
         'graph_base64': graph_base64,

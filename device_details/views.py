@@ -118,11 +118,14 @@ def device_details(request, device_id):
             except ValueError:
                 day_end = get_master_time()
                 day_start = day_end - timedelta(days=1)
+                start_date = day_start.date()
+                end_date = day_end.date()
         else:
             fallback_date = last_reading.timestamp.date() if last_reading else get_master_time().date()
             day_start = datetime.combine(fallback_date, datetime.min.time())
             day_end = datetime.combine(fallback_date, datetime.max.time())
-
+            start_date = day_start.date()
+            end_date = day_end.date()
 
         # تصفية القراءات للجدول حسب التاريخ المختار
         filtered_readings = DeviceReading.objects.filter(
@@ -217,6 +220,10 @@ def device_details(request, device_id):
             'form': form,
             "feature_priorities": enabled_features,
         }
+        print("start_date_str:", start_date_str)
+        print("end_date_str:", end_date_str)
+        print("Parsed start_date:", start_date)
+        print("Parsed end_date:", end_date)
         return render(request, 'device_details/device_details.html', context)
     except Device.DoesNotExist:
         return redirect('data_logger')
@@ -327,8 +334,10 @@ def download_device_data_pdf(request, device_id):
     temps = [row['temperature'] for row in graph_data if include_temp]
     hums = [row['humidity'] for row in graph_data if include_hum]
 
-    temp_summary = get_summary_stats(temps) if include_temp else None
-    hum_summary = get_summary_stats(hums) if include_hum else None
+    all_summary_temps = [row['temperature'] for row in data_rows if include_temp and 'temperature' in row]
+    all_summary_hums = [row['humidity'] for row in data_rows if include_hum and 'humidity' in row]
+    temp_summary = get_summary_stats(all_summary_temps) if include_temp else None
+    hum_summary = get_summary_stats(all_summary_hums) if include_hum else None
 
     fig, ax = plt.subplots(figsize=(10, 4))
 
@@ -383,21 +392,12 @@ def download_device_data_pdf(request, device_id):
         bar_chart_base64 = base64.b64encode(buf.read()).decode('utf-8')
         plt.close(fig)
 
-    # تجهيز اللوجو (اختياري)
-    logo_path = 'static/images/tomatiki_logo.png'
-    with Image.open(logo_path) as img:
-        img.thumbnail((150, 150))
-        img_bytes = io.BytesIO()
-        img.save(img_bytes, format='PNG')
-        logo_base64 = base64.b64encode(img_bytes.getvalue()).decode('utf-8')
-
     context = {
         'device': device,
         'rows': data_rows,
         'start_date': start_date_str or start_time.strftime('%Y-%m-%d'),
         'end_date': end_date_str or end_time.strftime('%Y-%m-%d'),
         'now': get_master_time(),
-        'logo_base64': logo_base64,
         'include_temp': include_temp,
         'include_hum': include_hum,
         'graph_base64': graph_base64,
@@ -410,7 +410,7 @@ def download_device_data_pdf(request, device_id):
     pdf_file = HTML(string=html_string).write_pdf()
 
     response = HttpResponse(pdf_file, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="device_data_{device.device_id}.pdf"'
+    response['Content-Disposition'] = f'attachment; filename="archiving {device.name}.pdf"'
     return response
 
     

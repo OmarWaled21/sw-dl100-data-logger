@@ -157,7 +157,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             <div class="d-flex justify-content-between align-items-center">
                                 <h5 class="card-title" style="font-weight: bold">${device.name}</h5>
                                 <div class="d-flex align-items-center gap-2"> 
-                                <a class="refresh-button" href="/data_logger"> 
+                                <a class="refresh-button" href="/"> 
                                     <i class="fas fa-sync-alt"></i>
                                 </a>
                                 </div>

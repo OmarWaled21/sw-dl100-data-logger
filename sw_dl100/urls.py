@@ -8,15 +8,13 @@ urlpatterns = [
     path('i18n/', include('django.conf.urls.i18n')),
     # admin
     path('admin/', admin.site.urls),
-    path('', include('home.urls')),
-    path('data_logger/', include('data_logger.urls')),
+    path('', include('data_logger.urls')),
     path('auth/', include('authentication.urls')),
     path('users/', include('users.urls')),
     path('logs/', include('logs.urls')),
     path('device/', include('device_details.urls')),
-    path('clinical/', include('clinical.urls')),
     # API
-    path('api/data_logger/', include('data_logger.api_urls')),
+    path('api/', include('data_logger.api_urls')),
     path('api/auth/', include('authentication.api_urls')),
     path('api/users/', include('users.api_urls')),
     path('api/logs/', include('logs.api_urls')),

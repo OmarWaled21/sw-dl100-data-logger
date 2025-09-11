@@ -1,15 +1,12 @@
 // autoRefresh.js
 document.addEventListener("DOMContentLoaded", function () {
-  const deviceId =
-    document.getElementById("toggleDeviceSwitch")?.dataset.deviceId;
-  const autoScheduleSwitch = document.getElementById("autoScheduleSwitch");
+  const deviceId = window.deviceId;
   const refreshInterval = 10000; // 10 seconds
   let refreshIntervalId = null;
 
-  if (autoScheduleSwitch?.checked) {
-    startAutoRefresh();
-  }
-
+  
+  startAutoRefresh();
+  
   function startAutoRefresh() {
     if (!refreshIntervalId && deviceId) {
       refreshIntervalId = setInterval(refreshDeviceStatus, refreshInterval);

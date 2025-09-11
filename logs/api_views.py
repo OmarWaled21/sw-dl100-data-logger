@@ -87,18 +87,9 @@ def api_download_logs_pdf(request):
     all_logs = [log.get_log_info() for log in device_logs] + [log.get_log_info() for log in user_logs]
     all_logs.sort(key=lambda log: log['timestamp'], reverse=True)
 
-    # Prepare logo
-    logo_path = 'static/images/tomatiki_logo.png'
-    with Image.open(logo_path) as img:
-        img.thumbnail((150, 150))
-        img_bytes = io.BytesIO()
-        img.save(img_bytes, format='PNG')
-        logo_base64 = base64.b64encode(img_bytes.getvalue()).decode('utf-8')
-
     context = {
         'logs': all_logs,
         'now': get_master_time(),
-        'logo_base64': logo_base64,
     }
 
     html_string = render_to_string('logs/logs_pdf.html', context)

@@ -98,27 +98,19 @@
 
         <!-- Role مع زر المودال -->
         <div class="mb-4 d-flex align-items-center gap-3">
-        <label for="id_role" class="form-label mb-0 fw-semibold">{% trans "Role" %}</label>
-        <div class="input-group flex-grow-1">
-          <span class="input-group-text bg-white border-end-0 {% if LANGUAGE_CODE == 'ar' %}rounded-end-pill{% else %}rounded-start-pill{% endif %}">
-          <i class="fa-solid fa-user-gear text-primary"></i>
-          </span>
-          <select name="role"
-            class="form-select {% if LANGUAGE_CODE == 'ar' %}rounded-start-pill{% else %}rounded-end-pill{% endif %}"  {% if form.role.errors %}is-invalid{% endif %}"
-            id="id_role" required>
-          <option value="admin" {% if form.role.value == "admin" %}selected{% endif %}>{% trans "Admin" %}</option>
-          <option value="supervisor" {% if form.role.value == "supervisor" %}selected{% endif %}>{% trans "Supervisor" %}</option>
-          <option value="user" {% if form.role.value == "user" %}selected{% endif %}>{% trans "User" %}</option>
-          </select>
-          <input type="hidden" name="categories" id="selectedCategories" value="{{ default_category_id }}">
-        </div>
-
-        <!-- زر المودال -->
-        {% if admin_category_count > 1 %}
-          <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#categoriesModal">
-            {% trans "Select Categories" %}
-          </button>
-        {% endif %}
+          <label for="id_role" class="form-label mb-0 fw-semibold">{% trans "Role" %}</label>
+          <div class="input-group flex-grow-1">
+            <span class="input-group-text bg-white border-end-0 {% if LANGUAGE_CODE == 'ar' %}rounded-end-pill{% else %}rounded-start-pill{% endif %}">
+            <i class="fa-solid fa-user-gear text-primary"></i>
+            </span>
+            <select name="role"
+              class="form-select {% if LANGUAGE_CODE == 'ar' %}rounded-start-pill{% else %}rounded-end-pill{% endif %}"  {% if form.role.errors %}is-invalid{% endif %}"
+              id="id_role" required>
+            <option value="admin" {% if form.role.value == "admin" %}selected{% endif %}>{% trans "Admin" %}</option>
+            <option value="supervisor" {% if form.role.value == "supervisor" %}selected{% endif %}>{% trans "Supervisor" %}</option>
+            <option value="user" {% if form.role.value == "user" %}selected{% endif %}>{% trans "User" %}</option>
+            </select>
+          </div>
         </div>
 
 
@@ -135,41 +127,6 @@
           </a>
         </div>
       </form>
-      <!-- Modal Categories -->
-      <div class="modal fade" id="categoriesModal" tabindex="-1" aria-labelledby="categoriesModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-scrollable">
-          <div class="modal-content">
-          <div class="modal-header">
-            <div class="container-fluid px-0">
-              <div class="row align-items-center">
-                <div class="col">
-                  <h5 class="modal-title" id="categoriesModalLabel">{% trans "Select Categories" %}</h5>
-                </div>
-                <div class="col-auto">
-                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="modal-body">
-            {% for category in categories %}
-            <div class="form-check">
-            <input class="form-check-input category-checkbox" type="checkbox" 
-                    value="{{ category.id }}" id="category{{ category.id }}" />
-            <label class="form-check-label" for="category{{ category.id }}">
-                {{ category.name }}
-            </label>
-            </div>
-            {% endfor %}
-          </div>
-          <div class="modal-footer">
-            <button type="button" id="saveCategoriesBtn" class="btn btn-primary" data-bs-dismiss="modal">{% trans "Save" %} </button>
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "Close" %}</button>
-          </div>
-          </div>
-        </div>
-      </div>
     </div>
   </div>
 </div>

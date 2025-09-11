@@ -15,7 +15,7 @@ class CustomUserAdmin(UserAdmin):
     # ترتيب الحقول وإضافة التوكن تحت categories
     fieldsets = UserAdmin.fieldsets + (
         ("Additional Info", {
-            'fields': ('role', 'admin', 'categories', 'get_token'),
+            'fields': ('role', 'admin', 'get_token'),
         }),
     )
 

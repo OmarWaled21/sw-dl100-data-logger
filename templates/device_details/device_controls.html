@@ -1,4 +1,7 @@
 {% load static %}
+<script>
+  window.deviceId = "{{ device.device_id }}";
+</script>
 <script src="{% static 'device_details/java/controls/utils.js' %}"></script>
 <script src="{% static 'device_details/java/controls/deviceToggle.js' %}"></script>
 <script src="{% static 'device_details/java/controls/scheduleControl.js' %}"></script>

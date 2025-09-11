@@ -48,9 +48,6 @@ SECRET_KEY = config('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
-
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -63,14 +60,12 @@ INSTALLED_APPS = [
     'widget_tweaks',
     'rest_framework',
     'rest_framework.authtoken',
-    'corsheaders',  # for cross-origin support
+    'channels',
     'authentication.apps.AuthenticationConfig',
-    'home',
     'data_logger',
     'users',
     'logs',
     'device_details',
-    'clinical',
 ]
 
 MIDDLEWARE = [
@@ -99,9 +94,19 @@ CORS_ALLOW_ALL_ORIGINS = True  # In production, specify origins
 
 ROOT_URLCONF = 'sw_dl100.urls'
 
-BASE_URL = config("BASE_URL")
+BASE_IP = config("BASE_IP", default="127.0.0.1")
+BASE_PORT = config("BASE_PORT", default="8000")
+BASE_PROTOCOL = config("BASE_PROTOCOL", default="http")
 
-CSRF_TRUSTED_ORIGINS = config('BASE_URL', cast=Csv())
+if BASE_PROTOCOL == "https" and BASE_PORT == "443":
+    BASE_URL = f"{BASE_PROTOCOL}://{BASE_IP}"
+elif BASE_PROTOCOL == "http" and BASE_PORT == "80":
+    BASE_URL = f"{BASE_PROTOCOL}://{BASE_IP}"
+else:
+    BASE_URL = f"{BASE_PROTOCOL}://{BASE_IP}:{BASE_PORT}"
+    
+ALLOWED_HOSTS = config("ALLOWED_HOSTS", cast=Csv())
+CSRF_TRUSTED_ORIGINS = config("CSRF_TRUSTED_ORIGINS", cast=Csv())
 
 TWILIO_ACCOUNT_SID = config('TWILIO_ACCOUNT_SID')
 TWILIO_AUTH_TOKEN = config('TWILIO_AUTH_TOKEN')
@@ -208,3 +213,7 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = config('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')  # Use App Password if you have 2FA enabled
 DEFAULT_FROM_EMAIL = 'tomatiki@gmail.com'
+
+# MQTT Settings 
+MQTT_BROKER_URL = config('MQTT_BROKER_URL', default='localhost')
+MQTT_BROKER_PORT = config('MQTT_BROKER_PORT', cast=int, default=1883)

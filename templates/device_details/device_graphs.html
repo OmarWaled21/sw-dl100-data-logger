@@ -37,7 +37,7 @@
       {{ hum_data|json_script:"hum-data" }}
       <canvas id="sensorChart"></canvas>
     </div>
-
+`
     <!-- Table View -->
     <div class="tab-pane fade" id="table-view" role="tabpanel">
       <h4 class="fw-bold mb-3">{% trans "All Device Readings" %}</h4>
@@ -80,22 +80,22 @@
       </h5>
 
       <div class="table-responsive data-table" style="max-height: 400px; overflow-y: auto;">
-        <table class="table table-bordered table-striped mb-0" id="readings_table">
+        <table class="table table-bordered  table-striped mb-0"  id="readings_table">
           <thead>
             <tr>
               <th>{% trans "Time" %}</th>
-              <th class="temp-col">{% trans "Temperature" %} (°C)</th>
-              <th class="hum-col">{% trans "Humidity" %} (%)</th>
+              <th >{% trans "Temperature" %} (°C)</th>
+              <th >{% trans "Humidity" %} (%)</th>
             </tr>
           </thead>
           <tbody>
-            {% for label, temp, hum in combined_data %}
+            {% for time, temp, hum in combined_data %}
               <tr>
-                <td>{{ label }}</td>
-                <td class="temp-col">{{ temp }}</td>
-                <td class="hum-col">{{ hum }}</td>
+                <td>{{ time }}</td>
+                <td>{{ temp }}</td>
+                <td>{{ hum }}</td>
               </tr>
-            {% empty %}
+              {% empty %}
               <tr>
                 <td colspan="3" class="text-center">{% trans "No data available for the selected date" %}.</td>
               </tr>

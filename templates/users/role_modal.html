@@ -31,34 +31,6 @@
               <i class="fas fa-user-tie me-1 text-warning"></i> Supervisor
             </label>
           </div>
-
-          <!-- Volunteer Categories (Checkboxes) -->
-          <div class="mb-3">
-            <label class="form-label fw-semibold text-start">
-              <i class="fas fa-folder-open me-1 text-primary"></i> Categories
-            </label>
-            <div class="form-check-group">
-              {% for category in categories %}
-                <div class="form-check">
-                  <input class="form-check-input category-checkbox" 
-                        type="checkbox" 
-                        name="categories" 
-                        value="{{ category.id }}" 
-                        id="category{{ user.id }}_{{ category.id }}"
-                        {% if category in user.categories.all %}checked{% endif %}>
-                        <div class="d-flex align-items-center">
-                          <i class="{{ category.icon }} px-1"></i>
-                          <label class="form-check-label" for="category{{ user.id }}_{{ category.id }}">
-                            {{ category.name }}
-                          </label>
-                        </div>
-                </div>
-              {% endfor %}
-            </div>
-            <small class="form-text text-danger d-none" id="categoryError{{ user.id }}">Please select at least one category.</small>
-          </div>
-
-
         <div class="modal-footer bg-light rounded-bottom-4">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
             <i class="fas fa-times me-1"></i> Cancel

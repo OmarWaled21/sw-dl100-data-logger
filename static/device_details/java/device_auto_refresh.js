@@ -1,30 +1,32 @@
-function getCurrentFilterDate() {
-  const input = document.querySelector('#start_date');
-  if (input && input.value) return input.value;
-  return new Date().toISOString().split('T')[0];
-}
-
-
-function fetchAndUpdateDeviceData(deviceId, filterDate) {
-  // نحصل على تاريخ اليوم بصيغة yyyy-mm-dd
+// static/device_details/java/device_auto_refresh.js
+function getCurrentFilterDateRange() {
+  const startInput = document.querySelector('#start_date');
+  const endInput = document.querySelector('#end_date');
   const today = new Date().toISOString().split('T')[0];
 
-  // إذا التاريخ هو اليوم، ما نضيفش ?filter_date في الرابط
-  const url = filterDate === today ? `/device/${deviceId}/` : `/device/${deviceId}/?filter_date=${filterDate}`;
+  const startDate = startInput && startInput.value ? startInput.value : today;
+  const endDate = endInput && endInput.value ? endInput.value : startDate;
+
+  return { startDate, endDate };
+}
+
+function fetchAndUpdateDeviceData(deviceId) {
+  const { startDate, endDate } = getCurrentFilterDateRange();
+  const url = `/device/${deviceId}/?start_date=${startDate}&end_date=${endDate}`;
 
   fetch(url, {
-    headers: {
-      'X-Requested-With': 'XMLHttpRequest',
-    }
+    headers: { 'X-Requested-With': 'XMLHttpRequest' }
   })
   .then(response => response.json())
   .then(data => {
-
+    // الحالة العامة
     document.querySelector(".device-status-text").textContent = `${i18n.status}: ${i18n[data.status]}`;
     document.querySelector(".last-update").textContent = data.last_update;
-    const intervalElWifi = document.querySelector('.interval_wifi');
-    if (intervalElWifi) {
-      const interval = data.interval_wifi; // القيمة بالثواني
+
+    // الفترات
+    const updateInterval = (selector, interval) => {
+      const el = document.querySelector(selector);
+      if (!el) return;
 
       const hours = Math.floor(interval / 3600);
       const minutes = Math.floor((interval % 3600) / 60);
@@ -35,37 +37,26 @@ function fetchAndUpdateDeviceData(deviceId, filterDate) {
       if (minutes > 0) text += `${minutes}m `;
       if (hours === 0 && minutes === 0) text += `${seconds}s`;
 
-      intervalElWifi.textContent = text.trim();
-    }
+      el.textContent = text.trim();
+    };
 
-    const intervalElLocal = document.querySelector('.interval_local');
-    if (intervalElLocal) {
-      const interval = data.interval_local; // القيمة بالثواني
+    updateInterval('.interval_wifi', data.interval_wifi);
+    updateInterval('.interval_local', data.interval_local);
 
-      const hours = Math.floor(interval / 3600);
-      const minutes = Math.floor((interval % 3600) / 60);
-      const seconds = interval % 60;
+    // الحرارة والرطوبة
+    const tempEl = document.querySelector('.temp-value');
+    tempEl.textContent = `${data.temperature}°C`;
+    tempEl.dataset.min = data.min_temp;
+    tempEl.dataset.max = data.max_temp;
+    tempEl.dataset.status = data.status;
 
-      let text = '';
-      if (hours > 0) text += `${hours}h `;
-      if (minutes > 0) text += `${minutes}m `;
-      if (hours === 0 && minutes === 0) text += `${seconds}s`;
+    const humEl = document.querySelector('.hum-value');
+    humEl.textContent = `${data.humidity}%`;
+    humEl.dataset.min = data.min_hum;
+    humEl.dataset.max = data.max_hum;
+    humEl.dataset.status = data.status;
 
-      intervalElLocal.textContent = text.trim();
-    }
-
-    // تحديث القيم داخل الـ DOM
-    document.querySelector('.temp-value').textContent = `${data.temperature}°C`;
-    document.querySelector('.temp-value').dataset.min = data.min_temp;
-    document.querySelector('.temp-value').dataset.max = data.max_temp;
-    document.querySelector('.temp-value').dataset.status = data.status;
-
-    document.querySelector('.hum-value').textContent = `${data.humidity}%`;
-    document.querySelector('.hum-value').dataset.min = data.min_hum;
-    document.querySelector('.hum-value').dataset.max = data.max_hum;
-    document.querySelector('.hum-value').dataset.status = data.status;
-
-    // ✅ تحديث Battery
+    // البطارية
     const batteryIcon = document.querySelector(".fa-battery-empty, .fa-battery-quarter, .fa-battery-half, .fa-battery-three-quarters, .fa-battery-full");
     const batteryText = document.querySelector(".batt-status-text");
 
@@ -86,32 +77,29 @@ function fetchAndUpdateDeviceData(deviceId, filterDate) {
       }
     }
 
-    // ✅ تحديث RTC - باستخدام الكلاس الصحيح
+    // RTC
     const rtcIcon = document.querySelector(".fa-regular.fa-clock");
     const rtcText = document.querySelector(".rtc-status-text");
     if (rtcIcon && rtcText) {
       rtcIcon.className = "fa-regular fa-clock fs-5 " + 
         (data.status === 'offline' ? 'text-dark' : 
          data.rtc_error ? 'text-danger' : 'text-success');
-      
+
       rtcText.textContent = data.status === 'offline' ? i18n.offline : 
-                     (data.rtc_error ? i18n.error : i18n.working);
+                   (data.rtc_error ? i18n.error : i18n.working);
     }
 
-    // ✅ تحديث Wi-Fi - إضافة الكلاس المحدد
+    // Wi-Fi
     const wifiIcon = document.querySelector(".fa-wifi");
     const wifiText = document.querySelector(".wifi-strength-text");
     if (wifiIcon && wifiText) {
       wifiIcon.className = "fa-solid fa-wifi fs-5 " + 
         (data.status === 'offline' ? 'text-dark' : 'text-primary');
-      
+
       wifiText.textContent = data.status === 'offline' ? i18n.offline : `${data.wifi_strength}dB`;
     }
 
-    if (!rtcIcon) console.error("RTC icon not found!");
-    if (!wifiIcon) console.error("Wi-Fi icon not found!");
-
-    // ✅ تحديث SD Card
+    // SD Card
     const sdIcon = document.querySelector(".fa-sd-card");
     const sdText = document.querySelector(".sd-card-text");
     if (data.status === 'offline') {
@@ -125,95 +113,48 @@ function fetchAndUpdateDeviceData(deviceId, filterDate) {
       sdText.textContent = i18n.working;
     }
 
-    // تحديث اللون + مؤشر الإبرة
-    updateNeedles();
+    updateNeedles();  // لو في gauge مثلاً
+
+    // ✅ تحديث الجدول
+    updateTableData(data.combined_data);
+
+    // ✅ تحديث الفلتر النصي المعروض (اختياري)
+    document.querySelector('#current_filter_date').textContent = `${i18n.chosenDate}: ${startDate} → ${endDate}`;
   })
   .catch(error => console.error("Error fetching data:", error));
-}
+}function updateTableData(data) {
+  const tbody = document.querySelector('#readings_table tbody');
+  tbody.innerHTML = '';
 
-let currentFilterDate = getCurrentFilterDate();
-
-// Call it every 10 seconds
-const deviceId = window.location.pathname.split("/").filter(Boolean).pop();
-updateNeedles();
-fetchAndUpdateDeviceData(deviceId, currentFilterDate);
-fetchFilteredData(deviceId, currentFilterDate);
-
-setInterval(() => {
-  const filterDate = getCurrentFilterDate();
-fetchAndUpdateDeviceData(deviceId, filterDate);
-}, 5000);
-
-// تحديث كل 10 ثوانٍ للجدول فقط إذا كان التبويب ظاهر
-setInterval(() => {
-  const tableTab = document.querySelector('#table-view');
-  if (tableTab && tableTab.classList.contains('show') && tableTab.classList.contains('active')) {
-    const filterDate = getCurrentFilterDate();
-    fetchFilteredData(deviceId, filterDate);
+  if (!data || data.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="3" class="text-center">No data available for the selected date.</td></tr>';
+    return;
   }
-}, 10000);
 
-function fetchFilteredData(deviceId, date) {
-  const today = new Date().toISOString().split('T')[0];
-  const url = date === today ? `/device/${deviceId}/` : `/device/${deviceId}/?filter_date=${date}`;
-
-    fetch(url, {
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        updateTableData(data.combined_data);
-        // يمكنك تحديث التاريخ المعروض إذا لزم الأمر
-        document.querySelector('#current_filter_date').textContent = `${i18n.chosenDate}: ${date}`;
-    })
-    .catch(error => console.error("Error fetching filtered data:", error));
-}
-
-function updateTableData(data) {
-    const tbody = document.querySelector('#readings_table tbody');
-    tbody.innerHTML = ''; // Clear existing rows
-    
-    if (data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="3" class="text-center">No data available for the selected date.</td></tr>';
-        return;
-    }
-    
-    data.forEach(row => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${row[0]}</td>
-            <td>${row[1]}</td>
-            <td>${row[2]}</td>
-        `;
-        tbody.appendChild(tr);
-    });
+  data.forEach(row => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${row[0]}</td>
+      <td>${row[1]}</td>
+      <td>${row[2]}</td>
+    `;
+    tbody.appendChild(tr);
+  });
 }
 
 document.addEventListener("DOMContentLoaded", function () {
   const deviceId = window.location.pathname.split("/").filter(Boolean).pop();
-
-  function getCurrentFilterDate() {
-    const input = document.querySelector('#start_date');
-    return input && input.value ? input.value : new Date().toISOString().split('T')[0];
-  }
-
-  let currentFilterDate = getCurrentFilterDate();
-  updateNeedles();
-  fetchAndUpdateDeviceData(deviceId, currentFilterDate);
-  fetchFilteredData(deviceId, currentFilterDate);
+  fetchAndUpdateDeviceData(deviceId);
 
   setInterval(() => {
-    const filterDate = getCurrentFilterDate();
-    fetchAndUpdateDeviceData(deviceId, filterDate);
-  }, 5000);
-
-  setInterval(() => {
+    const deviceTab = document.querySelector('#status-view');
     const tableTab = document.querySelector('#table-view');
-    if (tableTab && tableTab.classList.contains('show') && tableTab.classList.contains('active')) {
-      const filterDate = getCurrentFilterDate();
-      fetchFilteredData(deviceId, filterDate);
+
+    const isDeviceTabActive = deviceTab && deviceTab.classList.contains('show') && deviceTab.classList.contains('active');
+    const isTableTabActive = tableTab && tableTab.classList.contains('show') && tableTab.classList.contains('active');
+
+    if (isDeviceTabActive || isTableTabActive) {
+      fetchAndUpdateDeviceData(deviceId);
     }
-  }, 10000);
+  }, 15000);
 });
