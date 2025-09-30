@@ -1,0 +1,5 @@
+migrations/
+caddy.exe
+caddyfile
+__pycache__/
+.env
