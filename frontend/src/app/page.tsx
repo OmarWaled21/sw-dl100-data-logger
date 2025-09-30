@@ -1,103 +1,166 @@
-import Image from "next/image";
+"use client";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useTranslation } from "react-i18next";
+import Cookies from "js-cookie";
+import DeviceCard from "@/components/device_card";
 
-export default function Home() {
+interface Device {
+  device_id: string;
+  name: string;
+  status: "active" | "offline" | "error";
+  temperature: number;
+  humidity: number;
+  min_temp: number;
+  max_temp: number;
+  min_hum: number;
+  max_hum: number;
+  battery_level: number;
+}
+
+// تحويل حالة السيرفر إلى حالة مفهومة للـ DeviceCard
+const mapStatus = (status: string): "active" | "offline" | "error" => {
+  switch (status.toLowerCase()) {
+    case "working":
+    case "active":
+      return "active";
+    case "offline":
+      return "offline";
+    case "error":
+    case "sd_card_error":
+    case "rtc_error":
+    case "temp_sensor_error":
+    case "hum_sensor_error":
+      return "error";
+    default:
+      return "error"; // أي حالة مجهولة نعتبرها خطأ
+  }
+};
+
+export default function HomePage() {
+  const [devices, setDevices] = useState<Device[]>([]);
+  const [serverOffset, setServerOffset] = useState<number>(0);
+  const [localTime, setLocalTime] = useState<Date | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const { t, i18n } = useTranslation();
+
+  const router = useRouter();
+
+  const fetchData = () => {
+    fetch("http://127.0.0.1:8000/", {
+      headers: { Authorization: `Token ${Cookies.get("token")}` },
+    })
+      .then((res) => {
+        return res.json();
+      })
+      .then((data) => {
+        // نعمل mapping للحالة
+        const mappedDevices = data.results.devices.map((d: any) => ({
+          ...d,
+          status: mapStatus(d.status),
+        }));
+        setDevices(mappedDevices);
+
+        const serverDate = new Date(data.results.current_time);
+        const localDate = new Date();
+        setServerOffset(serverDate.getTime() - localDate.getTime());
+
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchData();
+    setLocalTime(new Date());
+
+    const localTimer = setInterval(() => {
+      setLocalTime(new Date());
+    }, 1000);
+
+    const pollTimer = setInterval(() => {
+      fetchData();
+    }, 5000); // كل 5 ثواني نجيب آخر البيانات
+
+    return () => {
+      clearInterval(localTimer);
+      clearInterval(pollTimer);
+    };
+  }, []);
+
+  if (!localTime) return null;
+
+  const displayTime = new Date(localTime.getTime() + serverOffset);
+
+  const formattedTime = (date: Date) => {
+    const dayName = date.toLocaleDateString("en-US", { weekday: "short" });
+    const day = date.getDate();
+    const month = date.toLocaleDateString("en-US", { month: "short" });
+    const year = date.getFullYear();
+    const time = date.toLocaleTimeString("en-US", { hour12: true });
+    return `${dayName} - ${day} ${month} ${year}, ${time}`;
+  };
+
+  // حساب الأرقام
+  const totalDevices = devices.length;
+  const activeDevices = devices.filter((d) => d.status === "active").length;
+  const offlineDevices = devices.filter((d) => d.status === "offline").length;
+  const errorDevices = devices.filter((d) => d.status === "error").length;
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <div className="p-6">
+      <div className="bg-white shadow-lg rounded-2xl p-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b pb-4 mb-6 gap-2">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">{t("device_overview")}</h1>
+          <p className="text-lg sm:text-xl md:text-2xl font-semibold text-gray-800">{formattedTime(displayTime)}</p>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+        {loading ? (
+          <p>Loading...</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+            <div className="bg-gray-800 text-white p-4 rounded-xl shadow-sm text-center">
+              <h2 className="text-lg font-semibold">{t("total_devices")}</h2>
+              <p className="text-2xl font-bold mt-2">{totalDevices}</p>
+            </div>
+            <div className="border-2 border-green-800 text-green-800 p-4 rounded-xl shadow-sm text-center">
+              <h2 className="text-lg font-semibold">{t("active")}</h2>
+              <p className="text-2xl font-bold mt-2">{activeDevices}</p>
+            </div>
+            <div className="border-2 border-red-800 text-red-800 p-4 rounded-xl shadow-sm text-center">
+              <h2 className="text-lg font-semibold">{t("error")}</h2>
+              <p className="text-2xl font-bold mt-2">{errorDevices}</p>
+            </div>
+            <div className="border-2 border-gray-800 text-gray-800 p-4 rounded-xl shadow-sm text-center">
+              <h2 className="text-lg font-semibold">{t("offline")}</h2>
+              <p className="text-2xl font-bold mt-2">{offlineDevices}</p>
+            </div>
+          </div>
+        )}
+
+        <div className="mb-4">
+          <h2 className="text-xl font-bold">{t("devices")}</h2>
+          <div className="h-1 w-20 bg-gray-800 rounded mt-1"></div>
+        </div>
+        <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {devices.map((device) => (
+            <DeviceCard
+              key={device.device_id}
+              name={device.name}
+              battery={device.battery_level}
+              temperature={device.temperature}
+              humidity={device.humidity}
+              status={device.status}
+              minTemp={device.min_temp}
+              maxTemp={device.max_temp}
+              minHum={device.min_hum}
+              maxHum={device.max_hum}
+              id={device.device_id}
+            />
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

@@ -48,7 +48,6 @@ i18n
       order: ["cookie", "localStorage", "navigator"], // أولاً قراءة Cookie
       caches: ["cookie"], // حفظ اللغة في Cookie تلقائيًا
       cookieMinutes: 525600, // سنة كاملة
-      cookieDomain: window.location.hostname,
     },
     interpolation: {
       escapeValue: false,
