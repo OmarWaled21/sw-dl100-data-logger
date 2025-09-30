@@ -6,8 +6,6 @@ export function middleware(req: NextRequest) {
   const token = req.cookies.get("token")?.value;
   const { pathname } = req.nextUrl;
 
-  console.log("🔑 Token:", token, "Path:", pathname);
-
   // لو المستخدم عنده توكن وحاول يدخل auth → رجعه على الصفحة الرئيسية
   if (token && pathname.startsWith("/auth")) {
     return NextResponse.redirect(new URL("/", req.url));

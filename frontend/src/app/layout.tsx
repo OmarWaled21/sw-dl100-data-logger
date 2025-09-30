@@ -19,6 +19,9 @@ export const metadata: Metadata = {
   title: "Data Logger App",
   description:
     "a data logger app built with Next.js and Django that logs data from various sensors. like temperature, humidity, soil moisture, light intensity, and more.",
+  icons: {
+    icon: "/favicon.ico",
+  }
 };
 
 export default function RootLayout({

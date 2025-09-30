@@ -1,0 +1,97 @@
+"use client";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import Cookies from "js-cookie";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
+
+interface Props {
+  deviceId: string;
+}
+
+export default function DeviceReadingChart({ deviceId }: Props) {
+  const [chartData, setChartData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout;
+
+    const fetchAverages = async () => {
+      try {
+        const res = await axios.get(
+          `http://127.0.0.1:8000/device/${deviceId}/averages/`,
+          {
+            headers: { Authorization: `Token ${Cookies.get("token")}` },
+          }
+        );
+
+        const { labels, avg_temperatures, avg_humidities } = res.data;
+
+        const formatted = labels.map((label: string, i: number) => {
+          const date = new Date(label);
+          const hour = date.getHours().toString().padStart(2, "0") + ":00";
+          return {
+            hour,
+            temperature: avg_temperatures[i],
+            humidity: avg_humidities[i],
+          };
+        });
+
+        const last12 = formatted.length > 12 ? formatted.slice(-12) : formatted;
+        setChartData(last12);
+      } catch (error) {
+        console.error("Error fetching averages:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAverages();
+    intervalId = setInterval(fetchAverages, 5000);
+
+    return () => clearInterval(intervalId);
+  }, [deviceId]);
+
+  if (loading) {
+    return <div>Loading chart...</div>;
+  }
+
+  return (
+    <div className="bg-white rounded-2xl p-8 border border-gray-200">
+      <h2 className="text-2xl font-bold text-gray-900 mb-6">
+        Last 12 Hours (Avg per Hour)
+      </h2>
+      <ResponsiveContainer width="100%" height={400}>
+        <LineChart data={chartData}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="hour" interval={0} tick={{ fontSize: 12 }} />
+          <YAxis />
+          <Tooltip />
+          <Legend />
+          <Line
+            type="linear"
+            dataKey="temperature"
+            stroke="#ef4444"
+            name="Temperature (°C)"
+            dot
+          />
+          <Line
+            type="linear"
+            dataKey="humidity"
+            stroke="#3b82f6"
+            name="Humidity (%)"
+            dot
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}

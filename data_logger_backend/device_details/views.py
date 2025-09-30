@@ -231,38 +231,40 @@ class DeviceAPIView(APIView):
         if not device:
             return Response({'error': 'Device not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        date_str = request.GET.get('filter_date')
-        
-        if date_str:
-            try:
-                filter_date = parse_date(date_str)
-                if not filter_date:
+        # جلب كل القراءات
+        readings = DeviceReading.objects.filter(device=device).order_by('-timestamp')
+
+        # فلترة حسب single date أو range
+        filter_date = request.GET.get('filter_date')
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+
+        message = "All readings"
+
+        try:
+            if filter_date:
+                # single date
+                fd = parse_date(filter_date)
+                if not fd:
                     raise ValueError("Invalid date format")
-                
-                day_start = datetime.combine(filter_date, datetime.min.time())
-                day_end = datetime.combine(filter_date, datetime.max.time())
-                
-                readings = DeviceReading.objects.filter(
-                    device=device,
-                    timestamp__gte=day_start,
-                    timestamp__lte=day_end
-                ).order_by('-timestamp')
-                
-                message = f"Readings for {filter_date.strftime('%Y-%m-%d')}"
-            except ValueError:
-                return Response({'error': 'Invalid date format. Use YYYY-MM-DD'}, 
-                              status=status.HTTP_400_BAD_REQUEST)
-        else:
-            end_time = get_master_time()
-            start_time = end_time - timedelta(hours=12)
-            
-            readings = DeviceReading.objects.filter(
-                device=device,
-                timestamp__gte=start_time,
-                timestamp__lte=end_time
-            ).order_by('-timestamp')
-            
-            message = "Last 12 hours readings"
+                day_start = datetime.combine(fd, time.min)
+                day_end = datetime.combine(fd, time.max)
+                readings = readings.filter(timestamp__gte=day_start, timestamp__lte=day_end)
+                message = f"Readings for {fd.strftime('%Y-%m-%d')}"
+
+            elif start_date and end_date:
+                # date range
+                sd = parse_date(start_date)
+                ed = parse_date(end_date)
+                if not sd or not ed:
+                    raise ValueError("Invalid date format")
+                start_dt = datetime.combine(sd, time.min)
+                end_dt = datetime.combine(ed, time.max)
+                readings = readings.filter(timestamp__gte=start_dt, timestamp__lte=end_dt)
+                message = f"Readings from {sd.strftime('%Y-%m-%d')} to {ed.strftime('%Y-%m-%d')}"
+        except ValueError:
+            return Response({'error': 'Invalid date format. Use YYYY-MM-DD'}, 
+                            status=status.HTTP_400_BAD_REQUEST)
 
         combined_data = [
             {
@@ -281,7 +283,6 @@ class DeviceAPIView(APIView):
         }
 
         return Response(response_data)
-
     def device_dashboard_data(self, request, device_id):
         device = self.get_device(device_id)
         if not device:
