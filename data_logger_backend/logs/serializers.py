@@ -34,3 +34,4 @@ class AdminLogSerializer(serializers.ModelSerializer):
 
     def get_error_type(self, obj):
         return "admin_action"  # أو أي قيمة ثابتة أو قابلة للتغيير حسب نوع اللوج
+    

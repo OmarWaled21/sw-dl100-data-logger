@@ -1,10 +1,11 @@
 from django.db import models
 from django.core.exceptions import ValidationError
+from django.core.mail import send_mail
 from django.conf import settings
 from django.utils import timezone
 from datetime import timedelta
 from .utils import get_master_time
-from logs.models import DeviceLog
+from logs.models import DeviceLog, NotificationSettings
 from django.db import models
 
 class MasterClock(models.Model):
@@ -124,24 +125,14 @@ class Device(models.Model):
 
         # فقط لو تغيرت الحالة، سجل أو حدث الأخطاء
         if new_status != previous_status:
-
-            if self.sd_card_error:
-                if not DeviceLog.objects.filter(device=self, error_type='sd_card_error', resolved=False).exists():
-                    DeviceLog.objects.create(
-                        device=self,
-                        error_type='sd_card_error',
-                        message='SD Card Not Working'
-                    )
-            else:
-                DeviceLog.objects.filter(device=self, error_type='sd_card_error', resolved=False).update(resolved=True)
-
             # ✅ فقط لو كنا شغالين أو في error وبقينا offline → نسجل لوج
             if new_status == 'offline' and previous_status != 'offline':
-                DeviceLog.objects.create(
+                log = DeviceLog.objects.create(
                     device=self,
                     error_type='offline',
                     message=f'Device {self.name or self.device_id} is offline'
                 )
+                self._send_log_email(log)
 
             # ✅ لو رجعنا نشتغل، نعتبره تعافي ونقفل اللوج القديم
             elif new_status == 'working':
@@ -150,6 +141,32 @@ class Device(models.Model):
             self.save()
 
         return self.status
+
+
+    def _send_log_email(self, log):
+        """
+        Send email if NotificationSettings are enabled for the admin of this device
+        """
+        try:
+            notif_settings = NotificationSettings.objects.get(user=self.admin)
+        except NotificationSettings.DoesNotExist:
+            return
+
+        if notif_settings.gmail_is_active and notif_settings.email:
+            subject = f"Device Log: {log.device.name or log.device.device_id} - {log.error_type}"
+            message = f"""
+            Device: {log.device.name or log.device.device_id}
+            Timestamp: {log.timestamp.strftime('%Y-%m-%d %H:%M:%S')}
+            Type: {log.error_type}
+            Message: {log.message or 'No message'}
+            """
+            send_mail(
+                subject,
+                message,
+                settings.DEFAULT_FROM_EMAIL,
+                [notif_settings.email],
+                fail_silently=False,
+            )
 
 class AutoReportSchedule(models.Model):
     SCHEDULE_CHOICES = [

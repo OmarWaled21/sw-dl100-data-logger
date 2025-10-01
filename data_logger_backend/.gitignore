@@ -3,3 +3,4 @@ caddy.exe
 caddyfile
 __pycache__/
 .env
+*.txt
