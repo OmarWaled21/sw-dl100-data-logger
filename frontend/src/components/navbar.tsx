@@ -1,4 +1,5 @@
 "use client";
+
 import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
@@ -18,7 +19,7 @@ export default function Navbar() {
   const toggleLang = () => {
     const newLang = i18n.language === "en" ? "ar" : "en";
     i18n.changeLanguage(newLang);
-    Cookies.set("i18next", newLang, { expires: 365 }); // حفظ اللغة لمدة سنة
+    Cookies.set("i18next", newLang, { expires: 365 });
     router.refresh();
   };
 
@@ -34,7 +35,6 @@ export default function Navbar() {
 
     checkAuth();
 
-    // اسمع أي تغيرات من الـ login/logout
     window.addEventListener("authChanged", checkAuth);
     return () => window.removeEventListener("authChanged", checkAuth);
   }, []);
@@ -66,6 +66,9 @@ export default function Navbar() {
     router.push("/auth/login");
   };
 
+  // إصلاح active link
+  const cleanPathname = pathname === "/" ? "/" : pathname.replace(/\/$/, "");
+
   return (
     <nav
       className="text-white sticky top-0 shadow-md z-50"
@@ -86,6 +89,7 @@ export default function Navbar() {
           {mounted ? t("Data Logger") : ""}
         </h3>
 
+        {/* Language Toggle */}
         <div className="hidden md:flex items-center">
           <button
             onClick={toggleLang}
@@ -95,29 +99,33 @@ export default function Navbar() {
           </button>
         </div>
 
-        {/* لو المستخدم Authorized يظهر اللينكات */}
+        {/* Links & Logout */}
         {isAuth && (
           <>
-            {/* Links Desktop */}
+            {/* Desktop Links */}
             <ul className="hidden md:flex items-center space-x-4">
-              {links.map((item) => (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className={`relative block px-4 py-2 rounded transition group hover:bg-white/10 
-                                ${pathname === item.href ? "border-b-2 border-red-400" : ""}`}
-                  >
-                    {item.name}
-                  </Link>
-                </li>
-              ))}
+              {links.map((item) => {
+                const cleanHref = item.href === "/" ? "/" : item.href.replace(/\/$/, "");
+                const isActive = cleanPathname === cleanHref;
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      className={`relative block px-4 py-2 rounded transition group hover:bg-white/10 
+                        ${isActive ? "border-b-2 border-red-400" : ""}`}
+                    >
+                      {item.name}
+                    </Link>
+                  </li>
+                );
+              })}
 
-              {/* Logout Button */}
+              {/* Logout */}
               <li>
                 <button
-                    onClick={handleLogout}
-                    className="relative block px-4 py-2 rounded hover:bg-white/10 transition text-red-400 cursor-pointer"
-                  >
+                  onClick={handleLogout}
+                  className="relative block px-4 py-2 rounded hover:bg-white/10 transition text-red-400 cursor-pointer"
+                >
                   {t("Logout")}
                 </button>
               </li>
@@ -154,17 +162,21 @@ export default function Navbar() {
       {isAuth && isOpen && mounted && (
         <div className="md:hidden px-4 pb-4">
           <ul className="space-y-2">
-            {links.map((item) => (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className={`relative block px-4 py-2 rounded transition group hover:bg-white/10 
-                    ${pathname === item.href ? "border-b-2 border-red-400" : ""}`}
-                >
-                  {item.name}
-                </Link>
-              </li>
-            ))}
+            {links.map((item) => {
+              const cleanHref = item.href === "/" ? "/" : item.href.replace(/\/$/, "");
+              const isActive = cleanPathname === cleanHref;
+              return (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    className={`block px-4 py-2 rounded hover:bg-white/10 transition 
+                      ${isActive ? "border-b-2 border-red-400" : ""}`}
+                  >
+                    {item.name}
+                  </Link>
+                </li>
+              );
+            })}
 
             {/* Mobile Logout */}
             <li>

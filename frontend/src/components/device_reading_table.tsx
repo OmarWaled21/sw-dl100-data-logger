@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
-import { downloadDevicePdf } from "./download_pdf";
+import { downloadDevicePdf } from "./download_pdf_device";
 
 interface Props {
   deviceId: string;
