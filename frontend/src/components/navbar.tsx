@@ -39,11 +39,16 @@ export default function Navbar() {
     return () => window.removeEventListener("authChanged", checkAuth);
   }, []);
 
-  const links = [
-    { name: t("Dashboard"), href: "/" },
-    { name: t("Logs"), href: "/logs/" },
-    { name: t("Settings"), href: "/settings/" },
+  const role = Cookies.get("role"); // جايبنا الدور من الكوكيز
+
+  const allLinks = [
+    { name: t("Dashboard"), href: "/", roles: ["admin", "supervisor", "user"] },
+    { name: t("Logs"), href: "/logs/", roles: ["admin", "supervisor"] },
+    { name: t("Settings"), href: "/settings/", roles: ["admin", "supervisor"] },
   ];
+
+  // فلترة الروابط حسب الدور
+  const links = allLinks.filter(link => role && link.roles.includes(role));
 
   const handleLogout = async () => {
     const token = Cookies.get("token");

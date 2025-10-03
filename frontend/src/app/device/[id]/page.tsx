@@ -12,9 +12,9 @@ import {
 import { FiSettings } from "react-icons/fi";
 import axios from "axios";
 import Cookies from "js-cookie";
-import SensorCard from "@/components/sensor_card";
-import DeviceModal from "@/components/device_modal";
-import DeviceReadingData from "@/components/device_readings_card";
+import SensorCard from "@/components/device_details/sensor_card";
+import DeviceModal from "@/components/device_details/device_modal";
+import DeviceReadingData from "@/components/device_details/device_readings_card";
 
 interface DeviceDetails {
   id: string;
@@ -36,6 +36,7 @@ export default function DeviceDetailsPage() {
   const [device, setDevice] = useState<DeviceDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  const role = Cookies.get("role"); // جايب الدور من الكوكيز
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -162,6 +163,8 @@ export default function DeviceDetailsPage() {
     }
   };
 
+  
+
   return (
     <div className="p-6">
       <div className="bg-white shadow-lg rounded-2xl p-6">
@@ -181,12 +184,14 @@ export default function DeviceDetailsPage() {
           </div>
 
           {/* Settings Button */}
+          {role && ["admin", "supervisor"].includes(role) && (
           <button
             onClick={() => setOpen(true)}
             className="absolute top-6 right-6 p-3 rounded-full bg-gray-100 hover:bg-gray-200 shadow cursor-pointer"
           >
             <FiSettings size={28} />
           </button>
+        )}
         </div>
 
         {/* Main Content */}

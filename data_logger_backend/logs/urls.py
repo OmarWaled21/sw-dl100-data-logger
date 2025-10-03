@@ -5,8 +5,8 @@ from .views import LogViewSet, NotificationSettingsView
 log_list = LogViewSet.as_view({
     'get': 'logs'
 })
-log_pdf = LogViewSet.as_view({
-    'get': 'logs_pdf'
+latest_log = LogViewSet.as_view({
+    'get': 'latest_local'
 })
 log_create = LogViewSet.as_view({
     'post': 'create_log'
@@ -14,7 +14,7 @@ log_create = LogViewSet.as_view({
 
 urlpatterns = [
     path('', log_list, name='logs-list'),           # GET /logs/
-    path('pdf/', log_pdf, name='logs-pdf'),         # GET /pdf/
+    path('latest_log/', latest_log, name='latest-log'),         # GET /pdf/
     path('create/', log_create, name='logs-create'), # POST /create/
     path("notifications/settings/", NotificationSettingsView.as_view(), name="notification-settings"),
 ]

@@ -1,9 +1,11 @@
+// src/app/layout.tsx
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import Navbar from "@/components/navbar";
 import "./globals.css";
 import "../i18n"; 
+import GlobalLogNotifier from "@/components/LocalNotificationListener";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,11 +33,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <Navbar /> {/* Navbar ده Client Component */}
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <Navbar />
         {children}
+        <GlobalLogNotifier />
       </body>
     </html>
   );

@@ -23,15 +23,12 @@ class DeviceLogSerializer(serializers.ModelSerializer):
         return DeviceLog.objects.create(device=device, **validated_data)
 
 class AdminLogSerializer(serializers.ModelSerializer):
-    source = serializers.CharField(source='user.username', read_only=True)
-    error_type = serializers.SerializerMethodField()
-    message = serializers.CharField(source='action')
-    user_id = serializers.PrimaryKeyRelatedField(source='user', read_only=True, allow_null=True)
-    
     class Meta:
         model = AdminLog
-        fields = ['id', 'user_id', 'source', 'error_type', 'message', 'timestamp']
+        fields = ['id', 'user', 'admin', 'action', 'message', 'timestamp']
+        read_only_fields = ['user', 'admin', 'timestamp']
 
-    def get_error_type(self, obj):
-        return "admin_action"  # أو أي قيمة ثابتة أو قابلة للتغيير حسب نوع اللوج
-    
+    def create(self, validated_data):
+        user = self.context['user']
+        admin = self.context['admin']
+        return AdminLog.objects.create(user=user, admin=admin, **validated_data)

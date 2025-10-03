@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import Cookies from "js-cookie";
-import DeviceCard from "@/components/device_card";
+import DeviceCard from "@/components/home/device_card";
 
 interface Device {
   device_id: string;
@@ -62,9 +62,8 @@ export default function HomePage() {
         }));
         setDevices(mappedDevices);
 
-        const serverDate = new Date(data.results.current_time);
-        const localDate = new Date();
-        setServerOffset(serverDate.getTime() - localDate.getTime());
+        const diffMinutes = data.results.time_difference;
+        setServerOffset(diffMinutes * 60 * 1000);
 
         setLoading(false);
       })

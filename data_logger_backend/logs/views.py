@@ -70,37 +70,41 @@ class LogViewSet(viewsets.ViewSet):
 
         return Response({'message': 'Getting all logs Successfully', 'results': all_logs})
 
+    @action(detail=False, methods=['get'])
+    def latest_local(self, request):
+        """
+        GET /logs/latest_local/
+        يرجع آخر Local Log موجود للـ user الحالي.
+        """
+        user = request.user
+
+        if user.role == 'admin':
+            # لو admin، نجيب آخر log من كل الأجهزة التابعة له
+            last_log = DeviceLog.objects.filter(device__admin=user).order_by('-timestamp').first()
+        else:
+            # لو regular user، نجيب آخر log من أجهزته
+            last_log = DeviceLog.objects.filter(device__admin=user.admin).order_by('-timestamp').first()
+
+        if not last_log:
+            return Response({"message": None})
+
+        return Response({
+            "message": f"[{last_log.device.name or last_log.device.device_id}] {last_log.error_type}: {last_log.message or 'No message'}",
+            "timestamp": last_log.timestamp
+        }, status=status.HTTP_200_OK)
+    
     @action(detail=False, methods=['post'])
     def create_log(self, request):
-        """POST /create_log/ - Create new device log and send email if enabled"""
-        serializer = DeviceLogSerializer(data=request.data)
+        user = request.user
+        admin = getattr(user, 'admin', user)  # لو الـ user عادي، ناخد admin المسؤول
+
+        serializer = AdminLogSerializer(
+            data=request.data,
+            context={'user': user, 'admin': admin}
+        )
         if serializer.is_valid():
-            log = serializer.save()
-
-            # Check if email notifications are enabled for this user
-            try:
-                notif_settings = NotificationSettings.objects.get(user=request.user)
-            except NotificationSettings.DoesNotExist:
-                notif_settings = None
-
-            if notif_settings and notif_settings.gmail_is_active and notif_settings.email:
-                subject = f"New Device Log: {log.device.name or log.device.device_id}"
-                message = f"""
-                Device: {log.device.name or log.device.device_id}
-                Timestamp: {log.timestamp.strftime('%Y-%m-%d %H:%M:%S')}
-                Type: {log.error_type}
-                Message: {log.message or 'No message'}
-                """
-                send_mail(
-                    subject,
-                    message,
-                    settings.DEFAULT_FROM_EMAIL,  # تأكد إنه معرف في settings.py
-                    [notif_settings.email],
-                    fail_silently=False,
-                )
-
+            serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 class NotificationSettingsView(APIView):

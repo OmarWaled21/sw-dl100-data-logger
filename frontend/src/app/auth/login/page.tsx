@@ -35,10 +35,27 @@ export default function LoginPage() {
         if (remember) {
           // يعيش بعد إعادة تشغيل المتصفح
           Cookies.set("token", data.token, { expires: 7 });
+          Cookies.set("role", data.results.role, { expires: 7 });  // تخزين الـ role
         } else {
           // يتشال لما يقفل المتصفح
           Cookies.set("token", data.token);
+          Cookies.set("role", data.results.role);  // تخزين الـ role
           sessionStorage.setItem("token", data.token);
+        }
+
+        // لو الـ role مش admin نسجل log دخول
+        if (data.results.role !== "admin") {
+          fetch("http://127.0.0.1:8000/logs/create/", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Token ${data.token}`,
+            },
+            body: JSON.stringify({
+              action: `logged in`,
+              message: `User ${username} logged in`,
+            })
+          }).catch(console.error);
         }
         
         // اعمل reload للـ Navbar

@@ -110,22 +110,23 @@ class Device(models.Model):
             self.status = 'offline'
             self.save()
             return self.status
-        """تحديث حالة الجهاز تلقائياً وتسجيل الأخطاء"""
+
+        # ===== اتصال الجهاز =====
         time_diff = get_master_time() - self.last_update
         is_connected = self.check_connection()
         good_sensors = self.check_sensors()
 
         # تحديد الحالة الجديدة
-        new_status = 'offline' if time_diff >= timedelta(seconds = self.interval_wifi + 120) else (
+        new_status = 'offline' if time_diff >= timedelta(seconds=self.interval_wifi + 120) else (
             'working' if is_connected and good_sensors else 'error'
         )
 
         previous_status = self.status
         self.status = new_status
+        self.save()
 
-        # فقط لو تغيرت الحالة، سجل أو حدث الأخطاء
+        # Offline log
         if new_status != previous_status:
-            # ✅ فقط لو كنا شغالين أو في error وبقينا offline → نسجل لوج
             if new_status == 'offline' and previous_status != 'offline':
                 log = DeviceLog.objects.create(
                     device=self,
@@ -133,15 +134,95 @@ class Device(models.Model):
                     message=f'Device {self.name or self.device_id} is offline'
                 )
                 self._send_log_email(log)
-
-            # ✅ لو رجعنا نشتغل، نعتبره تعافي ونقفل اللوج القديم
             elif new_status == 'working':
                 DeviceLog.objects.filter(device=self, error_type='offline', resolved=False).update(resolved=True)
 
-            self.save()
+        # ===== Temperature & Humidity logs =====
+        # High Temp
+        self._handle_threshold_log(
+            value=self.temperature,
+            min_val=None,
+            max_val=self.max_temp,
+            high_type='high_temperature',
+            high_msg=f'Temperature is high: {self.temperature}°C'
+        )
+
+        # Low Temp
+        self._handle_threshold_log(
+            value=self.temperature,
+            min_val=self.min_temp,
+            max_val=None,
+            low_type='low_temperature',
+            low_msg=f'Temperature is low: {self.temperature}°C'
+        )
+
+        # High Humidity
+        self._handle_threshold_log(
+            value=self.humidity,
+            min_val=None,
+            max_val=self.max_hum,
+            high_type='high_humidity',
+            high_msg=f'Humidity is high: {self.humidity}%'
+        )
+
+        # Low Humidity
+        self._handle_threshold_log(
+            value=self.humidity,
+            min_val=self.min_hum,
+            max_val=None,
+            low_type='low_humidity',
+            low_msg=f'Humidity is low: {self.humidity}%'
+        )
 
         return self.status
 
+
+    def _handle_threshold_log(self, value, min_val=None, max_val=None, high_type=None, high_msg=None, low_type=None, low_msg=None):
+        """Handle logs for high/low temperature or humidity just like offline"""
+        if value is None:
+            return
+
+        # High
+        if max_val is not None:
+            exists = DeviceLog.objects.filter(device=self, error_type=high_type, resolved=False).exists()
+            if value > max_val and not exists:
+                log = DeviceLog.objects.create(device=self, error_type=high_type, message=high_msg)
+                self._send_log_email(log)
+            elif value <= max_val:
+                DeviceLog.objects.filter(device=self, error_type=high_type, resolved=False).update(resolved=True)
+
+        # Low
+        if min_val is not None:
+            exists = DeviceLog.objects.filter(device=self, error_type=low_type, resolved=False).exists()
+            if value < min_val and not exists:
+                log = DeviceLog.objects.create(device=self, error_type=low_type, message=low_msg)
+                self._send_log_email(log)
+            elif value >= min_val:
+                DeviceLog.objects.filter(device=self, error_type=low_type, resolved=False).update(resolved=True)
+
+    def _create_unique_log(self, error_type, message, current_value=None, min_value=None, max_value=None):
+        """
+        Creates a log if not exists or resolves the previous one if value is back to normal.
+        """
+        log_qs = DeviceLog.objects.filter(device=self, error_type=error_type, resolved=False)
+        
+        if log_qs.exists():
+            if current_value is not None:
+                # Resolve High
+                if max_value is not None and current_value <= max_value:
+                    log_qs.update(resolved=True)
+                # Resolve Low
+                elif min_value is not None and current_value >= min_value:
+                    log_qs.update(resolved=True)
+            return
+
+        # Create new log if still abnormal
+        log = DeviceLog.objects.create(
+            device=self,
+            error_type=error_type,
+            message=message
+        )
+        self._send_log_email(log)
 
     def _send_log_email(self, log):
         """
@@ -167,6 +248,7 @@ class Device(models.Model):
                 [notif_settings.email],
                 fail_silently=False,
             )
+
 
 class AutoReportSchedule(models.Model):
     SCHEDULE_CHOICES = [
