@@ -55,7 +55,7 @@ export default function DeviceReadingChart({ deviceId }: Props) {
     };
 
     fetchAverages();
-    intervalId = setInterval(fetchAverages, 5000);
+    intervalId = setInterval(fetchAverages, 60000);
 
     return () => clearInterval(intervalId);
   }, [deviceId]);

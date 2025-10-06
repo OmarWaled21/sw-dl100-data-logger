@@ -1,11 +1,11 @@
 "use client";
-import React, { useEffect, useState } from "react";
-import axios from "axios";
+import React, { useEffect, useState, useRef  } from "react";
 import Cookies from "js-cookie";
 import { downloadDevicePdf } from "./download_pdf_device";
 
 interface Props {
-  deviceId: string;
+  readings: Reading[];
+  deviceName: string;
 }
 
 interface Reading {
@@ -14,9 +14,7 @@ interface Reading {
   timestamp: string;
 }
 
-export default function DeviceReadingTable({ deviceId }: Props) {
-  const [readings, setReadings] = useState<Reading[]>([]);
-  const [deviceName, setDeviceName] = useState("");
+export default function DeviceReadingTable({ readings, deviceName }: Props) {
   const [loading, setLoading] = useState(true);
 
   // Filter states
@@ -25,43 +23,36 @@ export default function DeviceReadingTable({ deviceId }: Props) {
   const [filterDateStart, setFilterDateStart] = useState<string>("");
   const [filterDateEnd, setFilterDateEnd] = useState<string>("");
 
+  const [allReadings, setAllReadings] = useState<Reading[]>([]);
+  const [filteredReadings, setFilteredReadings] = useState<Reading[]>([]);
+
+
   const [currentPage, setCurrentPage] = useState(0);
+  const wsRef = useRef<WebSocket | null>(null);
+  
   const pageSize = 10;
 
   useEffect(() => {
-    const fetchReadings = async () => {
-      if (readings.length > 0) setFiltering(true); // لو فيه بيانات، ده فلترة
-      else setLoading(true); // أول تحميل
+    setAllReadings(readings);
+    setLoading(false);
+  }, [readings]);
 
-      try {
-        const params: any = {};
-        if (filterType === "single" && filterDateStart) params.filter_date = filterDateStart;
-        else if (filterType === "range" && filterDateStart && filterDateEnd) {
-          params.start_date = filterDateStart;
-          params.end_date = filterDateEnd;
-        }
-
-        const res = await axios.get(
-          `http://127.0.0.1:8000/device/${deviceId}/readings/`,
-          {
-            headers: { Authorization: `Token ${Cookies.get("token")}` },
-            params,
-          }
-        );
-
-        setReadings(res.data.readings || []);
-        setDeviceName(res.data.device_name || deviceId);
-        setCurrentPage(0);
-      } catch (error) {
-        console.error("Error fetching readings:", error);
-      } finally {
-        setLoading(false);
-        setFiltering(false);
+  // تطبيق الفلتر كل مرة تتغير فيه البيانات أو إعدادات الفلتر
+  useEffect(() => {
+    const filtered = allReadings.filter((r) => {
+      const ts = new Date(r.timestamp);
+      if (filterType === "single" && filterDateStart) {
+        return ts.toDateString() === new Date(filterDateStart).toDateString();
       }
-    };
-
-    fetchReadings();
-  }, [deviceId, filterType, filterDateStart, filterDateEnd]);
+      if (filterType === "range" && filterDateStart && filterDateEnd) {
+        const start = new Date(filterDateStart);
+        const end = new Date(filterDateEnd);
+        return ts >= start && ts <= end;
+      }
+      return true;
+    });
+    setFilteredReadings(filtered);
+  }, [allReadings, filterType, filterDateStart, filterDateEnd]);
 
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
@@ -76,10 +67,10 @@ export default function DeviceReadingTable({ deviceId }: Props) {
     });
   };
 
-  const totalPages = Math.ceil(readings.length / pageSize);
+  const totalPages = Math.ceil(filteredReadings.length / pageSize);
   const start = currentPage * pageSize;
   const end = start + pageSize;
-  const pageData = readings.slice(start, end);
+  const pageData = filteredReadings.slice(start, end);
 
   if (loading) {
     return (
@@ -122,7 +113,7 @@ export default function DeviceReadingTable({ deviceId }: Props) {
 
             {/* Download PDF */}
             <button
-              onClick={() => downloadDevicePdf(readings, deviceName, filterType, filterDateStart, filterDateEnd)}
+              onClick={() => downloadDevicePdf(filteredReadings, deviceName, filterType, filterDateStart, filterDateEnd)}
               className="flex items-center px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-700 transition-all duration-200 cursor-pointer"
             >
               <svg
@@ -303,7 +294,7 @@ export default function DeviceReadingTable({ deviceId }: Props) {
             <div className="text-sm text-gray-500">
               Showing <span className="font-semibold text-gray-900">{start + 1}</span> to{" "}
               <span className="font-semibold text-gray-900">{Math.min(end, readings.length)}</span> of{" "}
-              <span className="font-semibold text-gray-900">{readings.length}</span> results
+              <span className="font-semibold text-gray-900">{filteredReadings.length}</span> results
             </div>
             
             <div className="flex items-center space-x-2">

@@ -4,3 +4,4 @@ caddyfile
 __pycache__/
 .env
 *.txt
+staticfiles/

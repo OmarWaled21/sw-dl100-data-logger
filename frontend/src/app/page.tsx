@@ -1,9 +1,9 @@
 "use client";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import Cookies from "js-cookie";
 import DeviceCard from "@/components/home/device_card";
+import axios from "axios";
 
 interface Device {
   device_id: string;
@@ -43,49 +43,82 @@ export default function HomePage() {
   const [localTime, setLocalTime] = useState<Date | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const { t, i18n } = useTranslation();
-
-  const router = useRouter();
-
-  const fetchData = () => {
-    fetch("http://127.0.0.1:8000/", {
-      headers: { Authorization: `Token ${Cookies.get("token")}` },
-    })
-      .then((res) => {
-        return res.json();
-      })
-      .then((data) => {
-        // نعمل mapping للحالة
-        const mappedDevices = data.results.devices.map((d: any) => ({
-          ...d,
-          status: mapStatus(d.status),
-        }));
-        setDevices(mappedDevices);
-
-        const diffMinutes = data.results.time_difference;
-        setServerOffset(diffMinutes * 60 * 1000);
-
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  };
+  const wsRef = useRef<WebSocket | null>(null);
+  const { t } = useTranslation();
 
   useEffect(() => {
-    fetchData();
-    setLocalTime(new Date());
+    const token = Cookies.get("token");
+    if (!token) return;
 
-    const localTimer = setInterval(() => {
-      setLocalTime(new Date());
-    }, 1000);
+    // فتح WebSocket مرة واحدة فقط
+    const ws = new WebSocket(`ws://127.0.0.1:8000/ws/home/?token=${token}`);
+    wsRef.current = ws;
 
-    const pollTimer = setInterval(() => {
-      fetchData();
-    }, 5000); // كل 5 ثواني نجيب آخر البيانات
+    ws.onopen = () => console.log("WebSocket connected");
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
 
-    return () => {
-      clearInterval(localTimer);
-      clearInterval(pollTimer);
+        if (data.device) {
+          // تحديث جهاز واحد فقط
+          setDevices(prev =>
+            prev.map(d => d.device_id === data.device.device_id ? { ...d, ...data.device } : d)
+          );
+        } else if (data.results) {
+          // البيانات كاملة أول مرة
+          const mappedDevices = data.results.devices.map((d: any) => ({
+            ...d,
+            status: mapStatus(d.status),
+          }));
+          setDevices(mappedDevices);
+          setServerOffset(data.results.time_difference * 60 * 1000);
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error("Error parsing WS message:", err);
+      }
     };
+
+    ws.onerror = (event) => console.error("WebSocket error event:", event);
+
+    ws.onclose = (event) => console.log(`WebSocket closed. Code: ${event.code}, Reason: ${event.reason}`);
+
+    return () => ws.close();
+  }, []);
+
+  useEffect(() => {
+    const token = Cookies.get("token");
+    if (!token) return;
+
+    const fetchServerTime = async () => {
+      try {
+        const res = await axios.get("http://127.0.0.1:8000/", {
+          headers: {
+            Authorization: `Token ${token}`,
+          },
+        });
+        const serverTime = new Date(res.data.results.current_time);
+        const offset = res.data.results.time_difference * 60 * 1000;
+        setServerOffset(offset);
+        setLocalTime(new Date(serverTime.getTime() + offset));
+      } catch (err) {
+        console.error("Error fetching server time:", err);
+      }
+    };
+
+    // fetch أول مرة فورًا
+    fetchServerTime();
+
+    // fetch كل ساعة
+    const interval = setInterval(fetchServerTime, 60 * 60 * 1000); // 1 ساعة
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    setLocalTime(new Date());
+    const localTimer = setInterval(() => setLocalTime(new Date()), 1000);
+
+    return () => clearInterval(localTimer);
   }, []);
 
   if (!localTime) return null;
@@ -101,7 +134,6 @@ export default function HomePage() {
     return `${dayName} - ${day} ${month} ${year}, ${time}`;
   };
 
-  // حساب الأرقام
   const totalDevices = devices.length;
   const activeDevices = devices.filter((d) => d.status === "active").length;
   const offlineDevices = devices.filter((d) => d.status === "offline").length;

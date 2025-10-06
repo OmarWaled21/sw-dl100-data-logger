@@ -6,9 +6,17 @@ import { motion, AnimatePresence } from "framer-motion";
 
 interface Props {
   deviceId: string;
+  readings: Reading[];
+  deviceName: string;
 }
 
-export default function DeviceReadingsPage({ deviceId }: Props) {
+interface Reading {
+  temperature: number;
+  humidity: number;
+  timestamp: string;
+}
+
+export default function DeviceReadingsPage({ deviceId, readings, deviceName }: Props) {
   const [view, setView] = useState<"chart" | "table">("chart");
 
   return (
@@ -56,7 +64,7 @@ export default function DeviceReadingsPage({ deviceId }: Props) {
               transition={{ duration: 0.3 }}
               className="absolute w-full"
             >
-              <DeviceReadingTable deviceId={deviceId} />
+              <DeviceReadingTable readings={readings} deviceName={deviceName} />
             </motion.div>
           )}
         </AnimatePresence>

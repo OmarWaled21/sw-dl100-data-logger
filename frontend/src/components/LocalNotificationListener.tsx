@@ -1,16 +1,16 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import axios from "axios";
 import Cookies from "js-cookie";
 
-interface Device {
-  device_id: string;
-  name: string;
-  status: "working" | "offline" | "error";
+interface LogData {
+  id: number;
+  source: string;
+  message: string;
 }
 
 export default function GlobalLogNotifier() {
   const lastLogIdRef = useRef<number | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
   const [token, setToken] = useState<string | null>(Cookies.get("token") || null);
 
   useEffect(() => {
@@ -18,52 +18,63 @@ export default function GlobalLogNotifier() {
       Notification.requestPermission();
     }
 
-    const interval = setInterval(async () => {
-      const currentToken = Cookies.get("token");
-      if (!currentToken) return; // لو مفيش توكن، ما نعملش أي request
+    const currentToken = Cookies.get("token");
+    if (!currentToken) return;
 
+    // 🧠 WebSocket URL — غيّر الـ host حسب السيرفر بتاعك
+    const wsUrl = `ws://127.0.0.1:8000/ws/logs/latest/?token=${currentToken}`;
+    // لو ngrok أو https استخدم wss://example.ngrok.io/ws/latest-log/?token=...
+
+    const socket = new WebSocket(wsUrl);
+    wsRef.current = socket;
+
+    socket.onopen = () => {
+      console.log("[WebSocket] Connected to server ✅");
+    };
+
+    socket.onmessage = (event) => {
       try {
-        // جلب status الأجهزة
-        const { data: statusData } = await axios.get("http://127.0.0.1:8000/", {
-          headers: { Authorization: `Token ${currentToken}` },
-        });
+        const logData: LogData = JSON.parse(event.data);
+        console.log("[WebSocket] New log:", logData);
 
-        const devices: Device[] = statusData?.results?.devices ?? [];
-        const hasErrorDevice = devices.some((d: Device) => d.status === "offline" || d.status === "error");
-        if (!hasErrorDevice) return;
+        if (!logData || !logData.id || !logData.message) return;
+        if (lastLogIdRef.current === logData.id) return; // نفس اللوج القديم
 
-        // جلب آخر log
-        const { data: logData } = await axios.get("http://127.0.0.1:8000/logs/latest_log/", {
-          headers: { Authorization: `Token ${currentToken}` },
-        });
+        lastLogIdRef.current = logData.id;
 
-        if (!logData || !logData.message) return;
+        if (Notification.permission === "granted") {
+          const notification = new Notification("Device Alert", {
+            body: `[${logData.source}] ${logData.message}`,
+            icon: "/alarm-icon.png",
+          });
 
-        if (lastLogIdRef.current === null || logData.id !== lastLogIdRef.current) {
-          lastLogIdRef.current = logData.id;
+          const audio = new Audio("/alarm.mp3");
+          audio.play().catch(console.log);
 
-          if (Notification.permission === "granted") {
-            const notification = new Notification("Device Alert", {
-              body: `[${logData.source}] ${logData.message}`,
-              icon: "/alarm-icon.png",
-            });
-
-            const audio = new Audio("/alarm.mp3");
-            audio.play().catch(console.log);
-
-            setTimeout(() => notification.close(), 5000);
-          }
+          setTimeout(() => notification.close(), 5000);
         }
-      } catch (err: any) {
-        if (err.response?.status === 401) {
-          console.log("Unauthorized: User logged out, stopping notifier.");
-          return; // نتجاهل أو ممكن توقف الـ interval هنا
-        }
-        console.error(err);
+      } catch (err) {
+        console.error("Invalid log data:", err);
       }
-    }, 1000);
+    };
 
-    return () => clearInterval(interval);
+    socket.onerror = (err) => {
+      console.error("[WebSocket] Error:", err);
+    };
+
+    socket.onclose = () => {
+      console.warn("[WebSocket] Connection closed, will retry...");
+      // إعادة محاولة الاتصال بعد 5 ثواني
+      setTimeout(() => {
+        if (!wsRef.current || wsRef.current.readyState === WebSocket.CLOSED) {
+          window.location.reload(); // أبسط طريقة لإعادة الاتصال
+        }
+      }, 5000);
+    };
+
+    return () => {
+      socket.close();
+    };
   }, []);
 
   return null;

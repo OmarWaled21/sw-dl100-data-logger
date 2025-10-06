@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import { WiThermometer, WiHumidity } from "react-icons/wi";
 import {
@@ -30,6 +30,12 @@ interface DeviceDetails {
   status: "active" | "offline" | "error";
 }
 
+interface Reading {
+  temperature: number;
+  humidity: number;
+  timestamp: string;
+}
+
 export default function DeviceDetailsPage() {
   const params = useParams();
   const deviceId = params.id;
@@ -37,16 +43,20 @@ export default function DeviceDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const role = Cookies.get("role"); // جايب الدور من الكوكيز
+  
+  const [readings, setReadings] = useState<Reading[]>([]); // هنا array للـ readings
+  const [deviceName, setDeviceName] = useState("");     // لو محتاج الاسم في الـ child
+  const ws = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    ws.current = new WebSocket(`ws://127.0.0.1:8000/ws/device/${deviceId}/?token=${Cookies.get("token")}`);
 
-    const fetchDevice = async () => {
-      try {
-        const res = await axios.get(`http://127.0.0.1:8000/device/${deviceId}/`, {
-          headers: { Authorization: `Token ${Cookies.get("token")}` },
-        });
-        const data = res.data.results;
+    ws.current.onopen = () => {
+      console.log("Connected to device WebSocket");
+    };
+    ws.current.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === 'details')  {
         setDevice({
           id: data.device_id,
           name: data.name,
@@ -60,21 +70,23 @@ export default function DeviceDetailsPage() {
           interval: data.interval_local,
           status: data.status,
         });
-      } catch (error) {
-        console.error(error);
-      } finally {
         setLoading(false);
+      }
+
+      if (data.type === "readings") {
+        setReadings((prev) => {
+          // نخلي أحدث 100 قراءة مثلاً
+          const merged = [...data.readings.reverse(), ...prev].slice(0, 100);
+          return merged;
+        });
       }
     };
 
-    // أول مرة يجيب بيانات
-    fetchDevice();
+    ws.current.onclose = () => {
+      console.log("Device WebSocket closed");
+    };
 
-    // بعد كده كل 5 ثواني
-    interval = setInterval(fetchDevice, 5000);
-
-    // cleanup عشان ميبقاش في memory leak
-    return () => clearInterval(interval);
+    return () => ws.current?.close();
   }, [deviceId]);
 
 
@@ -220,7 +232,7 @@ export default function DeviceDetailsPage() {
 
           {/* Recent Readings Section */}
           <div className="w-full min-h-screen">
-            <DeviceReadingData deviceId={device.id} />
+            <DeviceReadingData deviceId={device.id} readings={readings} deviceName={deviceName} />
           </div>
         </div>
       </div>
