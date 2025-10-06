@@ -35,7 +35,6 @@ class Device(models.Model):
     id = models.AutoField(primary_key=True)
     device_id = models.CharField(max_length=100, unique=True)
     name = models.CharField(max_length=100, blank=True, null=True)
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='offline')
     temperature = models.FloatField(null=True, blank=True)
     max_temp = models.FloatField(null=True, blank=True, default=40)
     min_temp = models.FloatField(null=True, blank=True, default=10)
@@ -44,9 +43,6 @@ class Device(models.Model):
     min_hum = models.FloatField(null=True, blank=True, default=20)
     temp_sensor_error = models.BooleanField(default=False)
     hum_sensor_error = models.BooleanField(default=False)
-    wifi_strength = models.IntegerField(null=True, blank=True)  # قوة الواي فاي (dBm)
-    rtc_error = models.BooleanField(default=False)
-    sd_card_error = models.BooleanField(default=False)
     last_update = models.DateTimeField(null=True, blank=True)
     firmware_version = models.CharField(max_length=20, default='1.0.0')
     firmware_updated_at = models.DateTimeField(null=True, blank=True, default=None)
@@ -102,80 +98,28 @@ class Device(models.Model):
         self.hum_sensor_error = hum_error
         self.low_battery = low_battery
 
-        return not (temp_error or hum_error or self.rtc_error or self.sd_card_error or self.low_battery)
+        return not (temp_error or hum_error or self.low_battery)
     
+    def get_dynamic_status(self):
+        """
+        يحسب الحالة اللحظية للجهاز:
+        - offline لو آخر تحديث أقدم من (interval_wifi + 2 دقائق)
+        - error لو الحساسات فيها مشكلة
+        - working لو كل حاجة تمام
+        """
+        if not self.last_update:
+            return "offline"
 
-    def update_status(self):
-        if self.last_update is None:
-            self.status = 'offline'
-            self.save()
-            return self.status
+        try:
+            time_diff = get_master_time() - self.last_update
+        except Exception:
+            return "offline"
 
-        # ===== اتصال الجهاز =====
-        time_diff = get_master_time() - self.last_update
-        is_connected = self.check_connection()
+        if time_diff > timedelta(seconds=self.interval_wifi + 60):
+            return "offline"
+
         good_sensors = self.check_sensors()
-
-        # تحديد الحالة الجديدة
-        new_status = 'offline' if time_diff >= timedelta(seconds=self.interval_wifi + 120) else (
-            'working' if is_connected and good_sensors else 'error'
-        )
-
-        previous_status = self.status
-        self.status = new_status
-        self.save()
-
-        # Offline log
-        if new_status != previous_status:
-            if new_status == 'offline' and previous_status != 'offline':
-                log = DeviceLog.objects.create(
-                    device=self,
-                    error_type='offline',
-                    message=f'Device {self.name or self.device_id} is offline'
-                )
-                self._send_log_email(log)
-            elif new_status == 'working':
-                DeviceLog.objects.filter(device=self, error_type='offline', resolved=False).update(resolved=True)
-
-        # ===== Temperature & Humidity logs =====
-        # High Temp
-        self._handle_threshold_log(
-            value=self.temperature,
-            min_val=None,
-            max_val=self.max_temp,
-            high_type='high_temperature',
-            high_msg=f'Temperature is high: {self.temperature}°C'
-        )
-
-        # Low Temp
-        self._handle_threshold_log(
-            value=self.temperature,
-            min_val=self.min_temp,
-            max_val=None,
-            low_type='low_temperature',
-            low_msg=f'Temperature is low: {self.temperature}°C'
-        )
-
-        # High Humidity
-        self._handle_threshold_log(
-            value=self.humidity,
-            min_val=None,
-            max_val=self.max_hum,
-            high_type='high_humidity',
-            high_msg=f'Humidity is high: {self.humidity}%'
-        )
-
-        # Low Humidity
-        self._handle_threshold_log(
-            value=self.humidity,
-            min_val=self.min_hum,
-            max_val=None,
-            low_type='low_humidity',
-            low_msg=f'Humidity is low: {self.humidity}%'
-        )
-
-        return self.status
-
+        return "working" if good_sensors else "error"
 
     def _handle_threshold_log(self, value, min_val=None, max_val=None, high_type=None, high_msg=None, low_type=None, low_msg=None):
         """Handle logs for high/low temperature or humidity just like offline"""

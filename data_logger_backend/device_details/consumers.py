@@ -28,6 +28,7 @@ class DeviceConsumer(AsyncJsonWebsocketConsumer):
     async def send_device_details(self):
         device = await self.get_device()
         if device:
+            status = await self.get_device_status(device)
             await self.send_json({
                 'type': 'details',
                 'device_id': device.device_id,
@@ -40,7 +41,7 @@ class DeviceConsumer(AsyncJsonWebsocketConsumer):
                 'min_hum': device.min_hum,
                 'max_hum': device.max_hum,
                 'interval_local': device.interval_local,
-                'status': device.status,
+                'status': status,
                 'last_update': device.last_update.strftime("%Y-%m-%d %H:%M:%S")
             })
 
@@ -59,6 +60,13 @@ class DeviceConsumer(AsyncJsonWebsocketConsumer):
             'device_id': self.device_id,
             'readings': data
         })
+
+    @database_sync_to_async
+    def get_device_status(self, device):
+        try:
+            return device.get_dynamic_status()
+        except Exception:
+            return "offline"
 
     @database_sync_to_async
     def get_device(self):

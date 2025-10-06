@@ -17,10 +17,14 @@ class DataLoggerListView(APIView):
         else:
             device_qs = Device.objects.filter(admin=user.admin)
 
-        for device in device_qs:
-            device.update_status()
+        devices = list(device_qs)  # تحويل queryset لقائمة
+        for device in devices:
+            device.status = device.get_dynamic_status()  # أو استخدم property لو عملتها
 
-        devices = device_qs.order_by('status')
+        # ترتيب حسب status
+        status_order = {'offline': 0, 'error': 1, 'working': 2}  # حسب الأولوية اللي تحبها
+        devices.sort(key=lambda d: status_order.get(d.status, 3))
+        
         serialized = DeviceSerializer(devices, many=True)
 
         master_clock = MasterClock.objects.first()

@@ -11,8 +11,12 @@ class DeviceReadingInline(admin.TabularInline):
     can_delete = False
     
 class DeviceAdmin(admin.ModelAdmin):
-    list_display = ('name', 'device_id', 'admin', 'status',  'temperature', 'humidity', 'last_update')
+    list_display = ('name', 'device_id', 'admin', 'get_status',  'temperature', 'humidity', 'last_update')
     inlines = [DeviceReadingInline]
+    
+    def get_status(self, obj):
+        return obj.get_dynamic_status()
+    get_status.short_description = 'Status'
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == "admin":

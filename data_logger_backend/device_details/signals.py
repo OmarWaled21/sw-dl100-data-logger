@@ -30,7 +30,13 @@ def device_update_signal(sender, instance, **kwargs):
         'name': instance.name,
         'temperature': instance.temperature,
         'humidity': instance.humidity,
-        'status': instance.status,
+        'min_temp': instance.min_temp,
+        'max_temp': instance.max_temp,
+        'min_hum': instance.min_hum,
+        'max_hum': instance.max_hum,
+        'battery_level': instance.battery_level,
+        'status': instance.get_dynamic_status(),
+        'interval_wifi': instance.interval_wifi,
         'last_update': instance.last_update.strftime("%Y-%m-%d %H:%M:%S")
     }
     send_ws_update(group_name, data)

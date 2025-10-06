@@ -292,7 +292,7 @@ class DeviceAPIView(APIView):
 
         status_data = {
             'name': device.name,
-            'status': device.status,
+            'status': device.get_dynamic_status(),
             'temperature': device.temperature,
             'humidity': device.humidity,
             'min_temp': device.min_temp,

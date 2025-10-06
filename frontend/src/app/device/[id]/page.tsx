@@ -27,6 +27,7 @@ interface DeviceDetails {
   minHum: number;
   maxHum: number;
   interval: number;
+  last_update: string;
   status: "active" | "offline" | "error";
 }
 
@@ -67,7 +68,8 @@ export default function DeviceDetailsPage() {
           maxTemp: data.max_temp,
           minHum: data.min_hum,
           maxHum: data.max_hum,
-          interval: data.interval_local,
+          interval: data.interval_wifi,
+          last_update: data.last_update,
           status: data.status,
         });
         setLoading(false);
@@ -89,6 +91,28 @@ export default function DeviceDetailsPage() {
     return () => ws.current?.close();
   }, [deviceId]);
 
+  useEffect(() => {
+    if (!device) return;
+
+    const interval = setInterval(() => {
+      setDevice((prev) => {
+        if (!prev) return prev;
+        const lastUpdate = new Date(prev.last_update).getTime();
+        const now = Date.now();
+        const offlineThreshold = (prev.interval ?? 0) * 1000 + 60000; // interval_wifi + 60 ثانية
+
+        const newStatus =
+          now - lastUpdate > offlineThreshold ? "offline" : prev.status === "offline" ? "active" : prev.status;
+
+        if (newStatus !== prev.status) {
+          return { ...prev, status: newStatus };
+        }
+        return prev;
+      });
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [device]);
 
   if (loading)
     return (
