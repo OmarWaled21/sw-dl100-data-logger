@@ -8,6 +8,7 @@ from .utils import get_master_time
 from logs.models import DeviceLog, NotificationSettings
 from django.db import models
 
+# master clock
 class MasterClock(models.Model):
     time_difference = models.IntegerField(default=0)  # الفرق بالثواني بين الوقت الفعلي والوقت الذي اختاره المستخدم
 
@@ -21,6 +22,13 @@ class MasterClock(models.Model):
         """يرجع الوقت المعدل بناءً على الفرق المخزن"""
         return timezone.now() + timedelta(seconds=self.time_difference)
 
+# department
+class Department(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    
+    def __str__(self):
+        return self.name
+# device
 class Device(models.Model):
     STATUS_CHOICES = [
         ('working', 'Working'),
@@ -35,6 +43,7 @@ class Device(models.Model):
     id = models.AutoField(primary_key=True)
     device_id = models.CharField(max_length=100, unique=True)
     name = models.CharField(max_length=100, blank=True, null=True)
+    department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, blank=True, related_name="devices")
     temperature = models.FloatField(null=True, blank=True)
     max_temp = models.FloatField(null=True, blank=True, default=40)
     min_temp = models.FloatField(null=True, blank=True, default=10)
@@ -120,6 +129,35 @@ class Device(models.Model):
 
         good_sensors = self.check_sensors()
         return "working" if good_sensors else "error"
+    
+    def check_and_log_status(self):
+        """
+        يتحقق من حالة الجهاز (working/error/offline)
+        ويُنشئ أو يغلق Log بناءً على الحالة.
+        """
+        status = self.get_dynamic_status()
+
+        # ✅ لو الجهاز أوفلاين
+        if status == "offline":
+            exists = DeviceLog.objects.filter(
+                device=self, error_type="offline", resolved=False
+            ).exists()
+
+            if not exists:
+                log = DeviceLog.objects.create(
+                    device=self,
+                    error_type="offline",
+                    message=f"Device {self.name or self.device_id} is offline.",
+                )
+                self._send_log_email(log)
+
+        else:
+            # ✅ الجهاز رجع شغال → نغلق اللوج المفتوح
+            DeviceLog.objects.filter(
+                device=self, error_type="offline", resolved=False
+            ).update(resolved=True)
+
+        return status
 
     def _handle_threshold_log(self, value, min_val=None, max_val=None, high_type=None, high_msg=None, low_type=None, low_msg=None):
         """Handle logs for high/low temperature or humidity just like offline"""
@@ -192,29 +230,3 @@ class Device(models.Model):
                 [notif_settings.email],
                 fail_silently=False,
             )
-
-
-class AutoReportSchedule(models.Model):
-    SCHEDULE_CHOICES = [
-        ('daily', 'Daily'),
-        ('weekly', 'Weekly'),
-        ('monthly', 'Monthly'),
-    ]
-
-    schedule_type = models.CharField(max_length=10, choices=SCHEDULE_CHOICES, blank=False, null=False)
-    weekday = models.IntegerField(null=True, blank=True)  # 0=Monday
-    month_day = models.IntegerField(null=True, blank=True)  # 1–31
-    email = models.EmailField()
-    devices = models.ManyToManyField(Device)
-    enabled = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.schedule_type.title()} - {self.email}"
-        return f"Auto Report is {'Enabled' if self.enabled else 'Disabled'}"
-
-class AutoReportSettings(models.Model):
-    enabled = models.BooleanField(default=True)
-
-    def __str__(self):
-        return f"Auto Reports are {'Enabled' if self.enabled else 'Disabled'}"

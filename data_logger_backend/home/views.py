@@ -1,21 +1,49 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from .models import Device, MasterClock
+from .models import Department, Device, MasterClock
 from device_details.models import DeviceReading
-from .serializers import DeviceSerializer, MasterClockSerializer, DeviceReadingSerializer
+from .serializers import DeviceSerializer, MasterClockSerializer, DeviceReadingSerializer, DepartmentSerializer
 from .utils import get_master_time
 
+class DepartmentListView(APIView):
+    def get(self, request):
+        departments = Department.objects.all()
+        serializer = DepartmentSerializer(departments, many=True)
+        return Response(serializer.data)
 
 class DataLoggerListView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         user = request.user
+        department_id = request.query_params.get('department_id')
+        
+        # --- Admin يشوف الأجهزة الخاصة بيه فقط
         if user.role == 'admin':
             device_qs = Device.objects.filter(admin=user)
+            
+            # لو فيه فلتر على قسم معين
+            if department_id:
+                device_qs = device_qs.filter(department_id=department_id)
+            
+        # --- Manager يشوف الأجهزة الخاصة بفريقه    
+        elif user.role == 'manager':
+            if user.department:
+                device_qs = Device.objects.filter(department=user.department)
+            else:
+                return Response({'message': 'Manager has no assigned department'}, status=400)
+        
+        # --- Supervisor/User يشوف الأجهزة الخاصة بقسمه
+        elif user.role == 'user' or user.role == 'supervisor':
+            if user.manager and user.manager.department:
+                device_qs = Device.objects.filter(department=user.manager.department)
+            else:
+                return Response({'message': 'Manager has no assigned department'}, status=400)
+        
         else:
-            device_qs = Device.objects.filter(admin=user.admin)
+            return Response({'message': 'Unauthorized role'}, status=403)
+        
 
         devices = list(device_qs)  # تحويل queryset لقائمة
         for device in devices:
@@ -43,7 +71,7 @@ class EditMasterClockView(APIView):
 
     def post(self, request):
         user = request.user
-        if user.role != 'admin':
+        if user.role != 'admin' and user.role != 'manager':
             return Response({'message': 'Unauthorized'}, status=403)
 
         master_clock = MasterClock.objects.first()

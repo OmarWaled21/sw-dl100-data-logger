@@ -40,7 +40,7 @@ class DeviceConsumer(AsyncJsonWebsocketConsumer):
                 'max_temp': device.max_temp,
                 'min_hum': device.min_hum,
                 'max_hum': device.max_hum,
-                'interval_local': device.interval_local,
+                'interval_wifi': device.interval_wifi,
                 'status': status,
                 'last_update': device.last_update.strftime("%Y-%m-%d %H:%M:%S")
             })

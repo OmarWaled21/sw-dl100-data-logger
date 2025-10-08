@@ -15,21 +15,7 @@ import Cookies from "js-cookie";
 import SensorCard from "@/components/device_details/sensor_card";
 import DeviceModal from "@/components/device_details/device_modal";
 import DeviceReadingData from "@/components/device_details/device_readings_card";
-
-interface DeviceDetails {
-  id: string;
-  name: string;
-  battery: number;
-  temperature: number;
-  humidity: number;
-  minTemp: number;
-  maxTemp: number;
-  minHum: number;
-  maxHum: number;
-  interval: number;
-  last_update: string;
-  status: "active" | "offline" | "error";
-}
+import { DeviceDetails } from "@/types/device";
 
 interface Reading {
   temperature: number;

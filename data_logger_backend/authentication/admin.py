@@ -4,7 +4,6 @@ from rest_framework.authtoken.models import Token
 from .models import CustomUser
 
 class CustomUserAdmin(UserAdmin):
-    # عرض التوكن فقط
     readonly_fields = UserAdmin.readonly_fields + ('get_token',)
 
     def get_token(self, obj):
@@ -12,11 +11,28 @@ class CustomUserAdmin(UserAdmin):
         return token.key
     get_token.short_description = "Token"
 
-    # ترتيب الحقول وإضافة التوكن تحت categories
+    # ترتيب الحقول
     fieldsets = UserAdmin.fieldsets + (
         ("Additional Info", {
-            'fields': ('role', 'admin', 'get_token'),
+            'fields': (
+                'role',
+                'admin',
+                'manager',
+                'department',
+                'get_token',
+            ),
         }),
     )
+
+    list_display = (
+        'username',
+        'email',
+        'role',
+        'admin',
+        'manager',
+        'department',
+    )
+    list_filter = ('role', 'department')
+    search_fields = ('username', 'email', 'name')
 
 admin.site.register(CustomUser, CustomUserAdmin)

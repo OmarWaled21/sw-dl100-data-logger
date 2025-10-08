@@ -1,14 +1,20 @@
 from rest_framework import serializers
-from .models import Device, MasterClock
+from .models import Department, Device, MasterClock
 from device_details.models import DeviceReading
+
+class DepartmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Department
+        fields = ['id', 'name']
 
 class DeviceSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
+    department_id = serializers.IntegerField(source='department.id', read_only=True)
     
     class Meta:
         model = Device
         fields = [
-            'device_id', 'name','last_update', 'admin_id', 'status',
+            'device_id', 'name', 'department', 'department_id', 'last_update', 'admin_id', 'status',
             'temperature', 'humidity', 'battery_level', 
             'temp_sensor_error', 'hum_sensor_error', 'low_battery',
             'min_temp', 'max_temp', 'min_hum', 'max_hum', 
