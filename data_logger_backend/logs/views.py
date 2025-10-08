@@ -96,12 +96,17 @@ class LogViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['post'])
     def create_log(self, request):
         user = request.user
-        admin = getattr(user, 'admin', user)  # لو الـ user عادي، ناخد admin المسؤول
+        log_type = request.data.get('log_type', 'admin')  # 'admin' أو 'device'
 
-        serializer = AdminLogSerializer(
-            data=request.data,
-            context={'user': user, 'admin': admin}
-        )
+        if log_type == 'device':
+            serializer = DeviceLogSerializer(data=request.data)
+        else:
+            admin = getattr(user, 'admin', user)
+            serializer = AdminLogSerializer(
+                data=request.data,
+                context={'user': user, 'admin': admin}
+            )
+
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)

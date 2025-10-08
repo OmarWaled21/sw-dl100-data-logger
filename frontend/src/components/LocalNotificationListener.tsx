@@ -6,76 +6,74 @@ interface LogData {
   id: number;
   source: string;
   message: string;
+  timestamp?: string;
 }
 
 export default function GlobalLogNotifier() {
   const lastLogIdRef = useRef<number | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [token, setToken] = useState<string | null>(Cookies.get("token") || null);
 
   useEffect(() => {
+    if (!token) return;
+
     if (Notification.permission !== "granted") {
       Notification.requestPermission();
     }
 
-    const currentToken = Cookies.get("token");
-    if (!currentToken) return;
-
-    // 🧠 WebSocket URL — غيّر الـ host حسب السيرفر بتاعك
-    const wsUrl = `ws://127.0.0.1:8000/ws/logs/latest/?token=${currentToken}`;
-    // لو ngrok أو https استخدم wss://example.ngrok.io/ws/latest-log/?token=...
+    const wsUrl = `ws://127.0.0.1:8000/ws/logs/latest/?token=${token}`;
 
     const socket = new WebSocket(wsUrl);
     wsRef.current = socket;
 
     socket.onopen = () => {
-      console.log("[WebSocket] Connected to server ✅");
+      console.log("%c[WebSocket Connected ✅]", "color: green;");
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
     };
 
     socket.onmessage = (event) => {
       try {
         const logData: LogData = JSON.parse(event.data);
-        console.log("[WebSocket] New log:", logData);
+        console.log("[WebSocket] Received:", logData);
 
-        if (!logData || !logData.id || !logData.message) return;
-        if (lastLogIdRef.current === logData.id) return; // نفس اللوج القديم
-
+        // تأكيد إن الرسالة جديدة
+        if (!logData?.id || lastLogIdRef.current === logData.id) return;
         lastLogIdRef.current = logData.id;
 
+        // ✅ Notification + صوت تنبيه
         if (Notification.permission === "granted") {
-          const notification = new Notification("Device Alert", {
+          const notif = new Notification("New Log Alert", {
             body: `[${logData.source}] ${logData.message}`,
             icon: "/alarm-icon.png",
           });
 
           const audio = new Audio("/alarm.mp3");
-          audio.play().catch(console.log);
+          audio.play().catch(() => console.log("🔇 Audio autoplay blocked."));
 
-          setTimeout(() => notification.close(), 5000);
+          setTimeout(() => notif.close(), 5000);
         }
-      } catch (err) {
-        console.error("Invalid log data:", err);
+      } catch (error) {
+        console.error("Invalid message format:", error);
       }
     };
 
-    socket.onerror = (err) => {
-      console.error("[WebSocket] Error:", err);
-    };
+    socket.onclose = (e) => {
+      console.warn("[WebSocket Closed ❌]", e.reason || "no reason");
 
-    socket.onclose = () => {
-      console.warn("[WebSocket] Connection closed, will retry...");
-      // إعادة محاولة الاتصال بعد 5 ثواني
-      setTimeout(() => {
-        if (!wsRef.current || wsRef.current.readyState === WebSocket.CLOSED) {
-          window.location.reload(); // أبسط طريقة لإعادة الاتصال
-        }
+      reconnectTimeoutRef.current = setTimeout(() => {
+        console.log("🔁 Reconnecting WebSocket...");
+        window.location.reload(); // أبسط طريقة
       }, 5000);
     };
 
     return () => {
       socket.close();
+      if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
     };
-  }, []);
+  }, [token]);
 
   return null;
 }
