@@ -23,9 +23,11 @@ class DeviceLogSerializer(serializers.ModelSerializer):
         return DeviceLog.objects.create(device=device, **validated_data)
 
 class AdminLogSerializer(serializers.ModelSerializer):
+    user = serializers.CharField(source='user.username', read_only=True)
+    role = serializers.CharField(source='user.role', read_only=True)
     class Meta:
         model = AdminLog
-        fields = ['id', 'user', 'admin', 'action', 'message', 'timestamp']
+        fields = ['id', 'user', 'role', 'admin', 'action', 'message', 'timestamp']
         read_only_fields = ['user', 'admin', 'timestamp']
 
     def create(self, validated_data):

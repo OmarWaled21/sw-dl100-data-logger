@@ -11,6 +11,7 @@ class DeviceLog(models.Model):
     message = models.TextField(blank=True, null=True)
     sent = models.BooleanField(default=False)
     resolved = models.BooleanField(default=False)
+    is_read = models.BooleanField(default=False)
     
     def save(self, *args, **kwargs):
         if self.device and not self.department:
@@ -57,6 +58,7 @@ class AdminLog(models.Model):
     action = models.CharField(max_length=50)  # مثل: login, logout
     message = models.TextField(blank=True, null=True)
     sent = models.BooleanField(default=False)
+    is_read = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
         """

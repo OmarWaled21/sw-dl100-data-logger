@@ -1,10 +1,10 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 import threading, time, logging
 from django.db import close_old_connections
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.apps import apps
-from .models import DeviceLog, AdminLog
+from .models import DeviceLog
 from home.utils import get_master_time
 
 channel_layer = get_channel_layer()
@@ -55,13 +55,6 @@ def device_log_post_save(sender, instance, created, **kwargs):
 
     except Exception as e:
         print(f"[Signal Error] ❌ {e}")
-
-
-@receiver(post_save, sender=AdminLog)
-def admin_log_post_save(sender, instance, created, **kwargs):
-    if created:
-        send_latest_log(instance.user.id, instance.get_log_info())
-
 
 # =============== Background Thread ===============
 _auto_checker_started = False

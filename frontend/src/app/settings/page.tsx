@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import EditClock from "@/components/settings/edit_clock";
 import Users from "@/components/settings/users";
@@ -15,7 +15,14 @@ interface Tab {
 }
 
 export default function SettingsPage() {
-  const role = Cookies.get("role") || ""; // جايب role من الكوكيز
+  const [role, setRole] = useState<string>("");
+  const [mounted, setMounted] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>("");
+
+  useEffect(() => {
+    setRole(Cookies.get("role") || "");
+    setMounted(true);
+  }, []);
 
   const tabs: Tab[] = [
     { id: "clock", label: "Edit Clock", component: <EditClock />, allowedRoles: ["admin", "supervisor"] },
@@ -26,7 +33,14 @@ export default function SettingsPage() {
   // بس الـ tabs اللي مسموح لهم حسب الـ role
   const allowedTabs = tabs.filter(tab => tab.allowedRoles.includes(role));
 
-  const [activeTab, setActiveTab] = useState(allowedTabs[0]?.id || "");
+  useEffect(() => {
+    if (allowedTabs.length > 0) {
+      setActiveTab(allowedTabs[0].id);
+    }
+  }, [allowedTabs]);
+
+  // 🚫 لحد ما الـ role يتحمل، ما ترندرش الصفحة لتفادي الـ mismatch
+  if (!mounted) return null;
 
   return (
     <div className="flex min-h-[calc(89.8vh)]">

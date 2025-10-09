@@ -42,9 +42,9 @@ export default function Navbar() {
   const role = Cookies.get("role"); // جايبنا الدور من الكوكيز
 
   const allLinks = [
-    { name: t("Dashboard"), href: "/", roles: ["admin", "supervisor", "user"] },
-    { name: t("Logs"), href: "/logs/", roles: ["admin", "supervisor"] },
-    { name: t("Settings"), href: "/settings/", roles: ["admin", "supervisor"] },
+    { name: t("Dashboard"), href: "/", roles: ["admin", "supervisor", "manager", "user"] },
+    { name: t("Logs"), href: "/logs/", roles: ["admin", "supervisor", "manager"] },
+    { name: t("Settings"), href: "/settings/", roles: ["admin", "manager"] },
   ];
 
   // فلترة الروابط حسب الدور
@@ -52,8 +52,21 @@ export default function Navbar() {
 
   const handleLogout = async () => {
     const token = Cookies.get("token");
+    const username = Cookies.get("username");
     try {
-      if (token) {
+      if (token) { 
+        await fetch("http://127.0.0.1:8000/logs/create/", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Token ${token}`,
+          },
+          body: JSON.stringify({
+            action: "logged out",
+            message: `User ${username || "Unknown"} logged out`,
+          }),
+        }).catch(console.error);
+
         await fetch("http://127.0.0.1:8000/auth/logout/", {
           method: "POST",
           headers: {

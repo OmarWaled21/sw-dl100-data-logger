@@ -1,27 +1,35 @@
-// components/RoleProtected.tsx
 'use client';
-import React, { useEffect } from "react";
+
+import React, { useEffect, useState } from "react";
 import Cookies from "js-cookie";
 import { useRouter } from "next/navigation";
 
 interface Props {
-  allowedRoles: string[]; // اللي مسموح لهم يشوفوا الصفحة
-  children: React.ReactNode; // الصفحة نفسها
+  allowedRoles: string[];
+  children: React.ReactNode;
 }
 
 export default function RoleProtected({ allowedRoles, children }: Props) {
   const router = useRouter();
-  const role = Cookies.get("role"); // جايبنا الـ role من الكوكيز
+  const [role, setRole] = useState<string | null>(null);
+  const [checked, setChecked] = useState(false); // لتأخير العرض لحد ما يتحقق الشرط
 
   useEffect(() => {
-    if (!role || !allowedRoles.includes(role)) {
-      router.push("/"); // redirect
-    }
-  }, [role, allowedRoles, router]);
+    const storedRole = Cookies.get("role");
+    setRole(storedRole || null);
+    setChecked(true);
 
-  // لو مش مسموح له، ممكن ترجّع null لحد ما الـ useEffect ينفذ
+    if (!storedRole || !allowedRoles.includes(storedRole)) {
+      router.push("/");
+    }
+  }, [allowedRoles, router]);
+
+  // لو لسه بيشيّك على الـ role → رجّع null (منع mismatch)
+  if (!checked) return null;
+
+  // لو المستخدم مش مسموح له
   if (!role || !allowedRoles.includes(role)) return null;
 
+  // لو كله تمام
   return <>{children}</>;
 }
-
