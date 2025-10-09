@@ -14,7 +14,29 @@ export default function GlobalLogNotifier() {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [token, setToken] = useState<string | null>(Cookies.get("token") || null);
+  const [audioUnlocked, setAudioUnlocked] = useState(false);
 
+  // ✅ فتح الصوت بعد أول تفاعل من المستخدم
+  useEffect(() => {
+    const unlockAudio = () => {
+      const a = new Audio();
+      a.play().catch(() => {});
+      setAudioUnlocked(true);
+      console.log("%c🔊 Audio unlocked after user interaction.", "color: green;");
+      window.removeEventListener("click", unlockAudio);
+      window.removeEventListener("keydown", unlockAudio);
+    };
+
+    window.addEventListener("click", unlockAudio);
+    window.addEventListener("keydown", unlockAudio);
+
+    return () => {
+      window.removeEventListener("click", unlockAudio);
+      window.removeEventListener("keydown", unlockAudio);
+    };
+  }, []);
+
+  // ✅ WebSocket logic
   useEffect(() => {
     if (!token) return;
 
@@ -23,15 +45,12 @@ export default function GlobalLogNotifier() {
     }
 
     const wsUrl = `ws://127.0.0.1:8000/ws/logs/latest/?token=${token}`;
-
     const socket = new WebSocket(wsUrl);
     wsRef.current = socket;
 
     socket.onopen = () => {
       console.log("%c[WebSocket Connected ✅]", "color: green;");
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-      }
+      if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
     };
 
     socket.onmessage = (event) => {
@@ -50,8 +69,12 @@ export default function GlobalLogNotifier() {
             icon: "/alarm-icon.png",
           });
 
-          const audio = new Audio("/alarm.mp3");
-          audio.play().catch(() => console.log("🔇 Audio autoplay blocked."));
+          if (audioUnlocked) {
+            const audio = new Audio("/alarm.mp3");
+            audio.play().catch(() => console.log("🔇 Audio autoplay blocked."));
+          } else {
+            console.warn("⚠️ Waiting for user interaction to unlock audio.");
+          }
 
           setTimeout(() => notif.close(), 5000);
         }
@@ -62,7 +85,6 @@ export default function GlobalLogNotifier() {
 
     socket.onclose = (e) => {
       console.warn("[WebSocket Closed ❌]", e.reason || "no reason");
-
       reconnectTimeoutRef.current = setTimeout(() => {
         console.log("🔁 Reconnecting WebSocket...");
         window.location.reload(); // أبسط طريقة
@@ -73,7 +95,7 @@ export default function GlobalLogNotifier() {
       socket.close();
       if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
     };
-  }, [token]);
+  }, [token, audioUnlocked]);
 
   return null;
 }

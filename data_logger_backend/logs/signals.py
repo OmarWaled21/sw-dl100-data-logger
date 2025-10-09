@@ -105,6 +105,6 @@ def start_auto_offline_checker():
                     logger.error(f"❌ Error checking device {getattr(device, 'device_id', 'UNKNOWN')}: {e}")
 
             close_old_connections()
-            time.sleep(20)
+            time.sleep(10)
 
     threading.Thread(target=loop, daemon=True).start()
