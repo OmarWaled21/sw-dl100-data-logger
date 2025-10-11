@@ -114,11 +114,23 @@ class LogViewSet(viewsets.ViewSet):
     def create_log(self, request):
         user = request.user
         log_type = request.data.get('log_type', 'admin')
+        message = request.data.get('message')
+        action = request.data.get('action')
 
         if log_type == 'device':
             serializer = DeviceLogSerializer(data=request.data)
         else:
+            # منع تكرار log متشابه في أقل من 5 ثواني
             admin = getattr(user, 'admin', user)
+            recent = AdminLog.objects.filter(
+                user=user,
+                action=action,
+                message=message,
+                timestamp__gte=get_master_time()- timedelta(seconds=5)
+            ).first()
+            if recent:
+                return Response({"message": "Duplicate log ignored"}, status=status.HTTP_200_OK)
+
             serializer = AdminLogSerializer(
                 data=request.data,
                 context={'user': user, 'admin': admin}
@@ -127,6 +139,7 @@ class LogViewSet(viewsets.ViewSet):
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     @action(detail=False, methods=['post'], url_path='mark-read')

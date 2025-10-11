@@ -10,31 +10,68 @@ from .serializers import UserSerializer, AddUserSerializer
 class UserManagementViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
 
-    def _check_admin(self, request):
-        """Helper to restrict actions to admins only"""
-        if request.user.role != 'admin':
-            return False
-        return True
+    def _check_admin_or_manager(self, request):
+        """يسمح فقط للـ admin أو manager"""
+        return request.user.role in ['admin', 'manager']
 
     @action(detail=False, methods=['get'])
     def my_users(self, request):
-        """GET /users/ - List all users of the current admin"""
-        if not self._check_admin(request):
-            return Response({'message': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+        """
+        GET /users/
+        - admin يشوف كل المستخدمين
+        - manager يشوف المستخدمين في نفس القسم
+        - supervisor / user يشوف نفسه فقط
+        """
+        user = request.user
 
-        users = CustomUser.objects.filter(admin=request.user)
+        if user.role == 'admin':
+            users = CustomUser.objects.all().exclude(id=user.id)
+
+        elif user.role == 'manager':
+            # يظهر المستخدمين اللي في نفس القسم
+            users = CustomUser.objects.filter(department=user.department).exclude(id=user.id)
+
+        else:
+            # المستخدم العادي يشوف نفسه فقط
+            users = CustomUser.objects.filter(id=user.id)
+
         serializer = UserSerializer(users, many=True)
         return Response(serializer.data)
 
     @action(detail=False, methods=['post'])
     def add_user(self, request):
-        """POST /users/add/ - Add a new user under the current admin"""
-        if not self._check_admin(request):
+        """POST /users/add/ - إنشاء مستخدم جديد"""
+        if not self._check_admin_or_manager(request):
             return Response({'message': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
 
         serializer = AddUserSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
-            serializer.save()
+            new_user = serializer.save()
+
+            # لو اللي أضاف المستخدم هو manager
+            if request.user.role == 'manager':
+                new_user.manager = request.user
+                new_user.department = request.user.department
+                new_user.admin = request.user.admin  # عشان يورث الأدمن الأعلى
+                new_user.save()
+
+            # لو اللي أضاف المستخدم هو admin
+            elif request.user.role == 'admin':
+                new_user.admin = request.user
+
+                # ✅ يجيب الـ manager المسؤول عن القسم المختار (إن وُجد)
+                department = new_user.department
+                if department:
+                    manager = CustomUser.objects.filter(
+                        department=department, role='manager'
+                    ).first()
+                    if manager:
+                        new_user.manager = manager
+                        # يورث الأدمن الأعلى من المانجر كمان (في حال في تسلسل إداري)
+                        new_user.admin = manager.admin or request.user
+
+                new_user.save()
+
             return Response({
                 'success': True,
                 'message': 'User added successfully',
@@ -45,12 +82,17 @@ class UserManagementViewSet(viewsets.ViewSet):
 
     @action(detail=True, methods=['put'])
     def edit_user(self, request, pk=None):
-        """PUT /users/<id>/edit/ - Edit a specific user"""
-        if not self._check_admin(request):
+        """PUT /users/<id>/edit/"""
+        user = request.user
+
+        if user.role == 'admin':
+            target_user = get_object_or_404(CustomUser, id=pk)
+        elif user.role == 'manager':
+            target_user = get_object_or_404(CustomUser, id=pk, department=user.department)
+        else:
             return Response({'message': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
 
-        user = get_object_or_404(CustomUser, id=pk, admin=request.user)
-        serializer = UserSerializer(user, data=request.data, partial=True)
+        serializer = UserSerializer(target_user, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response({
@@ -63,10 +105,15 @@ class UserManagementViewSet(viewsets.ViewSet):
 
     @action(detail=True, methods=['delete'])
     def delete_user(self, request, pk=None):
-        """DELETE /users/<id>/delete/ - Delete a specific user"""
-        if not self._check_admin(request):
+        """DELETE /users/<id>/delete/"""
+        user = request.user
+
+        if user.role == 'admin':
+            target_user = get_object_or_404(CustomUser, id=pk)
+        elif user.role == 'manager':
+            target_user = get_object_or_404(CustomUser, id=pk, department=user.department)
+        else:
             return Response({'message': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
 
-        user = get_object_or_404(CustomUser, id=pk, admin=request.user)
-        user.delete()
+        target_user.delete()
         return Response({'success': True, 'message': 'User deleted'})

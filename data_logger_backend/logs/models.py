@@ -26,7 +26,7 @@ class DeviceLog(models.Model):
             'id': self.id,
             'source': self.device.name or self.device.device_id,
             'timestamp': self.timestamp,
-            'type': self.error_type,
+            'error_type': self.error_type,
             'message': self.message,
         }
         
@@ -99,6 +99,8 @@ class AdminLog(models.Model):
         return {
             'id': self.id,
             'source': f"{self.user.username} ({self.user.role})",
+            'user': self.user.username,
+            'role': self.user.role,
             'timestamp': self.timestamp,
             'type': self.action,
             'message': self.message,

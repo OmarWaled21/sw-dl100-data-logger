@@ -6,7 +6,7 @@ import autoTable from "jspdf-autotable";
 interface Props {
   logs: {
     id: number;
-    source: string;
+    source?: string;
     error_type?: string;
     message: string;
     timestamp: string;

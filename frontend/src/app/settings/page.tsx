@@ -25,9 +25,9 @@ export default function SettingsPage() {
   }, []);
 
   const tabs: Tab[] = [
-    { id: "clock", label: "Edit Clock", component: <EditClock />, allowedRoles: ["admin", "supervisor"] },
-    { id: "users", label: "Users", component: <Users />, allowedRoles: ["admin"] },
-    { id: "notifications", label: "Notifications", component: <Notifications />, allowedRoles: ["admin", "supervisor"] },
+    { id: "clock", label: "Edit Clock", component: <EditClock />, allowedRoles: ["admin", "manager"] },
+    { id: "users", label: "Users", component: <Users />, allowedRoles: ["admin", "manager"] },
+    { id: "notifications", label: "Notifications", component: <Notifications />, allowedRoles: ["admin", "manager"] },
   ];
 
   // بس الـ tabs اللي مسموح لهم حسب الـ role
@@ -35,9 +35,11 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (allowedTabs.length > 0) {
-      setActiveTab(allowedTabs[0].id);
+      if (!allowedTabs.some(tab => tab.id === activeTab)) {
+        setActiveTab(allowedTabs[0].id);
+      }
     }
-  }, [allowedTabs]);
+  }, [role]);
 
   // 🚫 لحد ما الـ role يتحمل، ما ترندرش الصفحة لتفادي الـ mismatch
   if (!mounted) return null;

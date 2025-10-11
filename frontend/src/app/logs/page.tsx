@@ -1,47 +1,114 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
 import RoleProtected from "@/components/RoleProtected";
 import LogsTable from "@/components/logs/LogsTable";
 import DownloadPDFButton from "@/components/logs/download_pdf_logs";
 
+interface Log {
+  id: number;
+  source?: string;
+  user?: string | number;
+  role?: string;
+  error_type?: string;
+  action?: string;
+  type?: string;
+  message: string;
+  timestamp: string;
+}
+
 export default function LogsPage() {
   const [activeTab, setActiveTab] = useState<"device" | "admin">("device");
-  const [deviceLogs, setDeviceLogs] = useState([]);
-  const [adminLogs, setAdminLogs] = useState([]);
-  const [unreadDevice, setUnreadDevice] = useState(0);
-  const [unreadAdmin, setUnreadAdmin] = useState(0);
+  const [deviceLogs, setDeviceLogs] = useState<Log[]>([]);
+  const [adminLogs, setAdminLogs] = useState<Log[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const wsRef = useRef<WebSocket | null>(null);
+  const reconnectRef = useRef<NodeJS.Timeout | null>(null);
+  const token = Cookies.get("token");
 
-  const fetchLogs = useCallback(async () => {
+  // ⏩ تحميل أولي للوجات من الـ API (history)
+  const fetchInitialLogs = useCallback(async () => {
     setIsLoading(true);
     try {
-      const token = Cookies.get("token");
       const [deviceRes, adminRes] = await Promise.all([
-        axios.get("http://127.0.0.1:8000/logs/device/", { headers: { Authorization: `Token ${token}` } }),
-        axios.get("http://127.0.0.1:8000/logs/admin/", { headers: { Authorization: `Token ${token}` } }),
+        axios.get("http://127.0.0.1:8000/logs/device/", {
+          headers: { Authorization: `Token ${token}` },
+        }),
+        axios.get("http://127.0.0.1:8000/logs/admin/", {
+          headers: { Authorization: `Token ${token}` },
+        }),
       ]);
       setDeviceLogs(deviceRes.data.results || []);
       setAdminLogs(adminRes.data.results || []);
-      setUnreadDevice(deviceRes.data.unread_count || 0);
-      setUnreadAdmin(adminRes.data.unread_count || 0);
-
-      // Mark as read automatically
-      await axios.post("http://127.0.0.1:8000/logs/mark-read/", { all: true }, {
-        headers: { Authorization: `Token ${token}` },
-      });
-    } catch (err) {
-      console.error(err);
+    } catch (e) {
+      console.error("Error fetching initial logs:", e);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [token]);
 
+  // 🔄 WebSocket connection
   useEffect(() => {
-    fetchLogs();
-  }, [fetchLogs]);
+    if (!token) return;
+
+    const ws = new WebSocket(`ws://127.0.0.1:8000/ws/logs/latest/?token=${token}`);
+    wsRef.current = ws;
+
+    ws.onopen = () => {
+      console.log("%c[Logs WS Connected ✅]", "color: green;");
+      if (reconnectRef.current) clearTimeout(reconnectRef.current);
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data);
+
+        if (!msg?.category || !msg?.data) return;
+        const log = msg.data;
+
+        if (msg.category === "device_log") {
+          setDeviceLogs((prev) => {
+            if (prev.find((l) => l.id === log.id)) return prev; // لو موجود بالفعل
+            return [log, ...prev];
+          });
+        } else if (msg.category === "admin_log") {
+          setAdminLogs((prev) => {
+            if (prev.find((l) => l.id === log.id)) return prev;
+            return [log, ...prev];
+          });
+        }
+
+        console.log("🟢 New log received:", msg.category, log);
+      } catch (err) {
+        console.error("WS parse error:", err);
+      }
+    };
+
+    ws.onclose = (e) => {
+      console.warn("[Logs WS Closed ❌]", e.reason || "no reason");
+      reconnectRef.current = setTimeout(() => {
+        console.log("🔁 Reconnecting WebSocket...");
+        window.location.reload();
+      }, 5000);
+    };
+
+    ws.onerror = (e) => {
+      console.error("[Logs WS Error ❌]", e);
+      ws.close();
+    };
+
+    return () => {
+      ws.close();
+      if (reconnectRef.current) clearTimeout(reconnectRef.current);
+    };
+  }, [token]);
+
+  // 📥 تحميل أولي عند الدخول
+  useEffect(() => {
+    fetchInitialLogs();
+  }, [fetchInitialLogs]);
 
   const logs = activeTab === "device" ? deviceLogs : adminLogs;
 
@@ -52,12 +119,12 @@ export default function LogsPage() {
           <div className="flex justify-between items-center mb-6">
             <div>
               <h1 className="text-2xl font-bold text-gray-900 mb-1">System Logs</h1>
-              <p className="text-gray-600 text-sm">View and manage system logs</p>
+              <p className="text-gray-600 text-sm">Real-time logs via WebSocket</p>
             </div>
             <DownloadPDFButton logs={logs} />
           </div>
 
-          {/* Toggle Buttons */}
+          {/* Tabs */}
           <div className="flex gap-3 mb-6">
             <button
               onClick={() => setActiveTab("device")}
@@ -68,11 +135,6 @@ export default function LogsPage() {
               }`}
             >
               Device Logs
-              {unreadDevice > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                  {unreadDevice}
-                </span>
-              )}
             </button>
 
             <button
@@ -84,15 +146,9 @@ export default function LogsPage() {
               }`}
             >
               Admin Logs
-              {unreadAdmin > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                  {unreadAdmin}
-                </span>
-              )}
             </button>
           </div>
 
-          {/* Logs Table */}
           <LogsTable logs={logs} isLoading={isLoading} mode={activeTab} />
         </div>
       </div>

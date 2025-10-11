@@ -13,16 +13,27 @@ export default function GlobalLogNotifier() {
   const lastLogIdRef = useRef<number | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const [token, setToken] = useState<string | null>(Cookies.get("token") || null);
+  const [token] = useState<string | null>(Cookies.get("token") || null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [audioUnlocked, setAudioUnlocked] = useState(false);
 
-  // ✅ فتح الصوت بعد أول تفاعل من المستخدم
+  // 🔊 إعداد عنصر الصوت مرة واحدة
   useEffect(() => {
+    audioRef.current = new Audio("/alarm.mp3");
+    audioRef.current.load();
+    audioRef.current.preload = "auto";
+
     const unlockAudio = () => {
-      const a = new Audio();
-      a.play().catch(() => {});
+      if (audioRef.current) {
+        audioRef.current.muted = true;  // ⛔ كتم الصوت أثناء التشغيل
+        audioRef.current.play().catch(() => {});
+        audioRef.current.pause();        // نوقفه فورًا
+        audioRef.current.currentTime = 0;
+        audioRef.current.muted = false;  // ✅ نرجّع الصوت عادي بعد الكتم
+      }
+
       setAudioUnlocked(true);
-      console.log("%c🔊 Audio unlocked after user interaction.", "color: green;");
+      console.log("%c🔊 Audio unlocked after user interaction.", "color: green");
       window.removeEventListener("click", unlockAudio);
       window.removeEventListener("keydown", unlockAudio);
     };
@@ -36,7 +47,7 @@ export default function GlobalLogNotifier() {
     };
   }, []);
 
-  // ✅ WebSocket logic
+  // 🌐 WebSocket
   useEffect(() => {
     if (!token) return;
 
@@ -49,37 +60,43 @@ export default function GlobalLogNotifier() {
     wsRef.current = socket;
 
     socket.onopen = () => {
-      console.log("%c[WebSocket Connected ✅]", "color: green;");
+      console.log("%c[WebSocket Connected ✅]", "color: green");
       if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
     };
 
     socket.onmessage = (event) => {
+      console.log("%c[WS] 📩 Raw Message Received:", "color: cyan", event.data);
       try {
-        const logData: LogData = JSON.parse(event.data);
-        console.log("[WebSocket] Received:", logData);
+        const msg = JSON.parse(event.data);
+        console.log("%c[WS] ✅ Parsed Message:", "color: green", msg);
 
-        // تأكيد إن الرسالة جديدة
-        if (!logData?.id || lastLogIdRef.current === logData.id) return;
+        if (!msg?.category || !msg?.data) return;
+        const logData: LogData = msg.data;
+
+        console.log("%c[WS] 🔔 New Log Data:", "color: yellow", logData);
+
+        if (!logData.id || lastLogIdRef.current === logData.id) return;
         lastLogIdRef.current = logData.id;
 
-        // ✅ Notification + صوت تنبيه
+        // Notification
         if (Notification.permission === "granted") {
           const notif = new Notification("New Log Alert", {
             body: `[${logData.source}] ${logData.message}`,
             icon: "/alarm-icon.png",
           });
-
-          if (audioUnlocked) {
-            const audio = new Audio("/alarm.mp3");
-            audio.play().catch(() => console.log("🔇 Audio autoplay blocked."));
-          } else {
-            console.warn("⚠️ Waiting for user interaction to unlock audio.");
-          }
-
           setTimeout(() => notif.close(), 5000);
         }
+
+        // Play audio if unlocked
+        if (audioUnlocked && audioRef.current) {
+          audioRef.current.currentTime = 0; // Restart from beginning
+          audioRef.current.play().catch(() => console.log("🔇 Audio autoplay blocked."));
+        } else if (!audioUnlocked) {
+          console.warn("⚠️ Waiting for user interaction to unlock audio.");
+        }
+
       } catch (error) {
-        console.error("Invalid message format:", error);
+        console.error("Invalid WebSocket message format:", error);
       }
     };
 
@@ -87,8 +104,13 @@ export default function GlobalLogNotifier() {
       console.warn("[WebSocket Closed ❌]", e.reason || "no reason");
       reconnectTimeoutRef.current = setTimeout(() => {
         console.log("🔁 Reconnecting WebSocket...");
-        window.location.reload(); // أبسط طريقة
+        window.location.reload();
       }, 5000);
+    };
+
+    socket.onerror = (e) => {
+      console.error("[WebSocket Error ❌]", e);
+      socket.close();
     };
 
     return () => {

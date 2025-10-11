@@ -143,6 +143,7 @@ export default function Users() {
                   <SelectItem value="all">All Roles</SelectItem>
                   <SelectItem value="user">User</SelectItem>
                   <SelectItem value="supervisor">Supervisor</SelectItem>
+                  <SelectItem value="manager">Manager</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -152,7 +153,7 @@ export default function Users() {
                 setEditUser(undefined);
                 setOpenModal(true);
               }}
-              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-sm"
+              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-sm cursor-pointer"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -177,88 +178,98 @@ export default function Users() {
               </div>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-gray-50 hover:bg-gray-50">
-                  <TableCell className="font-semibold text-gray-900 py-4">Username</TableCell>
-                  <TableCell className="font-semibold text-gray-900 py-4">Email</TableCell>
-                  <TableCell className="font-semibold text-gray-900 py-4">Role</TableCell>
-                  <TableCell className="font-semibold text-gray-900 py-4 text-right">Actions</TableCell>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredUsers.map((u) => (
-                  <TableRow key={u.user_id} className="border-t border-gray-100 hover:bg-gray-50 transition-colors">
-                    <TableCell className="py-4 font-medium text-gray-900">{u.username}</TableCell>
-                    <TableCell className="py-4 text-gray-600">{u.email}</TableCell>
-                    <TableCell className="py-4">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                        u.role === 'supervisor' 
-                          ? 'bg-purple-100 text-purple-800' 
-                          : 'bg-green-100 text-green-800'
-                      }`}>
-                        {u.role === 'supervisor' ? (
-                          <>
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                            </svg>
-                            Supervisor
-                          </>
-                        ) : (
-                          <>
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                            </svg>
-                            User
-                          </>
-                        )}
-                      </span>
-                    </TableCell>
-                    <TableCell className="py-4">
-                      <div className="flex justify-end space-x-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="border-gray-300 hover:bg-gray-50"
-                          onClick={() => {
-                            setEditUser(u);
-                            setOpenModal(true);
-                          }}
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                          Edit
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => u.user_id && handleDeleteUser(u.user_id)}
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                          Delete
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {filteredUsers.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={5} className="py-12 text-center">
-                      <div className="flex flex-col items-center justify-center text-gray-500">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mb-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <p className="text-lg font-medium text-gray-900 mb-1">No users found</p>
-                        <p className="text-sm">Try adjusting your search or filter criteria</p>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+            <>
+              {/* Grouped Table by Department */}
+              {Object.entries(
+                filteredUsers
+                  .sort((a, b) => {
+                    // ترتيب حسب department (مع معالجة احتمالية undefined)
+                    const deptA = a.department_name ?? "";
+                    const deptB = b.department_name ?? "";
+                    if (deptA < deptB) return -1;
+                    if (deptA > deptB) return 1;
+
+                    // ترتيب داخلي حسب role
+                    const roleOrder: Record<string, number> = { manager: 1, supervisor: 2, user: 3 };
+                    return (roleOrder[a.role] ?? 99) - (roleOrder[b.role] ?? 99);
+                  })
+                  .reduce((groups: Record<string, typeof filteredUsers>, user) => {
+                    const dept = user.department_name || "No Department";
+                    if (!groups[dept]) groups[dept] = [];
+                    groups[dept].push(user);
+                    return groups;
+                  }, {})
+              ).map(([dept, usersInDept]: [string, typeof filteredUsers]) => (
+                <div key={dept} className="mb-10">
+                  {/* عنوان القسم */}
+                  <h2 className="text-xl font-semibold text-gray-800 mb-4 border-b border-gray-200 pb-2 px-4">
+                    {dept}
+                  </h2>
+
+                  {/* الجدول الخاص بكل قسم */}
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-gray-50 hover:bg-gray-50">
+                          <TableCell className="font-semibold text-gray-900 py-4">Username</TableCell>
+                          <TableCell className="font-semibold text-gray-900 py-4">Email</TableCell>
+                          <TableCell className="font-semibold text-gray-900 py-4">Role</TableCell>
+                          <TableCell className="font-semibold text-gray-900 py-4 text-right">Actions</TableCell>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {usersInDept.map((u: typeof filteredUsers[number]) => (
+                          <TableRow
+                            key={u.user_id}
+                            className="border-t border-gray-100 hover:bg-gray-50 transition-colors"
+                          >
+                            <TableCell className="py-4 font-medium text-gray-900">{u.username}</TableCell>
+                            <TableCell className="py-4 text-gray-600">{u.email}</TableCell>
+                            <TableCell className="py-4">
+                              <span
+                                className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                                  u.role === "manager"
+                                    ? "bg-purple-100 text-purple-800"
+                                    : u.role === "supervisor"
+                                    ? "bg-blue-100 text-blue-800"
+                                    : "bg-green-100 text-green-800"
+                                }`}
+                              >
+                                {u.role.charAt(0).toUpperCase() + u.role.slice(1)}
+                              </span>
+                            </TableCell>
+                            <TableCell className="py-4">
+                              <div className="flex justify-end space-x-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="border-gray-300 hover:bg-gray-50 cursor-pointer"
+                                  onClick={() => {
+                                    setEditUser(u);
+                                    setOpenModal(true);
+                                  }}
+                                >
+                                  Edit
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  className="cursor-pointer"
+                                  variant="destructive"
+                                  onClick={() => u.user_id && handleDeleteUser(u.user_id)}
+                                >
+                                  Delete
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              ))}
+
+            </>
           )}
         </div>
 

@@ -81,10 +81,10 @@ export default function LogsTable({ logs, isLoading, mode }: LogsTableProps) {
                 {/* Time */}
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-gray-900">
-                    {new Date(log.timestamp).toLocaleDateString()}
+                    {new Date(log.timestamp).toLocaleTimeString()}
                   </div>
                   <div className="text-xs text-gray-500">
-                    {new Date(log.timestamp).toLocaleTimeString()}
+                    {new Date(log.timestamp).toLocaleDateString()}
                   </div>
                 </td>
 
