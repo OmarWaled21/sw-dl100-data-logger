@@ -10,15 +10,16 @@ class DepartmentSerializer(serializers.ModelSerializer):
 class DeviceSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
     department_id = serializers.IntegerField(source='department.id', read_only=True)
+    department_name = serializers.CharField(source='department.name', read_only=True)
     
     class Meta:
         model = Device
         fields = [
-            'device_id', 'name', 'department', 'department_id', 'last_update', 'admin_id', 'status',
+            'device_id', 'name', 'department', 'department_name', 'department_id', 'last_update', 'admin_id', 'status',
             'temperature', 'humidity', 'battery_level', 
             'temp_sensor_error', 'hum_sensor_error', 'low_battery',
             'min_temp', 'max_temp', 'min_hum', 'max_hum', 
-            'firmware_version', 'firmware_updated_at', 'last_calibrated', 'interval_wifi', 'interval_local'
+            'firmware_version', 'firmware_updated_at', 'last_calibrated', 'interval_wifi'
         ]
         read_only_fields = ['id', 'device_id', 'admin_id']
         

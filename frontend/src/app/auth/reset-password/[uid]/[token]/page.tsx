@@ -3,6 +3,7 @@
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import LayoutWithNavbar from "@/components/ui/layout_with_navbar";
 
 export default function ResetPasswordPage() {
   const { uid, token } = useParams() as { uid: string; token: string };
@@ -44,40 +45,42 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div className="flex items-start justify-center min-h-screen">
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white p-6 rounded-lg shadow-md w-96"
-      >
-        <h2 className="text-xl font-semibold mb-4">Reset Your Password</h2>
-
-        <input
-          type="password"
-          placeholder="New Password"
-          value={newPassword}
-          onChange={(e) => setNewPassword(e.target.value)}
-          className="w-full p-2 mb-3 border rounded"
-          required
-        />
-
-        <input
-          type="password"
-          placeholder="Confirm Password"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          className="w-full p-2 mb-3 border rounded"
-          required
-        />
-
-        <button
-          type="submit"
-          className="w-full bg-white text-red-500 border border-red-500 hover:text-white hover:bg-red-500 py-2 rounded transition-colors cursor-pointer"
+    <LayoutWithNavbar>
+      <div className="flex items-start justify-center min-h-screen">
+        <form
+          onSubmit={handleSubmit}
+          className="bg-white p-6 rounded-lg shadow-md w-96"
         >
-          Reset Password
-        </button>
+          <h2 className="text-xl font-semibold mb-4">Reset Your Password</h2>
 
-        {message && <p className="mt-3 text-center">{message}</p>}
-      </form>
-    </div>
+          <input
+            type="password"
+            placeholder="New Password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            className="w-full p-2 mb-3 border rounded"
+            required
+          />
+
+          <input
+            type="password"
+            placeholder="Confirm Password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            className="w-full p-2 mb-3 border rounded"
+            required
+          />
+
+          <button
+            type="submit"
+            className="w-full bg-white text-red-500 border border-red-500 hover:text-white hover:bg-red-500 py-2 rounded transition-colors cursor-pointer"
+          >
+            Reset Password
+          </button>
+
+          {message && <p className="mt-3 text-center">{message}</p>}
+        </form>
+      </div>
+    </LayoutWithNavbar>
   );
 }

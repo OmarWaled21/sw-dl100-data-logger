@@ -108,15 +108,20 @@ class AdminLog(models.Model):
             'manager': self.manager.username if self.manager else None,
         }
         
-        
 class NotificationSettings(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    devices = models.ManyToManyField("home.Device", blank=True)
+
     gmail_is_active = models.BooleanField(default=False)
     email = models.EmailField(blank=True, null=True)
     report_time = models.TimeField(default="09:00")
-    local_is_active = models.BooleanField(default=False)
+    local_is_active = models.BooleanField(default=True, editable=False)  # دايمًا شغالة
+
+    def save(self, *args, **kwargs):
+        # إذا email فاضي، عيّنه على user.email
+        if not self.email:
+            self.email = self.user.email
+        super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.user.username} - {'Active' if self.gmail_is_active else 'Inactive'}"
-        
-        
+        return f"{self.user.username} Notifications"

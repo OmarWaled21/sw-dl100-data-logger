@@ -100,17 +100,14 @@ export default function GlobalLogNotifier() {
       }
     };
 
-    socket.onclose = (e) => {
-      console.warn("[WebSocket Closed ❌]", e.reason || "no reason");
-      reconnectTimeoutRef.current = setTimeout(() => {
-        console.log("🔁 Reconnecting WebSocket...");
-        window.location.reload();
-      }, 5000);
+    socket.onerror = (e) => {
+      console.error("[WebSocket Error ❌]", e, socket.readyState, socket.url);
     };
 
-    socket.onerror = (e) => {
-      console.error("[WebSocket Error ❌]", e);
-      socket.close();
+    socket.onclose = (e) => {
+      console.warn(
+        `[WebSocket Closed ❌] Code: ${e.code} | Reason: ${e.reason || "none"} | Clean: ${e.wasClean}`
+      );
     };
 
     return () => {

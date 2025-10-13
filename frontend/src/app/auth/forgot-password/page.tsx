@@ -1,4 +1,5 @@
 'use client';
+import LayoutWithNavbar from "@/components/ui/layout_with_navbar";
 import React, { useState } from "react";
 
 export default function ForgotPasswordPage() {
@@ -32,30 +33,32 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="flex items-center justify-center mt-4">
-      <div className="bg-white shadow-2xl rounded-2xl p-8 max-w-md w-full">
-        <h1 className="text-2xl font-bold mb-4">Forgot Password</h1>
+    <LayoutWithNavbar>
+      <div className="flex items-center justify-center mt-4">
+        <div className="bg-white shadow-2xl rounded-2xl p-8 max-w-md w-full">
+          <h1 className="text-2xl font-bold mb-4">Forgot Password</h1>
 
-        {message && <div className="mb-4 text-red-500">{message}</div>}
+          {message && <div className="mb-4 text-red-500">{message}</div>}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="email"
-            placeholder="Your email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full border px-4 py-3 rounded-full outline-none focus:ring-2 focus:ring-red-400"
-            required
-          />
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-red-500 text-white py-3 rounded-full hover:bg-red-600 transition"
-          >
-            {loading ? "Sending..." : "Send Reset Email"}
-          </button>
-        </form>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <input
+              type="email"
+              placeholder="Your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full border px-4 py-3 rounded-full outline-none focus:ring-2 focus:ring-red-400"
+              required
+            />
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-red-500 text-white py-3 rounded-full hover:bg-red-600 transition"
+            >
+              {loading ? "Sending..." : "Send Reset Email"}
+            </button>
+          </form>
+        </div>
       </div>
-    </div>
+    </LayoutWithNavbar>
   );
 }

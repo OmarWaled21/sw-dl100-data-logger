@@ -59,6 +59,18 @@ export default function Users() {
             Authorization: `Token ${Cookies.get("token")}`,
           },
         });
+
+        fetch("http://127.0.0.1:8000/logs/create/", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Token ${Cookies.get("token")}`,
+          },
+          body: JSON.stringify({
+            action: `Edit user`,
+            message: `${Cookies.get("username")} Edited user ${user.username}`,
+          })
+        }).catch(console.error);
       } else {
         await axios.post("http://127.0.0.1:8000/users/add/", user, {
           headers: {
@@ -66,6 +78,18 @@ export default function Users() {
             Authorization: `Token ${Cookies.get("token")}`,
           },
         });
+
+        fetch("http://127.0.0.1:8000/logs/create/", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Token ${Cookies.get("token")}`,
+          },
+          body: JSON.stringify({
+            action: `Add user`,
+            message: `${Cookies.get("username")} Added new user ${user.username}`,
+          })
+        }).catch(console.error);
       }
       setOpenModal(false);
       fetchUsers();
@@ -74,13 +98,25 @@ export default function Users() {
     }
   }
 
-  async function handleDeleteUser(id: number) {
+  async function handleDeleteUser(user: User) {
     if (!confirm("Are you sure you want to delete this user?")) return;
 
     try {
-      await axios.delete(`http://127.0.0.1:8000/users/${id}/delete/`, {
+      await axios.delete(`http://127.0.0.1:8000/users/${user.user_id}/delete/`, {
         headers: { Authorization: `Token ${Cookies.get("token")}` },
       });
+
+      fetch("http://127.0.0.1:8000/logs/create/", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Token ${Cookies.get("token")}`,
+          },
+          body: JSON.stringify({
+            action: `Delete user`,
+            message: `${Cookies.get("username")} Deleted user ${user.username}`,
+          })
+        }).catch(console.error);
       fetchUsers();
     } catch (err) {
       console.error("Error deleting user", err);
@@ -255,7 +291,7 @@ export default function Users() {
                                   size="sm"
                                   className="cursor-pointer"
                                   variant="destructive"
-                                  onClick={() => u.user_id && handleDeleteUser(u.user_id)}
+                                  onClick={() => u.user_id && handleDeleteUser(u)}
                                 >
                                   Delete
                                 </Button>

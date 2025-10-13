@@ -1,7 +1,8 @@
+from datetime import timedelta
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from .models import Department, Device, MasterClock
+from .models import Department, Device, ESPDiscovery, MasterClock
 from device_details.models import DeviceReading
 from .serializers import DeviceSerializer, MasterClockSerializer, DeviceReadingSerializer, DepartmentSerializer
 from .utils import get_master_time
@@ -65,7 +66,148 @@ class DataLoggerListView(APIView):
         }
         return Response({"message": "Getting Data Logger Data Successfully", "results": data})
 
+    def post(self, request):
+        """
+        ESP sends new reading (temperature, humidity, battery_level)
+        """
+        data = request.data
+        device_id = data.get('device_id')
+        temperature = data.get('temperature')
+        humidity = data.get('humidity')
+        battery_level = data.get('battery_level')
 
+        if not device_id:
+            return Response({'message': 'device_id is required'}, status=400)
+
+        try:
+            device = Device.objects.get(device_id=device_id)
+        except Device.DoesNotExist:
+            return Response({'message': 'Device not found'}, status=404)
+
+        # تسجيل الوقت الحالي
+        now = get_master_time()
+
+        # تحديث بيانات الجهاز الرئيسية
+        device.temperature = temperature
+        device.humidity = humidity
+        device.battery_level = battery_level
+        device.last_update = now
+        device.save()
+
+        # إنشاء سجل جديد في DeviceReading
+        reading = DeviceReading.objects.create(
+            device=device,
+            temperature=temperature,
+            humidity=humidity,
+            timestamp=now
+        )
+
+        serializer = DeviceReadingSerializer(reading)
+        return Response({
+            'success': True,
+            'message': 'Device data updated successfully',
+            'results': {
+                'device_id': device.device_id,
+                'temperature': temperature,
+                'humidity': humidity,
+                'battery_level': battery_level,
+                'last_update': now.strftime("%Y-%m-%d %H:%M:%S")
+            }
+        }, status=201)
+    
+class AddDeviceView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        data = request.data
+        
+        device_id = data.get("device_id")
+        name = data.get("name")
+        min_temp = data.get("min_temp")
+        max_temp = data.get("max_temp")
+        min_hum = data.get("min_hum")
+        max_hum = data.get("max_hum")
+
+        # تحقق من ID
+        if not device_id:
+            return Response({"message": "device_id is required"}, status=400)
+
+        # department
+        if user.role == "admin":
+            department_id = data.get("department_id")
+            if not department_id:
+                return Response({"message": "department_id is required for admin"}, status=400)
+            try:
+                department = Department.objects.get(id=department_id)
+            except Department.DoesNotExist:
+                return Response({"message": "Invalid department"}, status=400)
+        elif user.role == "manager":
+            department = user.department
+            if not department:
+                return Response({"message": "Manager has no department assigned"}, status=400)
+        else:
+            return Response({"message": "Unauthorized"}, status=403)
+
+        # إنشاء الجهاز
+        device = Device.objects.create(
+            admin=user if user.role == "admin" else user.manager,  # لو مانجر نخلي الأدمن صاحب الفريق
+            device_id=device_id,
+            name=name,
+            department=department,
+            min_temp=min_temp,
+            max_temp=max_temp,
+            min_hum=min_hum,
+            max_hum=max_hum,
+            last_update=get_master_time(), 
+        )
+
+        serializer = DeviceSerializer(device)
+        return Response({"success": True, "message": "Device added successfully", "results": serializer.data})
+
+class IsRegisteredView(APIView):
+    permission_classes = []  # ممكن تخليها مفتوحة عشان ESP يقدر يسأل
+
+    def get(self, request, device_id):
+        exists = Device.objects.filter(device_id=device_id).exists()
+        return Response({"registered": exists})
+
+class DiscoveryListView(APIView):
+    permission_classes = []
+
+    def get(self, request):
+        # نحذف الأجهزة القديمة (اللي عدّى عليها 10 ثواني بدون تحديث)
+        ESPDiscovery.objects.filter(
+            created_at__lt=get_master_time() - timedelta(seconds=10)
+        ).delete()
+
+        # نرجّع الأجهزة النشطة حاليًا
+        discovered_esps = ESPDiscovery.objects.filter(is_linked=False).order_by('-created_at')
+        data = [
+            {"device_id": e.device_id, "created_at": e.created_at}
+            for e in discovered_esps
+        ]
+        return Response({"count": len(data), "results": data})
+
+    def post(self, request):
+        device_id = request.data.get("device_id")
+        if not device_id:
+            return Response({"message": "device_id is required"}, status=400)
+
+        # لو موجود، حدّث وقت آخر discover
+        esp, created = ESPDiscovery.objects.update_or_create(
+            device_id=device_id,
+            defaults={
+                "is_linked": False,
+                "created_at": get_master_time(),
+            }
+        )
+
+        return Response(
+            {"success": True, "message": "Device discovered successfully"},
+            status=201 if created else 200
+        )
+        
 class EditMasterClockView(APIView):
     permission_classes = [IsAuthenticated]
 

@@ -16,6 +16,7 @@ import SensorCard from "@/components/device_details/sensor_card";
 import DeviceModal from "@/components/device_details/device_modal";
 import DeviceReadingData from "@/components/device_details/device_readings_card";
 import { DeviceDetails } from "@/types/device";
+import LayoutWithNavbar from "@/components/ui/layout_with_navbar";
 
 interface Reading {
   temperature: number;
@@ -188,78 +189,80 @@ export default function DeviceDetailsPage() {
   
 
   return (
-    <div className="p-6">
-      <div className="bg-white shadow-lg rounded-2xl p-6">
-        {/* Header */}
-        <div className="bg-white border-b border-gray-200 py-6 px-8 flex justify-between items-center relative">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">{device.name}</h1>
-            <div className="flex items-center gap-4">
-              <span className={`px-4 py-2 rounded-full font-semibold text-sm ${getStatusStyles()}`}>
-                {device.status.toUpperCase()}
-              </span>
-              <span className="text-lg font-medium text-gray-700 flex items-center gap-2">
-                {getBatteryIcon()}
-                <span className="text-gray-900">{device.battery}% Battery</span>
-              </span>
+    <LayoutWithNavbar>
+      <div className="p-6">
+        <div className="bg-white shadow-lg rounded-2xl p-6">
+          {/* Header */}
+          <div className="bg-white border-b border-gray-200 py-6 px-8 flex justify-between items-center relative">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">{device.name}</h1>
+              <div className="flex items-center gap-4">
+                <span className={`px-4 py-2 rounded-full font-semibold text-sm ${getStatusStyles()}`}>
+                  {device.status.toUpperCase()}
+                </span>
+                <span className="text-lg font-medium text-gray-700 flex items-center gap-2">
+                  {getBatteryIcon()}
+                  <span className="text-gray-900">{device.battery}% Battery</span>
+                </span>
+              </div>
+            </div>
+
+            {/* Settings Button */}
+            {role && ["admin", "supervisor"].includes(role) && (
+            <button
+              onClick={() => setOpen(true)}
+              className="absolute top-6 right-6 p-3 rounded-full bg-gray-100 hover:bg-gray-200 shadow cursor-pointer"
+            >
+              <FiSettings size={28} />
+            </button>
+          )}
+          </div>
+
+          {/* Main Content */}
+          <div className="max-w-6xl mx-auto py-8 px-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+              <SensorCard
+                title="Temperature"
+                icon={<WiThermometer size={32} className="text-red-500" />}
+                unit="°"
+                value={device.temperature}
+                min={device.minTemp}
+                max={device.maxTemp}
+                color={tempColor}
+              />
+
+              <SensorCard
+                title="Humidity"
+                icon={<WiHumidity size={32} className="text-blue-500" />}
+                unit="%"
+                value={device.humidity}
+                min={device.minHum}
+                max={device.maxHum}
+                color={humColor}
+              />
+            </div>
+
+            {/* Recent Readings Section */}
+            <div className="w-full min-h-screen">
+              <DeviceReadingData deviceId={device.id} readings={readings} deviceName={deviceName} />
             </div>
           </div>
-
-          {/* Settings Button */}
-          {role && ["admin", "supervisor"].includes(role) && (
-          <button
-            onClick={() => setOpen(true)}
-            className="absolute top-6 right-6 p-3 rounded-full bg-gray-100 hover:bg-gray-200 shadow cursor-pointer"
-          >
-            <FiSettings size={28} />
-          </button>
-        )}
         </div>
 
-        {/* Main Content */}
-        <div className="max-w-6xl mx-auto py-8 px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-            <SensorCard
-              title="Temperature"
-              icon={<WiThermometer size={32} className="text-red-500" />}
-              unit="°"
-              value={device.temperature}
-              min={device.minTemp}
-              max={device.maxTemp}
-              color={tempColor}
-            />
-
-            <SensorCard
-              title="Humidity"
-              icon={<WiHumidity size={32} className="text-blue-500" />}
-              unit="%"
-              value={device.humidity}
-              min={device.minHum}
-              max={device.maxHum}
-              color={humColor}
-            />
-          </div>
-
-          {/* Recent Readings Section */}
-          <div className="w-full min-h-screen">
-            <DeviceReadingData deviceId={device.id} readings={readings} deviceName={deviceName} />
-          </div>
-        </div>
+        {/* Modal */}
+        <DeviceModal
+          isOpen={open}
+          onClose={() => setOpen(false)}
+          deviceId= {device.id}
+          name={device.name}
+          minTemp={device.minTemp}
+          maxTemp={device.maxTemp}
+          minHum={device.minHum}
+          maxHum={device.maxHum}
+          interval={device.interval}
+          onSave={handleSave}
+        />
       </div>
-
-      {/* Modal */}
-      <DeviceModal
-        isOpen={open}
-        onClose={() => setOpen(false)}
-        deviceId= {device.id}
-        name={device.name}
-        minTemp={device.minTemp}
-        maxTemp={device.maxTemp}
-        minHum={device.minHum}
-        maxHum={device.maxHum}
-        interval={device.interval}
-        onSave={handleSave}
-      />
-    </div>
+    </LayoutWithNavbar>
   );
 }

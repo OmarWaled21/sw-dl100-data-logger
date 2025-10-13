@@ -6,6 +6,8 @@ import EditClock from "@/components/settings/edit_clock";
 import Users from "@/components/settings/users";
 import Notifications from "@/components/settings/notifications";
 import Cookies from "js-cookie";
+import DiscoverDevices from "@/components/settings/devices";
+import LayoutWithNavbar from "@/components/ui/layout_with_navbar";
 
 interface Tab {
   id: string;
@@ -28,6 +30,7 @@ export default function SettingsPage() {
     { id: "clock", label: "Edit Clock", component: <EditClock />, allowedRoles: ["admin", "manager"] },
     { id: "users", label: "Users", component: <Users />, allowedRoles: ["admin", "manager"] },
     { id: "notifications", label: "Notifications", component: <Notifications />, allowedRoles: ["admin", "manager"] },
+    { id: "devices", label: "Devices", component: <DiscoverDevices />, allowedRoles: ["admin", "manager"] },
   ];
 
   // بس الـ tabs اللي مسموح لهم حسب الـ role
@@ -45,40 +48,42 @@ export default function SettingsPage() {
   if (!mounted) return null;
 
   return (
-    <div className="flex min-h-[calc(89.8vh)]">
-      {/* Sidebar */}
-      <div className="w-64 text-white p-4" style={{ backgroundColor: "#212529" }}>
-        <h2 className="text-xl font-bold mb-6">Settings</h2>
-        <ul className="space-y-3">
-          {allowedTabs.map((tab) => (
-            <li
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`cursor-pointer p-2 rounded ${activeTab === tab.id ? "bg-gray-700" : "hover:bg-gray-800"}`}
-            >
-              {tab.label}
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 bg-gray-100">
-        <AnimatePresence mode="wait">
-          {allowedTabs.map((tab) =>
-            activeTab === tab.id ? (
-              <motion.div
+    <LayoutWithNavbar>
+      <div className="flex min-h-[calc(89.8vh)]">
+        {/* Sidebar */}
+        <div className="w-64 text-white p-4" style={{ backgroundColor: "#212529" }}>
+          <h2 className="text-xl font-bold mb-6">Settings</h2>
+          <ul className="space-y-3">
+            {allowedTabs.map((tab) => (
+              <li
                 key={tab.id}
-                initial={{ opacity: 0, x: 50 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -50 }}
+                onClick={() => setActiveTab(tab.id)}
+                className={`cursor-pointer p-2 rounded ${activeTab === tab.id ? "bg-gray-700" : "hover:bg-gray-800"}`}
               >
-                {tab.component}
-              </motion.div>
-            ) : null
-          )}
-        </AnimatePresence>
+                {tab.label}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Main Content */}
+        <div className="flex-1 bg-gray-100">
+          <AnimatePresence mode="wait">
+            {allowedTabs.map((tab) =>
+              activeTab === tab.id ? (
+                <motion.div
+                  key={tab.id}
+                  initial={{ opacity: 0, x: 50 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -50 }}
+                >
+                  {tab.component}
+                </motion.div>
+              ) : null
+            )}
+          </AnimatePresence>
+        </div>
       </div>
-    </div>
+    </LayoutWithNavbar>
   );
 }

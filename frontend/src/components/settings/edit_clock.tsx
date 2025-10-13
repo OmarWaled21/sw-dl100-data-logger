@@ -76,6 +76,18 @@ export default function EditClock() {
       );
 
       setMessage("✅ Master clock updated successfully");
+
+      fetch("http://127.0.0.1:8000/logs/create/", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Token ${Cookies.get("token")}`,
+          },
+          body: JSON.stringify({
+            action: `Edit Clock`,
+            message: `${Cookies.get("username")} Edited the clock`,
+          })
+        }).catch(console.error);
     } catch (err: any) {
       setMessage(
         err.response?.data?.message || "❌ Failed to update master clock"

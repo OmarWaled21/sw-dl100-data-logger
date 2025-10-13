@@ -81,25 +81,30 @@ class AdminLogAdmin(admin.ModelAdmin):
         return (text[:60] + "...") if len(text) > 60 else text
     short_message.short_description = "Message"
 
-
 @admin.register(NotificationSettings)
 class NotificationSettingsAdmin(admin.ModelAdmin):
-    list_display = ('user', 'gmail_is_active', 'email', 'report_time', 'local_is_active')
-    list_filter = ('gmail_is_active', 'local_is_active')
+    list_display = ('user', 'get_devices', 'gmail_is_active', 'email', 'report_time', 'local_is_active')
+    list_filter = ('gmail_is_active',)
     search_fields = ('user__username', 'email')
     ordering = ('user__username',)
+    readonly_fields = ('local_is_active',)
+
+    def get_devices(self, obj):
+        return ", ".join([d.name for d in obj.devices.all()]) or "-"
+    get_devices.short_description = "Devices"
 
     def get_queryset(self, request):
-        qs = super().get_queryset(request).select_related('user')
+        qs = super().get_queryset(request).select_related('user').prefetch_related('devices')
         user = request.user
 
         if user.is_superuser:
             return qs
-        elif user.role == 'admin':
-            managed_ids = user.managed_users.values_list('id', flat=True)
+        # admin: only settings for users they manage
+        if getattr(user, "role", None) == "admin":
+            managed_ids = user.managed_users.values_list("id", flat=True)
             return qs.filter(user__in=managed_ids)
-        elif user.role == 'manager':
-            team_ids = user.team_members.values_list('id', flat=True)
-            return qs.filter(user__in=team_ids)
-        else:
-            return qs.filter(user=user)
+        # manager: only users in their department
+        if getattr(user, "role", None) == "manager":
+            return qs.filter(user__department=user.department)
+        # normal user: only their own row
+        return qs.filter(user=user)

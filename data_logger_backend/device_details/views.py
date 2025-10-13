@@ -300,13 +300,9 @@ class DeviceAPIView(APIView):
             'min_hum': device.min_hum,
             'max_hum': device.max_hum,
             'interval_wifi': device.interval_wifi,
-            'interval_local': device.interval_local,
             'battery_level': device.battery_level,
-            'wifi_strength': device.wifi_strength,
             'last_update': device.last_update.strftime("%Y-%m-%d %H:%M:%S"),
             'errors': {
-                'sd_card': device.sd_card_error,
-                'rtc': device.rtc_error,
                 'temp_sensor': device.temp_sensor_error,
                 'hum_sensor': device.hum_sensor_error
             }

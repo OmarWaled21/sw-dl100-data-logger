@@ -7,8 +7,10 @@ from channels.db import database_sync_to_async
 from urllib.parse import parse_qs
 from rest_framework.authtoken.models import Token
 from device_details.consumers import DeviceConsumer
-from home.consumers import DataLoggerConsumer
-from logs.consumers import LogConsumer
+from home.consumers.data_logger_consumer import DataLoggerConsumer
+from logs.consumers.latest_log_consumer import LatestLogConsumer
+from logs.consumers.logs_consumer import LogsConsumer
+
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'data_logger_backend.settings')
 django.setup()
@@ -42,6 +44,7 @@ class TokenAuthMiddleware:
 # ✅ 2. مسارات WebSocket كلها هنا
 websocket_urlpatterns = [
     re_path(r'ws/home/$', DataLoggerConsumer.as_asgi()),
-    re_path(r'ws/logs/latest/$', LogConsumer.as_asgi()),
+    re_path(r"^ws/logs/latest/$", LatestLogConsumer.as_asgi()),
+    re_path(r"^ws/logs/stream/$", LogsConsumer.as_asgi()),
     re_path(r'ws/device/(?P<device_id>[^/]+)/$', DeviceConsumer.as_asgi()),
 ]

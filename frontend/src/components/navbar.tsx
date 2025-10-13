@@ -5,10 +5,12 @@ import { usePathname, useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import Link from "next/link";
 import Cookies from "js-cookie";
+import axios from "axios";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [isAuth, setIsAuth] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0); // عدد اللوجات اللي متقريتش (admin + device)
 
   const { t, i18n } = useTranslation();
   const [mounted, setMounted] = useState(false);
@@ -34,12 +36,35 @@ export default function Navbar() {
     };
 
     checkAuth();
-
     window.addEventListener("authChanged", checkAuth);
     return () => window.removeEventListener("authChanged", checkAuth);
   }, []);
 
-  const role = Cookies.get("role"); // جايبنا الدور من الكوكيز
+  // ✅ قراءة عدد اللوجات الغير مقروءة (admin + device)
+  useEffect(() => {
+    const token = Cookies.get("token");
+    if (!token) return;
+
+    const fetchUnreadLogs = async () => {
+      try {
+        const res = await axios.get("http://127.0.0.1:8000/logs/unread/", {
+          headers: { Authorization: `Token ${token}` },
+        });
+        if (res.data) {
+          const total = res.data.total || res.data.total_unread || 0;
+          setUnreadCount(total);
+        }
+      } catch (err) {
+        console.error("Error fetching unread logs:", err);
+      }
+    };
+
+    fetchUnreadLogs();
+    const interval = setInterval(fetchUnreadLogs, 5000); // يحدث كل 5 ثانية
+    return () => clearInterval(interval);
+  }, []);
+
+  const role = Cookies.get("role");
 
   const allLinks = [
     { name: t("Dashboard"), href: "/", roles: ["admin", "supervisor", "manager", "user"] },
@@ -47,14 +72,13 @@ export default function Navbar() {
     { name: t("Settings"), href: "/settings/", roles: ["admin", "manager"] },
   ];
 
-  // فلترة الروابط حسب الدور
-  const links = allLinks.filter(link => role && link.roles.includes(role));
+  const links = allLinks.filter((link) => role && link.roles.includes(role));
 
   const handleLogout = async () => {
     const token = Cookies.get("token");
     const username = Cookies.get("username");
     try {
-      if (token) { 
+      if (token) {
         await fetch("http://127.0.0.1:8000/logs/create/", {
           method: "POST",
           headers: {
@@ -84,22 +108,14 @@ export default function Navbar() {
     router.push("/auth/login");
   };
 
-  // إصلاح active link
   const cleanPathname = pathname === "/" ? "/" : pathname.replace(/\/$/, "");
 
   return (
-    <nav
-      className="text-white sticky top-0 shadow-md z-50"
-      style={{ backgroundColor: "#212529" }}
-    >
+    <nav className="text-white sticky top-0 shadow-md z-50" style={{ backgroundColor: "#212529" }}>
       <div className="container mx-auto flex items-center justify-between px-4 py-3">
         {/* Logo */}
         <Link href="/" className="flex items-center">
-          <img
-            src="/tomatiki_logo_dark_theme.png"
-            alt="Logo"
-            className="w-28 md:w-36 lg:w-40 h-auto"
-          />
+          <img src="/tomatiki_logo_dark_theme.png" alt="Logo" className="w-28 md:w-36 lg:w-40 h-auto" />
         </Link>
 
         {/* Title */}
@@ -117,7 +133,7 @@ export default function Navbar() {
           </button>
         </div>
 
-        {/* Links & Logout */}
+        {/* Authenticated Navbar */}
         {isAuth && (
           <>
             {/* Desktop Links */}
@@ -125,14 +141,23 @@ export default function Navbar() {
               {links.map((item) => {
                 const cleanHref = item.href === "/" ? "/" : item.href.replace(/\/$/, "");
                 const isActive = cleanPathname === cleanHref;
+                const isLogsLink = item.href.includes("logs");
+
                 return (
-                  <li key={item.href}>
+                  <li key={item.href} className="relative">
                     <Link
                       href={item.href}
                       className={`relative block px-4 py-2 rounded transition group hover:bg-white/10 
                         ${isActive ? "border-b-2 border-red-400" : ""}`}
                     >
                       {item.name}
+
+                      {/* ✅ Badge فوق اللوجز */}
+                      {isLogsLink && unreadCount > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full px-1.5 py-0.5">
+                          {unreadCount}
+                        </span>
+                      )}
                     </Link>
                   </li>
                 );
@@ -149,26 +174,14 @@ export default function Navbar() {
               </li>
             </ul>
 
-            {/* Mobile Toggler */}
-            <button
-              className="md:hidden focus:outline-none"
-              onClick={() => setIsOpen(!isOpen)}
-            >
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
+            {/* ✅ Mobile Toggler */}
+            <button className="md:hidden focus:outline-none" onClick={() => setIsOpen(!isOpen)}>
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d={
-                    isOpen
-                      ? "M6 18L18 6M6 6l12 12"
-                      : "M4 6h16M4 12h16M4 18h16"
-                  }
+                  d={isOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"}
                 />
               </svg>
             </button>
@@ -183,20 +196,27 @@ export default function Navbar() {
             {links.map((item) => {
               const cleanHref = item.href === "/" ? "/" : item.href.replace(/\/$/, "");
               const isActive = cleanPathname === cleanHref;
+              const isLogsLink = item.href.includes("logs");
+
               return (
-                <li key={item.href}>
+                <li key={item.href} className="relative">
                   <Link
                     href={item.href}
                     className={`block px-4 py-2 rounded hover:bg-white/10 transition 
                       ${isActive ? "border-b-2 border-red-400" : ""}`}
                   >
                     {item.name}
+                    {/* ✅ Badge على الموبايل */}
+                    {isLogsLink && unreadCount > 0 && (
+                      <span className="absolute top-1 right-2 bg-red-500 text-white text-xs font-bold rounded-full px-1.5 py-0.5">
+                        {unreadCount}
+                      </span>
+                    )}
                   </Link>
                 </li>
               );
             })}
 
-            {/* Mobile Logout */}
             <li>
               <button
                 onClick={handleLogout}
@@ -206,7 +226,6 @@ export default function Navbar() {
               </button>
             </li>
 
-            {/* Mobile Language Toggle */}
             <li>
               <button
                 onClick={toggleLang}

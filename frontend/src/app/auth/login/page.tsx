@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
+import LayoutWithNavbar from "@/components/ui/layout_with_navbar";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
@@ -73,93 +74,95 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex items-center justify-center mt-4">
-      <div
-        className={`bg-white shadow-2xl rounded-2xl p-8 max-w-lg w-full transform transition-all duration-700 ease-out
-        ${showCard ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-10 scale-95"}
-        hover:scale-[1.02]`}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-center gap-3 mb-6">
-          <h1 className="text-4xl font-bold text-gray-800 transition-colors duration-300">
-            Login
-          </h1>
-          <i className="fa-solid fa-arrow-right-to-bracket text-3xl text-gray-800"></i>
-        </div>
-
-        {/* Subtext */}
-        <div className="text-center mb-6">
-          <p className="font-semibold text-red-500">Welcome</p>
-          <p className="text-gray-500 text-sm">Please login to your account</p>
-        </div>
-
-        {/* Error */}
-        {error && (
-          <div className="bg-red-100 text-red-700 p-3 mb-4 rounded animate-shake">
-            {error}
-          </div>
-        )}
-
-        {/* Form */}
-        <form onSubmit={handleLogin} className="space-y-4">
-          {/* Username */}
-          <div className="flex items-center border border-gray-400 rounded-full px-4 py-3 
-                          focus-within:border-transparent focus-within:ring-2 focus-within:ring-red-400 transition">
-            <i className="fa-solid fa-at text-gray-400"></i>
-            <input
-              type="text"
-              placeholder="Username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="ml-3 flex-1 outline-none text-lg"
-            />
+    <LayoutWithNavbar>
+      <div className="flex items-center justify-center mt-4">
+        <div
+          className={`bg-white shadow-2xl rounded-2xl p-8 max-w-lg w-full transform transition-all duration-700 ease-out
+          ${showCard ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-10 scale-95"}
+          hover:scale-[1.02]`}
+        >
+          {/* Header */}
+          <div className="flex items-center justify-center gap-3 mb-6">
+            <h1 className="text-4xl font-bold text-gray-800 transition-colors duration-300">
+              Login
+            </h1>
+            <i className="fa-solid fa-arrow-right-to-bracket text-3xl text-gray-800"></i>
           </div>
 
-          {/* Password */}
-          <div className="flex items-center border border-gray-400 rounded-full px-4 py-3 
-                          focus-within:border-transparent focus-within:ring-2 focus-within:ring-red-400 transition">
-            <i className="fa-solid fa-lock text-gray-400"></i>
-            <input
-              type={showPassword ? "text" : "password"}   // 👁️ هنا
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="ml-3 flex-1 outline-none text-lg"
-            />
-            <i
-              className={`fa-solid ${showPassword ? "fa-eye-slash" : "fa-eye"} 
-                         text-gray-400 cursor-pointer`}
-              onClick={() => setShowPassword(!showPassword)} // 👁️ هنا
-            ></i>
+          {/* Subtext */}
+          <div className="text-center mb-6">
+            <p className="font-semibold text-red-500">Welcome</p>
+            <p className="text-gray-500 text-sm">Please login to your account</p>
           </div>
 
-          {/* Options */}
-          <div className="flex justify-between items-center text-sm">
-            <label className="flex items-center gap-2">
+          {/* Error */}
+          {error && (
+            <div className="bg-red-100 text-red-700 p-3 mb-4 rounded animate-shake">
+              {error}
+            </div>
+          )}
+
+          {/* Form */}
+          <form onSubmit={handleLogin} className="space-y-4">
+            {/* Username */}
+            <div className="flex items-center border border-gray-400 rounded-full px-4 py-3 
+                            focus-within:border-transparent focus-within:ring-2 focus-within:ring-red-400 transition">
+              <i className="fa-solid fa-at text-gray-400"></i>
               <input
-                type="checkbox"
-                checked={remember}
-                onChange={(e) => setRemember(e.target.checked)}
-                className="accent-red-500"
+                type="text"
+                placeholder="Username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="ml-3 flex-1 outline-none text-lg"
               />
-              Remember me
-            </label>
-            <a href="/auth/forgot-password" className="text-red-500 hover:underline">
-              Forgot password?
-            </a>
-          </div>
+            </div>
 
-          {/* Button */}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-white border border-red-500 text-red-500 py-3 mt-4 rounded-full 
-             hover:bg-red-500 hover:text-white transition-all duration-300 transform hover:scale-105 text-lg font-semibold cursor-pointer"
-          >
-            {loading ? "Logging in..." : "Login"}
-          </button>
-        </form>
+            {/* Password */}
+            <div className="flex items-center border border-gray-400 rounded-full px-4 py-3 
+                            focus-within:border-transparent focus-within:ring-2 focus-within:ring-red-400 transition">
+              <i className="fa-solid fa-lock text-gray-400"></i>
+              <input
+                type={showPassword ? "text" : "password"}   // 👁️ هنا
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="ml-3 flex-1 outline-none text-lg"
+              />
+              <i
+                className={`fa-solid ${showPassword ? "fa-eye-slash" : "fa-eye"} 
+                          text-gray-400 cursor-pointer`}
+                onClick={() => setShowPassword(!showPassword)} // 👁️ هنا
+              ></i>
+            </div>
+
+            {/* Options */}
+            <div className="flex justify-between items-center text-sm">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={remember}
+                  onChange={(e) => setRemember(e.target.checked)}
+                  className="accent-red-500"
+                />
+                Remember me
+              </label>
+              <a href="/auth/forgot-password" className="text-red-500 hover:underline">
+                Forgot password?
+              </a>
+            </div>
+
+            {/* Button */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-white border border-red-500 text-red-500 py-3 mt-4 rounded-full 
+              hover:bg-red-500 hover:text-white transition-all duration-300 transform hover:scale-105 text-lg font-semibold cursor-pointer"
+            >
+              {loading ? "Logging in..." : "Login"}
+            </button>
+          </form>
+        </div>
       </div>
-    </div>
+    </LayoutWithNavbar>
   );
 }

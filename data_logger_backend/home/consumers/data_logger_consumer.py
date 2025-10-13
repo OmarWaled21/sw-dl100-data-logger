@@ -2,8 +2,8 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
-from .serializers import DeviceSerializer
-from .utils import get_user_devices
+from ..serializers import DeviceSerializer
+from ..utils import get_user_devices
 
 class DataLoggerConsumer(AsyncWebsocketConsumer):
     async def connect(self):

@@ -52,21 +52,16 @@ class Device(models.Model):
     min_hum = models.FloatField(null=True, blank=True, default=20)
     temp_sensor_error = models.BooleanField(default=False)
     hum_sensor_error = models.BooleanField(default=False)
-    last_update = models.DateTimeField(null=True, blank=True)
+    last_update = models.DateTimeField()
     firmware_version = models.CharField(max_length=20, default='1.0.0')
     firmware_updated_at = models.DateTimeField(null=True, blank=True, default=None)
     last_calibrated = models.DateTimeField(default=timezone.now)
-    interval_wifi = models.IntegerField(default=60)
-    interval_local = models.IntegerField(default=60)
+    interval_wifi = models.IntegerField(default=5)
     battery_level = models.IntegerField(null=True, blank=True)
     low_battery = models.BooleanField(default=False)
 
     def __str__(self):
         return self.name or self.device_id
-    
-    def clean(self):
-        if self.interval_wifi < self.interval_local:
-            raise ValidationError("interval_wifi يجب أن يكون أقل من أو يساوي interval_local")
 
     def save(self, *args, **kwargs):
         self.full_clean()  # يقوم بتشغيل الدالة clean() قبل الحفظ
@@ -78,11 +73,7 @@ class Device(models.Model):
 
     def check_connection(self):
         """التحقق من اتصال الجهاز (إذا كان متصلاً خلال آخر 5 دقائق)"""
-        return get_master_time() - self.last_update < timedelta(seconds= self.interval_wifi + 120)
-
-    def check_wifi_strength(self):
-        """التحقق من قوة إشارة الواي فاي"""
-        return self.wifi_strength is None or self.wifi_strength >= -80
+        return get_master_time() - self.last_update < timedelta(minutes= self.interval_wifi + 10)
 
     def check_sensors(self):
         temp_error = False
@@ -124,7 +115,7 @@ class Device(models.Model):
         except Exception:
             return "offline"
 
-        if time_diff > timedelta(seconds=self.interval_wifi + 60):
+        if time_diff > timedelta(minutes=self.interval_wifi + 10):
             return "offline"
 
         good_sensors = self.check_sensors()
@@ -205,28 +196,68 @@ class Device(models.Model):
             message=message
         )
         self._send_log_email(log)
+    
+    def save(self, *args, **kwargs):
+        is_new = self._state.adding  # ✅ نعرف إذا كان الجهاز بيتضاف لأول مرة
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+        # ✅ بعد الحفظ لأول مرة، أضف الجهاز تلقائيًا في NotificationSettings للـ admin
+        if is_new:
+            from logs.models import NotificationSettings  # استيراد متأخر لتجنب circular import
+
+            notif, created = NotificationSettings.objects.get_or_create(
+                user=self.admin, 
+                defaults={
+                    "email": getattr(self.admin, "email", ""),  # لو عنده إيميل نحطه
+                    "gmail_is_active": True,  # أو خليه False لو مش عايز تفعلها تلقائيًا
+                },
+            )
+
+            notif.devices.add(self)  # أضف الجهاز الجديد إلى M2M
+            notif.save()
+
+            print(f"✅ Added device {self.device_id} to NotificationSettings of {self.admin.username}")
+
 
     def _send_log_email(self, log):
         """
-        Send email if NotificationSettings are enabled for the admin of this device
+        Send email to all users who have Gmail notifications enabled for this device
         """
-        try:
-            notif_settings = NotificationSettings.objects.get(user=self.admin)
-        except NotificationSettings.DoesNotExist:
+        # هات كل الإعدادات اللي فيها الجهاز ده ومفعلة
+        notif_settings_qs = NotificationSettings.objects.filter(
+            gmail_is_active=True,
+            devices=self
+        ).exclude(email__isnull=True).exclude(email__exact='')
+
+        if not notif_settings_qs.exists():
             return
 
-        if notif_settings.gmail_is_active and notif_settings.email:
-            subject = f"Device Log: {log.device.name or log.device.device_id} - {log.error_type}"
-            message = f"""
-            Device: {log.device.name or log.device.device_id}
-            Timestamp: {log.timestamp.strftime('%Y-%m-%d %H:%M:%S')}
-            Type: {log.error_type}
-            Message: {log.message or 'No message'}
-            """
-            send_mail(
-                subject,
-                message,
-                settings.DEFAULT_FROM_EMAIL,
-                [notif_settings.email],
-                fail_silently=False,
-            )
+        # جهز الرسالة
+        subject = f"Device Log: {log.device.name or log.device.device_id} - {log.error_type}"
+        message = f"""
+        Device: {log.device.name or log.device.device_id}
+        Timestamp: {log.timestamp.strftime('%Y-%m-%d %H:%M:%S')}
+        Type: {log.error_type}
+        Message: {log.message or 'No message'}
+        """
+
+        # استخرج كل الإيميلات
+        recipients = [n.email for n in notif_settings_qs]
+
+        # ابعت الإيميل دفعة واحدة
+        send_mail(
+            subject,
+            message,
+            settings.DEFAULT_FROM_EMAIL,
+            recipients,
+            fail_silently=False,
+        )
+
+class ESPDiscovery(models.Model):
+    device_id = models.CharField(max_length=100, unique=True)
+    is_linked = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.device_id

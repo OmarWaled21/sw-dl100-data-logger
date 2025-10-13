@@ -14,6 +14,7 @@ export interface Device {
   last_update: string;
   department_id: number;
   department: string;
+  department_name?: string;
 }
 
 

@@ -4,6 +4,9 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework import status
+
+from authentication.models import CustomUser
+from home.models import Department, Device
 from .models import DeviceLog, AdminLog, NotificationSettings
 from .serializers import DeviceLogSerializer, AdminLogSerializer
 from home.utils import get_master_time
@@ -141,53 +144,184 @@ class LogViewSet(viewsets.ViewSet):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
-    @action(detail=False, methods=['post'], url_path='mark-read')
-    def mark_read(self, request):
-        """
-        POST /logs/mark-read/
-        Marks device/admin logs as read for the current user.
-        """
-        user = request.user
-        log_type = request.data.get('type', 'all')
 
-        # لو عندك حقل is_read في DeviceLog/AdminLog فعّل السطور دي
-        if log_type in ['device', 'all']:
-            device_logs = DeviceLog.objects.filter(device__admin=user)
-            if hasattr(DeviceLog, 'is_read'):
-                device_logs.update(is_read=True)
-
-        if log_type in ['admin', 'all']:
-            admin_logs = AdminLog.objects.filter(admin=user)
-            if hasattr(AdminLog, 'is_read'):
-                admin_logs.update(is_read=True)
-
-        return Response({"message": "Logs marked as read successfully"}, status=status.HTTP_200_OK)
-
-
-
-class NotificationSettingsView(APIView):
+class UnreadCountView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         user = request.user
-        settings, _ = NotificationSettings.objects.get_or_create(user=user)
+
+        if user.role == 'admin':
+            unread_device_logs = DeviceLog.objects.filter(is_read=False).count()
+            unread_admin_logs = AdminLog.objects.filter(is_read=False).count()
+        elif user.role == 'manager':
+            unread_device_logs = DeviceLog.objects.filter(department=user.department, is_read=False).count()
+            unread_admin_logs = AdminLog.objects.filter(Q(manager=user) | Q(user=user), is_read=False).count()
+        else:
+            unread_device_logs = DeviceLog.objects.filter(department=user.department, is_read=False).count()
+            unread_admin_logs = AdminLog.objects.filter(user=user, is_read=False).count()
+
         return Response({
+            "device_logs": unread_device_logs,
+            "admin_logs": unread_admin_logs,
+            "total": unread_device_logs + unread_admin_logs,
+        })
+        
+class MarkLogsReadView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        log_type = request.data.get("type")
+        if log_type == "device":
+            DeviceLog.objects.filter(is_read=False).update(is_read=True)
+            return Response({"status": "ok", "type": "device"})
+        elif log_type == "admin":
+            AdminLog.objects.filter(is_read=False).update(is_read=True)
+            return Response({"status": "ok", "type": "admin"})
+        else:
+            return Response({"error": "Invalid type"}, status=400)
+
+class NotificationSettingsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def _get_target_user(self, requester, user_id):
+        """
+        Returns the target user object the requester is allowed to access/edit.
+        If user_id is None -> target is requester.
+        Enforce permissions:
+         - admin: can edit users in requester.managed_users
+         - manager: can edit users in same department only
+         - user: only self
+        """
+        if not user_id:
+            return requester
+
+        # try fetch candidate
+        candidate = CustomUser.objects.filter(id=user_id).first()
+        if not candidate:
+            return None
+
+        # superuser can do anything
+        if requester.is_superuser:
+            return candidate
+
+        # admin: can edit only managed users
+        if getattr(requester, "role", None) == "admin":
+            managed_ids = requester.managed_users.values_list("id", flat=True)
+            if candidate.id in managed_ids:
+                return candidate
+            return None
+
+        # manager: only users in same department
+        if getattr(requester, "role", None) == "manager":
+            if getattr(requester, "department", None) and candidate.department_id == requester.department_id:
+                return candidate
+            return None
+
+        # normal user: can only access self (already handled when user_id is None)
+        return None
+
+    def get(self, request):
+        user = request.user
+        user_id = request.query_params.get("user_id")  # optional
+        target = self._get_target_user(user, user_id)
+
+        if target is None:
+            return Response({"detail": "غير مصرح بالوصول إلى إعدادات هذا المستخدم."}, status=status.HTTP_403_FORBIDDEN)
+
+        settings, _ = NotificationSettings.objects.get_or_create(user=target)
+
+        # كل الأجهزة في قسم المستخدم
+        section_devices = Device.objects.filter(department=target.department)
+
+        return Response({
+            "user_id": target.id,
+            "user_username": target.username,
             "gmail_is_active": settings.gmail_is_active,
             "email": settings.email,
             "report_time": settings.report_time.strftime("%H:%M"),
-            "local_is_active": settings.local_is_active
+            "local_is_active": settings.local_is_active,  # always True
+            "devices": [{"id": d.id, "name": d.name, "department_id": getattr(d.department, "id", None)} for d in settings.devices.all()],
+            "section_devices": [{"id": d.id, "name": d.name, "department_id": getattr(d.department, "id", None)} for d in section_devices],
         })
 
     def post(self, request):
         user = request.user
-        settings, _ = NotificationSettings.objects.get_or_create(user=user)
         data = request.data
+        target_user_id = data.get("user_id")  # optional
+        target = self._get_target_user(user, target_user_id)
 
-        settings.gmail_is_active = data.get("gmail_is_active", False)
-        settings.email = data.get("email", None)
-        settings.report_time = parse_time(data.get("report_time", "09:00"))
-        settings.local_is_active = data.get("local_is_active", False)
+        if target is None:
+            return Response({"detail": "غير مصرح بالتعديل على إعدادات هذا المستخدم."}, status=status.HTTP_403_FORBIDDEN)
+
+        settings, _ = NotificationSettings.objects.get_or_create(user=target)
+
+        # لا تسمح بتغيير local_is_active عبر الـ API
+        settings.gmail_is_active = data.get("gmail_is_active", settings.gmail_is_active)
+        settings.email = data.get("email", settings.email)
+        settings.report_time = parse_time(data.get("report_time", settings.report_time.strftime("%H:%M")))
+        settings.save()
+
+        # update devices (only allow devices that requester is permitted to assign)
+        device_ids = data.get("device_ids", [])
+        if device_ids is None:
+            device_ids = []
+
+        # allowed devices depend on requester's role
+        if user.is_superuser:
+            allowed_devices = Device.objects.filter(id__in=device_ids)
+        elif getattr(user, "role", None) == "admin":
+            # admin can manage devices for their managed users' departments:
+            managed_deps = CustomUser.objects.filter(id__in=user.managed_users.values_list("id", flat=True)).values_list("department", flat=True)
+            allowed_devices = Device.objects.filter(id__in=device_ids, department__in=managed_deps)
+        elif getattr(user, "role", None) == "manager":
+            # manager only devices in his department
+            allowed_devices = Device.objects.filter(id__in=device_ids, department=user.department)
+        else:
+            allowed_devices = Device.objects.filter(id__in=device_ids, department=target.department) if target == user else Device.objects.none()
+
+        settings.devices.set(allowed_devices)
         settings.save()
 
         return Response({"success": True})
+      
+class NotificationTreeView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        if not (user.role in ['admin', 'manager'] or user.is_superuser):
+            return Response({"detail": "ليس لديك صلاحية الوصول"}, status=status.HTTP_403_FORBIDDEN)
+
+        # list of departments user can see
+        if user.is_superuser:
+            departments = Department.objects.all()
+        elif user.role == 'admin':
+            # departments of users the admin manages
+            managed_users = user.managed_users.all()
+            dep_ids = managed_users.values_list('department_id', flat=True)
+            departments = Department.objects.filter(id__in=dep_ids)
+        else:  # manager
+            departments = Department.objects.filter(id=user.department_id)
+
+        tree = []
+        for dep in departments:
+            users_qs = CustomUser.objects.filter(department=dep)
+            devices_qs = Device.objects.filter(department=dep)
+            devices_list = list(devices_qs)  # cached
+            users_list = []
+            for u in users_qs:
+                ns, _ = NotificationSettings.objects.get_or_create(user=u)
+                user_devices = set(ns.devices.values_list('id', flat=True))
+                users_list.append({
+                    "id": u.id,
+                    "username": u.username,
+                    "email": u.email,
+                    "devices": [
+                        {"id": d.id, "name": d.name, "enabled": d.id in user_devices}
+                        for d in devices_list
+                    ]
+                })
+            tree.append({"department": dep.name, "department_id": dep.id, "users": users_list})
+
+        return Response(tree)
