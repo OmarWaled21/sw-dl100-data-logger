@@ -27,6 +27,11 @@ export default function LogsPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [unreadCounts, setUnreadCounts] = useState<{ device: number; admin: number }>({ device: 0, admin: 0 });
 
+  const [dateMode, setDateMode] = useState<"single" | "range">("single");
+  const [singleDate, setSingleDate] = useState<string>("");
+  const [dateRange, setDateRange] = useState<{ start?: string; end?: string }>({});
+  const [typeFilter, setTypeFilter] = useState<string | null>(null);
+
   const [currentPage, setCurrentPage] = useState(1);
   const logsPerPage = 20;
 
@@ -143,11 +148,43 @@ export default function LogsPage() {
 
   const logs = activeTab === "device" ? deviceLogs : adminLogs;
 
+  // 2️⃣ عمل فلترة frontend قبل عرض الجدول
+  const filteredLogs = logs.filter((log) => {
+    let pass = true;
+
+    // فلترة حسب النوع
+    if (typeFilter) pass = pass && log.type === typeFilter;
+
+    // تاريخ اللوج بدون الوقت
+    const logDate = new Date(log.timestamp);
+    const logDateOnly = new Date(logDate.getFullYear(), logDate.getMonth(), logDate.getDate());
+
+    if (dateMode === "single" && singleDate) {
+      const [year, month, day] = singleDate.split("-").map(Number);
+      const singleDateOnly = new Date(year, month - 1, day);
+      pass = pass && logDateOnly.getTime() === singleDateOnly.getTime();
+    } else if (dateMode === "range") {
+      if (dateRange.start) {
+        const [sy, sm, sd] = dateRange.start.split("-").map(Number);
+        const startDate = new Date(sy, sm - 1, sd);
+        pass = pass && logDateOnly >= startDate;
+      }
+      if (dateRange.end) {
+        const [ey, em, ed] = dateRange.end.split("-").map(Number);
+        const endDate = new Date(ey, em - 1, ed);
+        pass = pass && logDateOnly <= endDate; // inclusive اليوم الأخير
+      }
+    }
+
+    return pass;
+  });
+
+
   // Pagination logic
-  const totalPages = Math.ceil(logs.length / logsPerPage);
+  const totalPages = Math.ceil(filteredLogs.length / logsPerPage);
   const indexOfLastLog = currentPage * logsPerPage;
   const indexOfFirstLog = indexOfLastLog - logsPerPage;
-  const currentLogs = logs.slice(indexOfFirstLog, indexOfLastLog);
+  const currentLogs = filteredLogs.slice(indexOfFirstLog, indexOfLastLog);
 
   const handleNextPage = () => {
     if (currentPage < totalPages) setCurrentPage(currentPage + 1);
@@ -197,44 +234,113 @@ export default function LogsPage() {
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
               {/* Tabs Section */}
               <div className="border-b border-gray-200 bg-gray-50/50 px-6 py-4">
-                <div className="flex gap-1 p-1 bg-gray-100 rounded-xl w-fit">
-                  <button
-                    onClick={() => setActiveTab("device")}
-                    className={`relative px-6 py-3 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center gap-2 cursor-pointer ${
-                      activeTab === "device"
-                        ? "bg-white text-blue-700 shadow-sm"
-                        : "text-gray-600 hover:text-gray-800"
-                    }`}
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                    Device Logs
-                    {unreadCounts.device > 0 && (
-                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
-                        {unreadCounts.device}
-                      </span>
-                    )}
-                  </button>
+                <div className="flex justify-between">
+                  <div className="flex gap-1 p-1 bg-gray-100 rounded-xl w-fit">
+                    <button
+                      onClick={() => setActiveTab("device")}
+                      className={`relative px-6 py-3 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center gap-2 cursor-pointer ${
+                        activeTab === "device"
+                          ? "bg-white text-blue-700 shadow-sm"
+                          : "text-gray-600 hover:text-gray-800"
+                      }`}
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                      Device Logs
+                      {unreadCounts.device > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
+                          {unreadCounts.device}
+                        </span>
+                      )}
+                    </button>
 
-                  <button
-                    onClick={() => setActiveTab("admin")}
-                    className={`relative px-6 py-3 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center gap-2 cursor-pointer ${
-                      activeTab === "admin"
-                        ? "bg-white text-purple-700 shadow-sm"
-                        : "text-gray-600 hover:text-gray-800"
-                    }`}
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                    Admin Logs
-                    {unreadCounts.admin > 0 && (
-                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
-                        {unreadCounts.admin}
-                      </span>
+                    <button
+                      onClick={() => setActiveTab("admin")}
+                      className={`relative px-6 py-3 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center gap-2 cursor-pointer ${
+                        activeTab === "admin"
+                          ? "bg-white text-purple-700 shadow-sm"
+                          : "text-gray-600 hover:text-gray-800"
+                      }`}
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      Admin Logs
+                      {unreadCounts.admin > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
+                          {unreadCounts.admin}
+                        </span>
+                      )}
+                    </button>
+                  </div>
+                  <div className="flex gap-4 items-center mb-4">
+                    {/* Switch */}
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name="dateMode"
+                        value="single"
+                        checked={dateMode === "single"}
+                        onChange={() => setDateMode("single")}
+                      />
+                      Single Date
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name="dateMode"
+                        value="range"
+                        checked={dateMode === "range"}
+                        onChange={() => setDateMode("range")}
+                      />
+                      Date Range
+                    </label>
+
+                    {/* Conditional Inputs */}
+                    {dateMode === "single" ? (
+                      <input
+                        type="date"
+                        value={singleDate}
+                        max={new Date().toISOString().split("T")[0]} // يمنع اختيار بعد اليوم
+                        onChange={(e) => setSingleDate(e.target.value)}
+                        className="border px-2 py-1 rounded"
+                      />
+                    ) : (
+                      <>
+                        <input
+                          type="date"
+                          value={dateRange.start || ""}
+                          max={new Date().toISOString().split("T")[0]} // start لا يمكن بعد اليوم
+                          onChange={(e) =>
+                            setDateRange((prev) => {
+                              const newStart = e.target.value;
+                              let newEnd = prev.end;
+
+                              // لو end أقل من start الجديد، نعمله مساوي للـ start
+                              if (newEnd && newEnd < newStart) newEnd = newStart;
+
+                              return { ...prev, start: newStart, end: newEnd };
+                            })
+                          }
+                          className="border px-2 py-1 rounded"
+                        />
+
+                        <input
+                          type="date"
+                          value={dateRange.end || ""}
+                          min={dateRange.start || undefined} // end لا يمكن أقل من start
+                          max={new Date().toISOString().split("T")[0]} // end لا يمكن بعد اليوم
+                          onChange={(e) =>
+                            setDateRange((prev) => ({ ...prev, end: e.target.value }))
+                          }
+                          className="border px-2 py-1 rounded"
+                        />
+                      </>
+
                     )}
-                  </button>
+                  </div>
+
                 </div>
               </div>
 

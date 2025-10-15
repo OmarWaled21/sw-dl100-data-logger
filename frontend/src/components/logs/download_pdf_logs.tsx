@@ -4,21 +4,25 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 interface Props {
-  logs: {
-    id: number;
-    source?: string;
-    error_type?: string;
-    message: string;
-    timestamp: string;
-  }[];
-  logoUrl?: string; // رابط اللوجو
+  logs: Record<string, any>[];
+  logoUrl?: string;
+  title?: string;
 }
 
-export default function DownloadPDFButton({ logs, logoUrl = "/tomatiki_logo.png" }: Props) {
+export default function DownloadPDFButton({
+  logs,
+  logoUrl = "/tomatiki_logo.png",
+  title = "System Logs",
+}: Props) {
   const handleDownload = async () => {
+    if (!logs || logs.length === 0) {
+      alert("No logs to export!");
+      return;
+    }
+
     const doc = new jsPDF();
 
-    // تحويل صورة اللوجو لـ Base64
+    // تحويل اللوجو إلى Base64
     const toBase64 = (url: string) =>
       fetch(url)
         .then((res) => res.blob())
@@ -52,35 +56,101 @@ export default function DownloadPDFButton({ logs, logoUrl = "/tomatiki_logo.png"
 
     doc.addImage(imageBase64, "PNG", 14, 10, logoWidth, logoHeight);
     doc.setFontSize(16);
-    doc.text("System Logs", 50, 20);
+    doc.text(title, 50, 20);
     doc.setFontSize(10);
     doc.text(`Generated at: ${new Date().toLocaleString()}`, 50, 28);
 
-    // ====== جدول اللوجز ======
-    const tableData = logs.map((log) => [
-      new Date(log.timestamp).toLocaleString(),
-      log.source || "-",
-      log.error_type || "-",
-      log.message,
-    ]);
+    // ====== تحديد الأعمدة ======
+    let columns: string[] = [];
+    let headers: string[] = [];
+    const allKeys = Object.keys(logs[0]);
 
+    // === Admin Logs ===
+    if (
+      title.toLowerCase().includes("admin") ||
+      allKeys.some((k) => ["user", "role", "action"].includes(k.toLowerCase()))
+    ) {
+      const timeKey =
+        allKeys.find((k) =>
+          ["timestamp", "time", "created_at", "datetime"].includes(
+            k.toLowerCase()
+          )
+        ) || "timestamp";
+
+      // الترتيب المطلوب
+      const desiredOrder = [timeKey, "user", "role", "action", "message"];
+      columns = desiredOrder.filter((key) =>
+        allKeys.some((k) => k.toLowerCase() === key.toLowerCase())
+      );
+
+      // العناوين النهائية
+      headers = ["TIME", "USER", "ROLE", "ACTION", "MESSAGE"];
+    }
+
+    // === Device Logs ===
+    else if (
+      title.toLowerCase().includes("device") ||
+      allKeys.some((k) => ["source", "error_type"].includes(k.toLowerCase()))
+    ) {
+      const timeKey =
+        allKeys.find((k) =>
+          ["timestamp", "time", "created_at", "datetime"].includes(
+            k.toLowerCase()
+          )
+        ) || "timestamp";
+
+      const desiredOrder = [timeKey, "source", "error_type", "message"];
+      columns = desiredOrder.filter((key) =>
+        allKeys.some((k) => k.toLowerCase() === key.toLowerCase())
+      );
+
+      headers = ["TIME", "DEVICE", "ERROR TYPE", "MESSAGE"];
+    }
+
+    // === Dynamic Fallback ===
+    else {
+      columns = allKeys.filter(
+        (key) => !["id", "admin"].includes(key.toLowerCase())
+      );
+      headers = columns.map((c) => c.toUpperCase().replace(/_/g, " "));
+    }
+
+    // ====== بناء الجدول ======
+    const tableHead = [headers];
+    const tableBody = logs.map((log) =>
+      columns.map((col) => {
+        const key = Object.keys(log).find(
+          (k) => k.toLowerCase() === col.toLowerCase()
+        );
+        const value = key ? log[key] : "-";
+
+        if (value === null || value === undefined) return "-";
+        if (col.toLowerCase().includes("time")) {
+          return new Date(value).toLocaleString();
+        }
+        return typeof value === "object" ? JSON.stringify(value) : String(value);
+      })
+    );
+
+    // ====== إنشاء الجدول ======
     autoTable(doc, {
-      head: [["Timestamp", "Device", "Error Type", "Message"]],
-      body: tableData,
+      head: tableHead,
+      body: tableBody,
       startY: 40,
       styles: { fontSize: 8 },
       headStyles: { fillColor: [30, 144, 255] },
       didDrawPage: () => {
-        // نعيد الهيدر على كل صفحة
         doc.addImage(imageBase64, "PNG", 14, 10, logoWidth, logoHeight);
         doc.setFontSize(16);
-        doc.text("System Logs", 50, 20);
+        doc.text(title, 50, 20);
         doc.setFontSize(10);
         doc.text(`Generated at: ${new Date().toLocaleString()}`, 50, 28);
       },
     });
 
-    doc.save("logs.pdf");
+    // ====== حفظ الملف ======
+    const safeTitle = title.toLowerCase().replace(/\s+/g, "_");
+    doc.save(`${safeTitle}_${new Date().toISOString().split("T")[0]}.pdf`);
   };
 
   return (
