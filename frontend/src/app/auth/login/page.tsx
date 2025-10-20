@@ -62,7 +62,8 @@ export default function LoginPage() {
         // اعمل reload للـ Navbar
         window.dispatchEvent(new Event("authChanged"));
 
-        router.push("/");
+        // اعمل reload للصفحة الرئيسية
+        window.location.assign("/");
       } else {
         setError(data.message || "Login failed");
       }

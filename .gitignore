@@ -1,4 +1,4 @@
-.env
+*.env
 migrations/
 __pycache__/
 build/
@@ -6,7 +6,11 @@ dist/
 *.pyc
 *.docx
 .docx
-
+*.bat
+run*.py
+run_dist/
+run.*/
+versions/
 # dependencies
 /node_modules
 /.pnp

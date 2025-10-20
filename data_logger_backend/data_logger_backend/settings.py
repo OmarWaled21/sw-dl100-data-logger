@@ -15,6 +15,7 @@ import sys
 from decouple import Config, RepositoryEnv, Csv
 import os
 from django.utils.translation import gettext_lazy as _
+from secrets_loader import SECRETS
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -44,7 +45,7 @@ else:
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config('SECRET_KEY')
+SECRET_KEY = SECRETS['SECRET_KEY']
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
@@ -113,9 +114,9 @@ else:
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", cast=Csv())
 CSRF_TRUSTED_ORIGINS = config("CSRF_TRUSTED_ORIGINS", cast=Csv())
 
-TWILIO_ACCOUNT_SID = config('TWILIO_ACCOUNT_SID')
-TWILIO_AUTH_TOKEN = config('TWILIO_AUTH_TOKEN')
-TWILIO_PHONE_NUMBER = config('TWILIO_PHONE_NUMBER')
+TWILIO_ACCOUNT_SID = SECRETS['TWILIO_ACCOUNT_SID']
+TWILIO_AUTH_TOKEN = SECRETS['TWILIO_AUTH_TOKEN']
+TWILIO_PHONE_NUMBER = SECRETS['TWILIO_PHONE_NUMBER']
 
 TEMPLATES = [
     {
@@ -152,11 +153,11 @@ WSGI_APPLICATION = 'data_logger_backend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': config('DB_NAME'),
+        'NAME': SECRETS['DB_NAME'],
         'USER': config('DB_USER'),
         'PASSWORD': config('DB_PASSWORD'),
-        'HOST': config('DB_HOST'),
-        'PORT': config('DB_PORT'),
+        'HOST': SECRETS['DB_HOST'],
+        'PORT': SECRETS['DB_PORT'],
     }
 }
 
@@ -229,7 +230,7 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = config('EMAIL_HOST_USER')
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')  # Use App Password if you have 2FA enabled
+EMAIL_HOST_USER = SECRETS['EMAIL_HOST_USER']
+EMAIL_HOST_PASSWORD = SECRETS['EMAIL_HOST_PASSWORD']  # Use App Password if you have 2FA enabled
 DEFAULT_FROM_EMAIL = 'tomatiki@gmail.com'
 

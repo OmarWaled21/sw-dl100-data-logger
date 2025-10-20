@@ -2,6 +2,10 @@ migrations/
 caddy.exe
 caddyfile
 __pycache__/
-.env
+*.env
 *.txt
 staticfiles/
+secrets_loader.py
+test.*
+.bat
+run.*
