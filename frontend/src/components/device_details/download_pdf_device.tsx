@@ -4,11 +4,13 @@ import Chart from "chart.js/auto";
 
 interface Row {
   timestamp: string; // "YYYY-MM-DD HH:mm:ss"
-  temperature: number;
-  humidity: number;
+  temperature?: number;
+  humidity?: number;
 }
 
 function calculateSummary(values: number[]) {
+  if (values.length === 0) return { max: 0, min: 0, average: 0, mostRepeated: 0 };
+
   const max = Math.max(...values);
   const min = Math.min(...values);
   const average = values.reduce((a, b) => a + b, 0) / values.length;
@@ -31,9 +33,11 @@ function calculateSummary(values: number[]) {
 export async function downloadDevicePdf(
   rows: Row[],
   name: string,
+  hasTemperatureSensor: boolean,
+  hasHumiditySensor: boolean,
   filterType: "single" | "range",
   filterDateStart?: string,
-  filterDateEnd?: string
+  filterDateEnd?: string,
 ) {
   const doc = new jsPDF();
 
@@ -68,8 +72,8 @@ export async function downloadDevicePdf(
     };
   });
 
-  const temperatures = rows.map((r) => r.temperature);
-  const humidities = rows.map((r) => r.humidity);
+  const temperatures = hasTemperatureSensor ? rows.map((r) => r.temperature ?? 0) : [];
+  const humidities = hasHumiditySensor ? rows.map((r) => r.humidity ?? 0) : [];
 
   // ====== Header ======
   const addHeader = (doc: jsPDF) => {
@@ -89,13 +93,23 @@ export async function downloadDevicePdf(
   addHeader(doc);
 
   // ====== جدول القراءات ======
+  const tableHead = ["Timestamp"];
+  if (hasTemperatureSensor) tableHead.push("Temperature (°C)");
+  if (hasHumiditySensor) tableHead.push("Humidity (%)");
+
+  const tableBody = rows.map((r) => {
+    const row: (string | number)[] = [r.timestamp];
+    if (hasTemperatureSensor) row.push(r.temperature?.toFixed(1) ?? "-");
+    if (hasHumiditySensor) row.push(r.humidity?.toFixed(1) ?? "-");
+    return row;
+  });
+
   autoTable(doc, {
     startY: 40,
-    head: [["Timestamp", "Temperature (°C)", "Humidity (%)"]],
-    body: rows.map((r) => [r.timestamp, r.temperature.toFixed(1), r.humidity.toFixed(1)]),
+    head: [tableHead],
+    body: tableBody,
     styles: { fontSize: 8 },
     headStyles: { fontSize: 8 },
-    didDrawPage: () => addHeader(doc),
   });
 
   // ====== Line Chart للقراءات الكبيرة ======
@@ -104,9 +118,7 @@ export async function downloadDevicePdf(
 
   const labels = sortedRows.map(r => {
     const d = new Date(r.timestamp);
-    const date = d.toLocaleDateString(); // YYYY-MM-DD حسب Locale
-    const time = d.toLocaleTimeString(); // HH:MM:SS حسب Locale
-    return `${date}\n${time}`; // سطرين
+    return `${d.toLocaleDateString()}\n${d.toLocaleTimeString()}`;
   });
 
   lineCanvas.width = 800;
@@ -117,52 +129,52 @@ export async function downloadDevicePdf(
 
   const ctxLine = lineCanvas.getContext("2d");
   if (ctxLine) {
-    new Chart(ctxLine, {
-      type: "line",
-      data: {
-        labels: labels,
-        datasets: [
-          { 
-            label: "Temperature (°C)", 
-            data: sortedRows.map(r => r.temperature),
-            borderColor: "rgba(255, 99, 132, 1)",
-            backgroundColor: "rgba(255, 99, 132, 0.2)",
-            fill: false,
-            tension: 0.1,
-            borderWidth: 1,
-          },
-          { 
-            label: "Humidity (%)", 
-            data: sortedRows.map(r => r.humidity),
-            borderColor: "rgba(54, 162, 235, 1)",
-            backgroundColor: "rgba(54, 162, 235, 0.2)",
-            fill: false,
-            tension: 0.1,
-            borderWidth: 1,
-          },
-        ]
-      },
-      options: {
-        responsive: false,
-        scales: {
-          x: {
-            title: { display: true, text: "Date / Time" },
-            ticks: {
-              autoSkip: true,
-              maxTicksLimit: 15,
-              font: {size: 8},
-              callback: function(val, index) {
-                const label = this.getLabelForValue(index);
-                return label.split("\n"); // اجعل التاريخ فوق الوقت
-              }
-            }
-          },
-          y: { title: { display: true, text: "Values" }, beginAtZero: false },
-        },
-        plugins: { legend: { position: "top" } },
-      },
+    const datasets: any[] = [];
+    if (hasTemperatureSensor) datasets.push({
+      label: "Temperature (°C)",
+      data: sortedRows.map(r => r.temperature ?? 0),
+      borderColor: "rgba(255, 99, 132, 1)",
+      backgroundColor: "rgba(255, 99, 132, 0.2)",
+      fill: false,
+      tension: 0.1,
+      borderWidth: 1,
     });
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    if (hasHumiditySensor) datasets.push({
+      label: "Humidity (%)",
+      data: sortedRows.map(r => r.humidity ?? 0),
+      borderColor: "rgba(54, 162, 235, 1)",
+      backgroundColor: "rgba(54, 162, 235, 0.2)",
+      fill: false,
+      tension: 0.1,
+      borderWidth: 1,
+    });
+
+    if (datasets.length > 0) {
+      new Chart(ctxLine, {
+        type: "line",
+        data: { labels, datasets },
+        options: {
+          responsive: false,
+          scales: {
+            x: {
+              title: { display: true, text: "Date / Time" },
+              ticks: {
+                autoSkip: true,
+                maxTicksLimit: 15,
+                font: {size: 8},
+                callback: function(val, index) {
+                  const label = this.getLabelForValue(index);
+                  return label.split("\n");
+                }
+              }
+            },
+            y: { title: { display: true, text: "Values" }, beginAtZero: false },
+          },
+          plugins: { legend: { position: "top" } },
+        },
+      });
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
   }
 
   const lineChartImage = lineCanvas.toDataURL("image/png");
@@ -176,15 +188,21 @@ export async function downloadDevicePdf(
   const tempSummary = calculateSummary(temperatures);
   const humSummary = calculateSummary(humidities);
 
+  const summaryHead = ["Metric"];
+  if (hasTemperatureSensor) summaryHead.push("Temperature (°C)");
+  if (hasHumiditySensor) summaryHead.push("Humidity (%)");
+
+  const summaryBody = [
+    ["Max", hasTemperatureSensor ? tempSummary.max.toFixed(1) : "-", hasHumiditySensor ? humSummary.max.toFixed(1) : "-"],
+    ["Min", hasTemperatureSensor ? tempSummary.min.toFixed(1) : "-", hasHumiditySensor ? humSummary.min.toFixed(1) : "-"],
+    ["Average", hasTemperatureSensor ? tempSummary.average.toFixed(2) : "-", hasHumiditySensor ? humSummary.average.toFixed(2) : "-"],
+    ["Most Repeated", hasTemperatureSensor ? tempSummary.mostRepeated.toFixed(1) : "-", hasHumiditySensor ? humSummary.mostRepeated.toFixed(1) : "-"],
+  ];
+
   autoTable(doc, {
     startY: startYSummary,
-    head: [["Metric", "Temperature (°C)", "Humidity (%)"]],
-    body: [
-      ["Max", tempSummary.max.toFixed(1), humSummary.max.toFixed(1)],
-      ["Min", tempSummary.min.toFixed(1), humSummary.min.toFixed(1)],
-      ["Average", tempSummary.average.toFixed(2), humSummary.average.toFixed(2)],
-      ["Most Repeated", tempSummary.mostRepeated.toFixed(1), humSummary.mostRepeated.toFixed(1)],
-    ],
+    head: [summaryHead],
+    body: summaryBody,
     theme: "grid",
     styles: { fontSize: 8 },
     headStyles: { fontSize: 8 },
@@ -203,36 +221,38 @@ export async function downloadDevicePdf(
   const barHumValues = [humSummary.max, humSummary.min, humSummary.average, humSummary.mostRepeated];
 
   if (ctxBar) {
-    new Chart(ctxBar, {
-      type: "bar",
-      data: {
-        labels: ["Max", "Min", "Average", "Most Repeated"],
-        datasets: [
-          { label: "Temperature (°C)", data: barTempValues, backgroundColor: "rgba(255, 99, 132, 0.8)" },
-          { label: "Humidity (%)", data: barHumValues, backgroundColor: "rgba(54, 162, 235, 0.8)" },
-        ],
-      },
-      options: {
-        responsive: false,
-        scales: { y: { beginAtZero: false, title: { display: true, text: "Values" } } },
-        plugins: { legend: { position: "top" } },
-      },
-    });
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    const barDatasets: any[] = [];
+    if (hasTemperatureSensor) barDatasets.push({ label: "Temperature (°C)", data: barTempValues, backgroundColor: "rgba(255, 99, 132, 0.8)" });
+    if (hasHumiditySensor) barDatasets.push({ label: "Humidity (%)", data: barHumValues, backgroundColor: "rgba(54, 162, 235, 0.8)" });
+
+    if (barDatasets.length > 0) {
+      new Chart(ctxBar, {
+        type: "bar",
+        data: {
+          labels: ["Max", "Min", "Average", "Most Repeated"],
+          datasets: barDatasets,
+        },
+        options: {
+          responsive: false,
+          scales: { y: { beginAtZero: false, title: { display: true, text: "Values" } } },
+          plugins: { legend: { position: "top" } },
+        },
+      });
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
   }
 
   const barChartImage = barCanvas.toDataURL("image/png");
   document.body.removeChild(barCanvas);
 
-  const pageHeight = doc.internal.pageSize.height; // ارتفاع الصفحة
-  const margin = 10; // هامش
-  const chartHeight = 60; // ارتفاع الرسم
+  const pageHeight = doc.internal.pageSize.height;
+  const margin = 10;
+  const chartHeight = 60;
   const spaceNeeded = (doc as any).lastAutoTable.finalY + chartHeight + margin;
 
-  // لو المساحة المتبقية قليلة أضف صفحة جديدة
   if (spaceNeeded > pageHeight) {
     doc.addPage();
-    (doc as any).lastAutoTable = { finalY: margin }; // reset finalY
+    (doc as any).lastAutoTable = { finalY: margin };
   }
 
   const finalY = (doc as any).lastAutoTable.finalY + 10;

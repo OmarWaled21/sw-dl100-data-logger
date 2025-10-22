@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import "./globals.css";
 import "../i18n";
+import GlobalLogNotifier from "@/components/global/LocalNotificationListener";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,7 +26,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}>
-        <main className="flex-1 w-full">{children}</main>
+        <main className="flex-1 w-full">
+          <GlobalLogNotifier />
+          {children}
+        </main>
       </body>
     </html>
   );

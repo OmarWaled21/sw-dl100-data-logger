@@ -3,7 +3,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
-from home.models import Device
+from home.models.device_model import Device
 from .models import DeviceReading
 
 channel_layer = get_channel_layer()
@@ -37,6 +37,7 @@ def device_update_signal(sender, instance, **kwargs):
         'battery_level': instance.battery_level,
         'status': instance.get_dynamic_status(),
         'interval_wifi': instance.interval_wifi,
+        'interval_local': instance.interval_local,
         'last_update': instance.last_update.strftime("%Y-%m-%d %H:%M:%S")
     }
     send_ws_update(group_name, data)

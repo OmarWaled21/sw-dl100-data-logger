@@ -1,11 +1,12 @@
 "use client";
-import React, { useEffect, useState, useRef  } from "react";
-import Cookies from "js-cookie";
+import React, { useEffect, useState, useRef } from "react";
 import { downloadDevicePdf } from "./download_pdf_device";
 
 interface Props {
   readings: Reading[];
   deviceName: string;
+  hasTemperatureSensor: boolean;
+  hasHumiditySensor: boolean;
 }
 
 interface Reading {
@@ -14,10 +15,14 @@ interface Reading {
   timestamp: string;
 }
 
-export default function DeviceReadingTable({ readings, deviceName }: Props) {
+export default function DeviceReadingTable({
+  readings,
+  deviceName,
+  hasTemperatureSensor,
+  hasHumiditySensor,
+}: Props) {
   const [loading, setLoading] = useState(true);
 
-  // Filter states
   const [filtering, setFiltering] = useState(false);
   const [filterType, setFilterType] = useState<"single" | "range">("single");
   const [filterDateStart, setFilterDateStart] = useState<string>("");
@@ -25,11 +30,9 @@ export default function DeviceReadingTable({ readings, deviceName }: Props) {
 
   const [allReadings, setAllReadings] = useState<Reading[]>([]);
   const [filteredReadings, setFilteredReadings] = useState<Reading[]>([]);
-
-
   const [currentPage, setCurrentPage] = useState(0);
   const wsRef = useRef<WebSocket | null>(null);
-  
+
   const pageSize = 10;
 
   useEffect(() => {
@@ -37,7 +40,6 @@ export default function DeviceReadingTable({ readings, deviceName }: Props) {
     setLoading(false);
   }, [readings]);
 
-  // تطبيق الفلتر كل مرة تتغير فيه البيانات أو إعدادات الفلتر
   useEffect(() => {
     const filtered = allReadings.filter((r) => {
       const ts = new Date(r.timestamp);
@@ -102,18 +104,25 @@ export default function DeviceReadingTable({ readings, deviceName }: Props) {
           </p>
         </div>
 
-        {/* Right section */}
         <div>
           <div className="flex items-center justify-end space-x-4">
-            {/* Live indicator */}
             <div className="flex items-center space-x-2 bg-blue-50 px-4 py-2 rounded-xl">
               <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
               <span className="text-blue-700 text-sm font-medium">Live</span>
             </div>
 
-            {/* Download PDF */}
             <button
-              onClick={() => downloadDevicePdf(filteredReadings, deviceName, filterType, filterDateStart, filterDateEnd)}
+              onClick={() =>
+                downloadDevicePdf(
+                  filteredReadings,
+                  deviceName,
+                  hasTemperatureSensor,
+                  hasHumiditySensor,
+                  filterType,
+                  filterDateStart,
+                  filterDateEnd
+                )
+              }
               className="flex items-center px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-700 transition-all duration-200 cursor-pointer"
             >
               <svg
@@ -135,7 +144,9 @@ export default function DeviceReadingTable({ readings, deviceName }: Props) {
 
           {/* Filter type */}
           <div className="flex items-center justify-end space-x-4 pt-4">
-            <label className="text-sm font-medium text-gray-700">Filter type:</label>
+            <label className="text-sm font-medium text-gray-700">
+              Filter type:
+            </label>
             <div className="flex items-center space-x-2">
               <label className="flex items-center space-x-1">
                 <input
@@ -198,21 +209,12 @@ export default function DeviceReadingTable({ readings, deviceName }: Props) {
           </div>
         </div>
       </div>
-      
-      {loading && readings.length === 0 ? (
-        // Loading skeleton
-        <div className="animate-pulse p-4 bg-gray-100 rounded-xl">
-          <div className="h-8 bg-gray-200 rounded w-48 mb-6"></div>
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="flex space-x-4 mb-2">
-              <div className="h-12 bg-gray-200 rounded flex-1"></div>
-              <div className="h-12 bg-gray-200 rounded flex-1"></div>
-              <div className="h-12 bg-gray-200 rounded flex-1"></div>
-            </div>
-          ))}
-        </div>
-      ) : (
-      <div className={`transition-all duration-300 ${filtering ? 'opacity-50' : 'opacity-100'}`}>
+
+      <div
+        className={`transition-all duration-300 ${
+          filtering ? "opacity-50" : "opacity-100"
+        }`}
+      >
         {/* Table */}
         <div className="overflow-hidden rounded-xl border border-gray-200">
           <table className="w-full">
@@ -220,34 +222,71 @@ export default function DeviceReadingTable({ readings, deviceName }: Props) {
               <tr>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   <div className="flex items-center space-x-2">
-                    <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <svg
+                      className="w-4 h-4 text-gray-500"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
                     </svg>
                     <span>Timestamp</span>
                   </div>
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                  <div className="flex items-center space-x-2">
-                    <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                    </svg>
-                    <span>Temperature</span>
-                  </div>
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                  <div className="flex items-center space-x-2">
-                    <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
-                    </svg>
-                    <span>Humidity</span>
-                  </div>
-                </th>
+
+                {hasTemperatureSensor && (
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                    <div className="flex items-center space-x-2">
+                      <svg
+                        className="w-4 h-4 text-red-500"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+                        />
+                      </svg>
+                      <span>Temperature</span>
+                    </div>
+                  </th>
+                )}
+
+                {hasHumiditySensor && (
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                    <div className="flex items-center space-x-2">
+                      <svg
+                        className="w-4 h-4 text-blue-500"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"
+                        />
+                      </svg>
+                      <span>Humidity</span>
+                    </div>
+                  </th>
+                )}
               </tr>
             </thead>
+
             <tbody className="bg-white divide-y divide-gray-200">
               {pageData.map((reading, index) => (
-                <tr 
-                  key={index} 
+                <tr
+                  key={index}
                   className="hover:bg-gray-50/80 transition-colors duration-200 group"
                 >
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -255,22 +294,33 @@ export default function DeviceReadingTable({ readings, deviceName }: Props) {
                       {formatTimestamp(reading.timestamp)}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-lg font-semibold text-gray-900">
-                      {reading.temperature}°
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center space-x-2">
+
+                  {hasTemperatureSensor && (
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-lg font-semibold text-gray-900">
-                        {reading.humidity}%
+                        {reading.temperature}°
                       </div>
-                      <div className={`w-2 h-2 rounded-full ${
-                        reading.humidity > 70 ? 'bg-blue-600' : 
-                        reading.humidity > 40 ? 'bg-blue-400' : 'bg-blue-300'
-                      }`}></div>
-                    </div>
-                  </td>
+                    </td>
+                  )}
+
+                  {hasHumiditySensor && (
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center space-x-2">
+                        <div className="text-lg font-semibold text-gray-900">
+                          {reading.humidity}%
+                        </div>
+                        <div
+                          className={`w-2 h-2 rounded-full ${
+                            reading.humidity > 70
+                              ? "bg-blue-600"
+                              : reading.humidity > 40
+                              ? "bg-blue-400"
+                              : "bg-blue-300"
+                          }`}
+                        ></div>
+                      </div>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -280,11 +330,25 @@ export default function DeviceReadingTable({ readings, deviceName }: Props) {
         {/* Empty State */}
         {readings.length === 0 && (
           <div className="text-center py-12">
-            <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 17v-2a3 3 0 00-3-3H5a3 3 0 00-3 3v2a1 1 0 001 1h12a1 1 0 001-1zm-6-8a3 3 0 100-6 3 3 0 000 6z" />
+            <svg
+              className="w-16 h-16 text-gray-300 mx-auto mb-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1}
+                d="M9 17v-2a3 3 0 00-3-3H5a3 3 0 00-3 3v2a1 1 0 001 1h12a1 1 0 001-1zm-6-8a3 3 0 100-6 3 3 0 000 6z"
+              />
             </svg>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No readings available</h3>
-            <p className="text-gray-500">Device readings will appear here once data is received.</p>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              No readings available
+            </h3>
+            <p className="text-gray-500">
+              Device readings will appear here once data is received.
+            </p>
           </div>
         )}
 
@@ -292,23 +356,41 @@ export default function DeviceReadingTable({ readings, deviceName }: Props) {
         {readings.length > 0 && (
           <div className="flex items-center justify-between mt-6 px-2">
             <div className="text-sm text-gray-500">
-              Showing <span className="font-semibold text-gray-900">{start + 1}</span> to{" "}
-              <span className="font-semibold text-gray-900">{Math.min(end, readings.length)}</span> of{" "}
-              <span className="font-semibold text-gray-900">{filteredReadings.length}</span> results
+              Showing{" "}
+              <span className="font-semibold text-gray-900">{start + 1}</span>{" "}
+              to{" "}
+              <span className="font-semibold text-gray-900">
+                {Math.min(end, readings.length)}
+              </span>{" "}
+              of{" "}
+              <span className="font-semibold text-gray-900">
+                {filteredReadings.length}
+              </span>{" "}
+              results
             </div>
-            
+
             <div className="flex items-center space-x-2">
               <button
                 disabled={currentPage === 0}
                 onClick={() => setCurrentPage((p) => Math.max(p - 1, 0))}
                 className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
               >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                <svg
+                  className="w-4 h-4 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 19l-7-7 7-7"
+                  />
                 </svg>
                 Previous
               </button>
-              
+
               <div className="flex items-center space-x-1">
                 {[...Array(totalPages)].map((_, index) => (
                   <button
@@ -324,22 +406,33 @@ export default function DeviceReadingTable({ readings, deviceName }: Props) {
                   </button>
                 ))}
               </div>
-              
+
               <button
                 disabled={currentPage >= totalPages - 1}
-                onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages - 1))}
+                onClick={() =>
+                  setCurrentPage((p) => Math.min(p + 1, totalPages - 1))
+                }
                 className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
               >
                 Next
-                <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                <svg
+                  className="w-4 h-4 ml-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
                 </svg>
               </button>
             </div>
           </div>
         )}
       </div>
-      )}
     </div>
   );
 }

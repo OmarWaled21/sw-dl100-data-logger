@@ -1,11 +1,25 @@
 from rest_framework import serializers
-from .models import Department, Device, MasterClock
+from .models.device_model import  Device
+from .models.departments import Department
+from .models.master_clock import MasterClock
 from device_details.models import DeviceReading
 
 class DepartmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Department
         fields = ['id', 'name']
+        
+class DeviceCreateSerializer(serializers.ModelSerializer):
+    department_id = serializers.IntegerField(required=False, write_only=True)
+    
+    class Meta:
+        model = Device
+        fields = [
+            'device_id', 'name', 'min_temp', 'max_temp', 'min_hum', 'max_hum',
+            'has_temperature_sensor', 'has_humidity_sensor', 'temperature_type',
+            'department_id'  # هذا سنتعامل معه بشكل منفصل
+        ]
+    
 
 class DeviceSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
@@ -16,10 +30,10 @@ class DeviceSerializer(serializers.ModelSerializer):
         model = Device
         fields = [
             'device_id', 'name', 'department', 'department_name', 'department_id', 'last_update', 'admin_id', 'status',
-            'temperature', 'humidity', 'battery_level', 
+            'has_temperature_sensor', 'has_humidity_sensor', 'temperature_type', 'temperature', 'humidity', 'battery_level',
             'temp_sensor_error', 'hum_sensor_error', 'low_battery',
             'min_temp', 'max_temp', 'min_hum', 'max_hum', 
-            'firmware_version', 'firmware_updated_at', 'last_calibrated', 'interval_wifi'
+            'firmware_version', 'firmware_updated_at', 'last_calibrated', 'interval_wifi', 'interval_local'
         ]
         read_only_fields = ['id', 'device_id', 'admin_id']
         

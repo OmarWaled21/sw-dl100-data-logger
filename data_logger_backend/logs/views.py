@@ -6,7 +6,8 @@ from rest_framework.views import APIView
 from rest_framework import status
 
 from authentication.models import CustomUser
-from home.models import Department, Device
+from home.models.device_model import Device
+from home.models.departments import Department
 from .models import DeviceLog, AdminLog, NotificationSettings
 from .serializers import DeviceLogSerializer, AdminLogSerializer
 from home.utils import get_master_time

@@ -2,14 +2,14 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link"; // استدعاء Link
 import { RadialBarChart, RadialBar, PolarAngleAxis, Tooltip } from "recharts";
-import { WiThermometer, WiHumidity } from "react-icons/wi";
+import { WiThermometer, WiHumidity, WiRaindrop  } from "react-icons/wi";
 import { FaBatteryFull, FaBatteryThreeQuarters, FaBatteryHalf, FaBatteryQuarter, FaBatteryEmpty } from "react-icons/fa";
 import { useTranslation } from "react-i18next";
 
 interface DeviceCardProps {
-  id: string; // معرف الجهاز لاستخدامه في الرابط
+  id: string;
   name: string;
-  battery: number; // 0-100
+  battery: number;
   temperature: number;
   humidity: number;
   minTemp: number;
@@ -17,12 +17,18 @@ interface DeviceCardProps {
   minHum: number;
   maxHum: number;
   status: "active" | "offline" | "error";
+  has_temperature_sensor: boolean;
+  has_humidity_sensor: boolean;
+  temperature_type: "air" | "liquid";
 }
 
 const DeviceCard: React.FC<DeviceCardProps> = ({
   id,
   name,
   battery,
+  has_temperature_sensor,
+  has_humidity_sensor,
+  temperature_type,
   temperature,
   humidity,
   minTemp,
@@ -126,7 +132,8 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
 
       {/* Gauges */}
       <div className="flex gap-4 sm:gap-6 lg:gap-8 justify-center">
-        {/* Temperature */}
+      {/* ✅ Temperature (conditional) */}
+      {has_temperature_sensor && (
         <div className="flex flex-col items-center">
           <div className="relative">
             <RadialBarChart
@@ -137,7 +144,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
               innerRadius={40}
               outerRadius={55}
               barSize={10}
-              data={tempData}
+              data={[{ name: "temp", value: temperature, fill: tempColor }]}
               startAngle={180}
               endAngle={0}
             >
@@ -151,13 +158,21 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
             </div>
           </div>
           <div className="flex items-center gap-1 sm:gap-2 mt-2 sm:mt-3 font-semibold" style={{ color: tempColor }}>
-            <WiThermometer size={20} className="sm:w-6 sm:h-6" />
-            <span className="text-xs sm:text-sm">{t("temperature")}</span>
+            {temperature_type === "liquid" ? (
+              <WiRaindrop size={20} className="sm:w-6 sm:h-6" />
+            ) : (
+              <WiThermometer size={20} className="sm:w-6 sm:h-6" />
+            )}
+            <span className="text-xs sm:text-sm">
+              {temperature_type === "liquid" ? t("liquid_temperature") : t("air_temperature")}
+            </span>
           </div>
           <div className="text-xs text-gray-500 mt-1">{minTemp}° - {maxTemp}°</div>
         </div>
+      )}
 
-        {/* Humidity */}
+      {/* ✅ Humidity (conditional) */}
+      {has_humidity_sensor && (
         <div className="flex flex-col items-center">
           <div className="relative">
             <RadialBarChart
@@ -168,7 +183,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
               innerRadius={40}
               outerRadius={55}
               barSize={10}
-              data={humData}
+              data={[{ name: "hum", value: humidity, fill: humColor }]}
               startAngle={180}
               endAngle={0}
             >
@@ -187,7 +202,8 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
           </div>
           <div className="text-xs text-gray-500 mt-1">{minHum}% - {maxHum}%</div>
         </div>
-      </div>
+      )}
+    </div>
     </Link>
 
   );

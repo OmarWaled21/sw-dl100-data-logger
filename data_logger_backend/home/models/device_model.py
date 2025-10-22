@@ -3,31 +3,13 @@ from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
 from django.conf import settings
 from django.utils import timezone
-from datetime import timedelta
-from .utils import get_master_time
-from logs.models import DeviceLog, NotificationSettings
 from django.db import models
+from smtplib import SMTPException
+from datetime import timedelta
+from ..utils import get_master_time
+from .departments import Department
+from logs.models import DeviceLog, NotificationSettings
 
-# master clock
-class MasterClock(models.Model):
-    time_difference = models.IntegerField(default=0)  # الفرق بالثواني بين الوقت الفعلي والوقت الذي اختاره المستخدم
-
-    def set_time(self, new_time):
-        """يحسب الفرق بين الوقت الجديد و timezone.now()"""
-        time_diff = int((new_time - timezone.now()).total_seconds())
-        self.time_difference = time_diff
-        self.save()
-
-    def get_adjusted_time(self):
-        """يرجع الوقت المعدل بناءً على الفرق المخزن"""
-        return timezone.now() + timedelta(seconds=self.time_difference)
-
-# department
-class Department(models.Model):
-    name = models.CharField(max_length=100, unique=True)
-    
-    def __str__(self):
-        return self.name
 # device
 class Device(models.Model):
     STATUS_CHOICES = [
@@ -35,37 +17,100 @@ class Device(models.Model):
         ('error', 'Error'),
         ('offline', 'Offline'),
     ]
+    
+    TEMPERATURE_TYPE_CHOICES = [
+        ('air', 'Air Temperature'),
+        ('liquid', 'Liquid Temperature'),
+    ]
+    
     admin = models.ForeignKey(
         settings.AUTH_USER_MODEL,      # يربط بموديل CustomUser
         on_delete=models.CASCADE,      # لو الأدمن اتحذف، تمسح أجهزته
-        related_name='devices',   # تقدر تستخدم user.clock_devices.all()
+        related_name='devices_managed',   # تقدر تستخدم user.clock_devices.all()
     )
     id = models.AutoField(primary_key=True)
     device_id = models.CharField(max_length=100, unique=True)
     name = models.CharField(max_length=100, blank=True, null=True)
-    department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, blank=True, related_name="devices")
+    department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, blank=True, related_name="devices_department")
+    
+    # ✅ حساسات الحرارة والرطوبة
+    has_temperature_sensor = models.BooleanField(default=True, verbose_name="Has Temperature Sensor")
+    has_humidity_sensor = models.BooleanField(default=True, verbose_name="Has Humidity Sensor")
+    temp_sensor_error = models.BooleanField(default=False)
+    hum_sensor_error = models.BooleanField(default=False)
+    
+    # ✅ نوع الحساس الحراري
+    temperature_type = models.CharField(
+        max_length=20,
+        choices=TEMPERATURE_TYPE_CHOICES,
+        blank=True,
+        null=True,
+        verbose_name="Temperature Type"
+    )
+    
+    # temp
     temperature = models.FloatField(null=True, blank=True)
     max_temp = models.FloatField(null=True, blank=True, default=40)
     min_temp = models.FloatField(null=True, blank=True, default=10)
+    
+    # humidity
     humidity = models.FloatField(null=True, blank=True)
     max_hum = models.FloatField(null=True, blank=True, default=70)
     min_hum = models.FloatField(null=True, blank=True, default=20)
-    temp_sensor_error = models.BooleanField(default=False)
-    hum_sensor_error = models.BooleanField(default=False)
+    
     last_update = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    # firmware
     firmware_version = models.CharField(max_length=20, default='1.0.0')
     firmware_updated_at = models.DateTimeField(null=True, blank=True, default=None)
-    last_calibrated = models.DateTimeField(default=timezone.now)
-    interval_wifi = models.IntegerField(default=5)
+    last_calibrated = models.DateTimeField(default=get_master_time)
+
+    # intervals
+    interval_wifi = models.IntegerField(default=5, help_text="مدة الإرسال عبر WiFi بالدقائق")
+    interval_local = models.IntegerField(default=5, help_text="مدة الإرسال المحلي بالدقائق")
+    
+    # battery
     battery_level = models.IntegerField(null=True, blank=True)
     low_battery = models.BooleanField(default=False)
 
     def __str__(self):
         return self.name or self.device_id
+    
+    def clean(self):
+        super().clean()
 
-    def save(self, *args, **kwargs):
-        self.full_clean()  # يقوم بتشغيل الدالة clean() قبل الحفظ
-        super().save(*args, **kwargs)
+        # ✅ الشرط المطلوب
+        if self.interval_wifi < self.interval_local:
+            raise ValidationError({
+                "interval_wifi": f"قيمة WiFi interval ({self.interval_wifi}) يجب ألا تكون أقل من local interval ({self.interval_local})."
+            })
+        
+        if not self.has_temperature_sensor:
+            self.temperature_type = None
+            self.temperature = None
+        if not self.has_humidity_sensor:
+            self.humidity = None
+            
+         # ✅ لو في نوع حرارة محدد، تأكد من الحدود
+        if self.temperature_type == 'air':
+            if self.min_temp < 0:
+                raise ValidationError({"min_temp": "درجة الحرارة الدنيا للـ Air يجب ألا تقل عن 0°C."})
+            if self.max_temp > 100:
+                raise ValidationError({"max_temp": "درجة الحرارة العليا للـ Air يجب ألا تتجاوز 100°C."})
+
+        elif self.temperature_type == 'liquid':
+            if self.min_temp < -55:
+                raise ValidationError({"min_temp": "درجة الحرارة الدنيا للـ Liquid يجب ألا تقل عن -55°C."})
+            if self.max_temp > 120:
+                raise ValidationError({"max_temp": "درجة الحرارة العليا للـ Liquid يجب ألا تتجاوز 120°C."})
+
+        # ✅ تحقق من أن min_temp < max_temp دائمًا
+        if self.has_temperature_sensor and self.min_temp >= self.max_temp:
+            raise ValidationError({
+                "min_temp": "Min temperature يجب أن تكون أقل من Max temperature.",
+                "max_temp": "Max temperature يجب أن تكون أكبر من Min temperature."
+            })
     
     def needs_calibration(self):
         reference_date = self.last_calibrated or self.created_at
@@ -80,18 +125,26 @@ class Device(models.Model):
         hum_error = False
         low_battery = False
 
-        if self.temperature is None or self.temperature in [-127, 80]:
-            temp_error = True
-        elif self.temperature > self.max_temp or self.temperature < self.min_temp:
-            temp_error = True
+        if self.has_temperature_sensor:
+            if self.temperature is None:
+                temp_error = True
+            # التحقق من وجود قيم للحدود قبل المقارنة
+            elif (self.max_temp is not None and self.temperature > self.max_temp) or \
+                (self.min_temp is not None and self.temperature < self.min_temp):
+                temp_error = True
 
-        if self.humidity is None:
-            hum_error = True
-        elif self.humidity > self.max_hum or self.humidity < self.min_hum:
-            hum_error = True
-            
+        if self.has_humidity_sensor:
+            if self.humidity is None:
+                hum_error = True
+            # التحقق من وجود قيم للحدود قبل المقارنة
+            elif (self.max_hum is not None and self.humidity > self.max_hum) or \
+                (self.min_hum is not None and self.humidity < self.min_hum):
+                hum_error = True
+                
         if self.battery_level is None or self.battery_level < 21:
             low_battery = True
+
+        return not (temp_error or hum_error or low_battery)
 
         # تحديث حالات الخطأ
         self.temp_sensor_error = temp_error
@@ -198,26 +251,35 @@ class Device(models.Model):
         self._send_log_email(log)
     
     def save(self, *args, **kwargs):
-        is_new = self._state.adding  # ✅ نعرف إذا كان الجهاز بيتضاف لأول مرة
+        is_new = self._state.adding
+        
+        # ✅ نظف البيانات أولاً قبل الحفظ
         self.full_clean()
+        
+        # ✅ احفظ الجهاز أولاً بدون التعامل مع العلاقات
         super().save(*args, **kwargs)
 
         # ✅ بعد الحفظ لأول مرة، أضف الجهاز تلقائيًا في NotificationSettings للـ admin
         if is_new:
-            from logs.models import NotificationSettings  # استيراد متأخر لتجنب circular import
+            from logs.models import NotificationSettings
 
+            # استخدم get_or_create مع update_fields لتجنب أي مشاكل
             notif, created = NotificationSettings.objects.get_or_create(
                 user=self.admin, 
                 defaults={
-                    "email": getattr(self.admin, "email", ""),  # لو عنده إيميل نحطه
-                    "gmail_is_active": True,  # أو خليه False لو مش عايز تفعلها تلقائيًا
+                    "email": getattr(self.admin, "email", ""),
+                    "gmail_is_active": True,
                 },
             )
 
-            notif.devices.add(self)  # أضف الجهاز الجديد إلى M2M
-            notif.save()
-
-            print(f"✅ Added device {self.device_id} to NotificationSettings of {self.admin.username}")
+            # 🎯 استخدم through model مباشرة لتجنب العلاقات العكسية
+            through_model = NotificationSettings.devices.through
+            through_model.objects.get_or_create(
+                notificationsettings_id=notif.id,
+                device_id=self.id
+            )
+            
+            print(f"✅ Device {self.device_id} linked to NotificationSettings ({self.admin.username})")
 
 
     def _send_log_email(self, log):
@@ -246,18 +308,17 @@ class Device(models.Model):
         recipients = [n.email for n in notif_settings_qs]
 
         # ابعت الإيميل دفعة واحدة
-        send_mail(
-            subject,
-            message,
-            settings.DEFAULT_FROM_EMAIL,
-            recipients,
-            fail_silently=False,
-        )
-
-class ESPDiscovery(models.Model):
-    device_id = models.CharField(max_length=100, unique=True)
-    is_linked = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return self.device_id
+        try:
+            send_mail(
+                subject,
+                message,
+                settings.DEFAULT_FROM_EMAIL,
+                recipients,
+                fail_silently=False,
+            )
+        except SMTPException as e:
+            DeviceLog.objects.create(
+                device=self,
+                error_type="email_error",
+                message=f"Failed to send log email: {e}",
+            )

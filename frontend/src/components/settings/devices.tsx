@@ -2,25 +2,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
-
-interface DiscoveredDevice {
-  device_id: string;
-  model?: string;
-}
-
-interface Department {
-  id: number;
-  name: string;
-}
-
-interface DeviceForm {
-  name: string;
-  min_temp: string;
-  max_temp: string;
-  min_hum: string;
-  max_hum: string;
-  department_id?: string;
-}
+import RegisterDeviceModal from "./components/RegisterDeviceModal";
 
 export default function DiscoverDevices() {
   const [devices, setDevices] = useState<DiscoveredDevice[]>([]);
@@ -29,12 +11,10 @@ export default function DiscoverDevices() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [selectedDevice, setSelectedDevice] = useState<DiscoveredDevice | null>(null);
+  const [sensorType, setSensorType] = useState<("temperature" | "humidity")[]>([]);
+  const [tempType, setTempType] = useState<"" | "air" | "liquid">("");
   const [form, setForm] = useState<DeviceForm>({
     name: "",
-    min_temp: "",
-    max_temp: "",
-    min_hum: "",
-    max_hum: "",
     department_id: "",
   });
   const [saving, setSaving] = useState(false);
@@ -86,32 +66,6 @@ export default function DiscoverDevices() {
     setShowModal(true);
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
-
-  const handleSave = async () => {
-    if (!selectedDevice) return;
-    setSaving(true);
-    const token = Cookies.get("token");
-
-    try {
-      await axios.post("http://127.0.0.1:8000/add/", {
-        ...form,
-        device_id: selectedDevice.device_id,
-      }, {
-        headers: { Authorization: `Token ${token}` },
-      });
-
-      alert("✅ Device registered successfully!");
-      setShowModal(false);
-    } catch (err: any) {
-      console.error(err);
-      alert("❌ Failed to register device");
-    } finally {
-      setSaving(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -185,98 +139,21 @@ export default function DiscoverDevices() {
 
       {/* Modern Modal */}
       {showModal && selectedDevice && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md transform transition-all">
-            {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl font-semibold text-gray-900">Register Device</h2>
-                  <p className="text-sm text-gray-500 mt-1">Device ID: {selectedDevice.device_id}</p>
-                </div>
-                <button
-                  onClick={() => setShowModal(false)}
-                  className="text-gray-400 hover:text-gray-600 transition-colors duration-200 cursor-pointer"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            {/* Modal Body */}
-            <div className="px-6 py-4 max-h-96 overflow-y-auto">
-              <div className="space-y-4">
-                {["name", "min_temp", "max_temp", "min_hum", "max_hum"].map((key) => (
-                  <div key={key}>
-                    <label className="block text-sm font-medium text-gray-700 mb-2 capitalize">
-                      {key.replace("_", " ")}
-                    </label>
-                    <input
-                      type="text"
-                      name={key}
-                      value={(form as any)[key]}
-                      onChange={handleChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                      placeholder={`Enter ${key.replace("_", " ")}`}
-                    />
-                  </div>
-                ))}
-
-                {isAdmin && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Department
-                    </label>
-                    <select
-                      name="department_id"
-                      value={form.department_id}
-                      onChange={handleChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white cursor-pointer"
-                    >
-                      <option value="">Select department</option>
-                      {departments.map((d) => (
-                        <option key={d.id} value={d.id}>{d.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-2xl">
-              <div className="flex justify-end gap-3">
-                <button
-                  onClick={() => setShowModal(false)}
-                  className="px-6 py-2.5 text-gray-700 font-medium rounded-lg border border-gray-300 hover:bg-gray-100 transition-colors duration-200 cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="px-6 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 flex items-center space-x-2 cursor-pointer"
-                >
-                  {saving ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      <span>Saving...</span>
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span>Save Device</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <RegisterDeviceModal
+          show={showModal}
+          setShow={setShowModal}
+          selectedDevice={selectedDevice}
+          sensorType={sensorType}
+          setSensorType={setSensorType}
+          tempType={tempType}
+          setTempType={setTempType}
+          form={form}
+          setForm={setForm}
+          isAdmin={isAdmin}
+          departments={departments}
+          saving={saving}
+          setSaving={setSaving}
+        />
       )}
     </div>
   );

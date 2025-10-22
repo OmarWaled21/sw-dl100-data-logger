@@ -8,6 +8,8 @@ interface Props {
   deviceId: string;
   readings: Reading[];
   deviceName: string;
+  hasTemperatureSensor: boolean;
+  hasHumiditySensor: boolean;
 }
 
 interface Reading {
@@ -16,7 +18,7 @@ interface Reading {
   timestamp: string;
 }
 
-export default function DeviceReadingsPage({ deviceId, readings, deviceName }: Props) {
+export default function DeviceReadingsPage({ deviceId, readings, deviceName, hasTemperatureSensor, hasHumiditySensor }: Props) {
   const [view, setView] = useState<"chart" | "table">("chart");
 
   return (
@@ -53,7 +55,7 @@ export default function DeviceReadingsPage({ deviceId, readings, deviceName }: P
               transition={{ duration: 0.3 }}
               className="absolute w-full"
             >
-              <DeviceReadingChart deviceId={deviceId} />
+              <DeviceReadingChart deviceId={deviceId} hasTemperatureSensor={hasTemperatureSensor} hasHumiditySensor={hasHumiditySensor} />
             </motion.div>
           ) : (
             <motion.div
@@ -64,7 +66,7 @@ export default function DeviceReadingsPage({ deviceId, readings, deviceName }: P
               transition={{ duration: 0.3 }}
               className="absolute w-full"
             >
-              <DeviceReadingTable readings={readings} deviceName={deviceName} />
+              <DeviceReadingTable readings={readings} deviceName={deviceName} hasTemperatureSensor={hasTemperatureSensor} hasHumiditySensor={hasHumiditySensor} />
             </motion.div>
           )}
         </AnimatePresence>

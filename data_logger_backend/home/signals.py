@@ -4,7 +4,7 @@ from django.dispatch import receiver
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from authentication.models import CustomUser
-from .models import Device
+from .models.device_model import Device
 from .serializers import DeviceSerializer
 from django.db.models import Q
 

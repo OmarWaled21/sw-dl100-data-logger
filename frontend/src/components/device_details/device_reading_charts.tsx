@@ -15,9 +15,15 @@ import {
 
 interface Props {
   deviceId: string;
+  hasTemperatureSensor: boolean;
+  hasHumiditySensor: boolean;
 }
 
-export default function DeviceReadingChart({ deviceId }: Props) {
+export default function DeviceReadingChart({
+  deviceId,
+  hasTemperatureSensor,
+  hasHumiditySensor,
+}: Props) {
   const [chartData, setChartData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -64,9 +70,18 @@ export default function DeviceReadingChart({ deviceId }: Props) {
     return <div>Loading chart...</div>;
   }
 
+  // ✅ لو مفيش أي حساس موجود
+  if (!hasTemperatureSensor && !hasHumiditySensor) {
+    return (
+      <div className="bg-white rounded-2xl p-8 border border-gray-200 text-center text-gray-600">
+        No sensors available for this device.
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white rounded-2xl p-8 border border-gray-200">
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">
+      <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">
         Last 12 Hours (Avg per Hour)
       </h2>
       <ResponsiveContainer width="100%" height={400}>
@@ -76,20 +91,27 @@ export default function DeviceReadingChart({ deviceId }: Props) {
           <YAxis />
           <Tooltip />
           <Legend />
-          <Line
-            type="linear"
-            dataKey="temperature"
-            stroke="#ef4444"
-            name="Temperature (°C)"
-            dot
-          />
-          <Line
-            type="linear"
-            dataKey="humidity"
-            stroke="#3b82f6"
-            name="Humidity (%)"
-            dot
-          />
+
+          {/* ✅ عرض الخطوط حسب نوع الحساسات */}
+          {hasTemperatureSensor && (
+            <Line
+              type="linear"
+              dataKey="temperature"
+              stroke="#ef4444"
+              name="Temperature (°C)"
+              dot
+            />
+          )}
+
+          {hasHumiditySensor && (
+            <Line
+              type="linear"
+              dataKey="humidity"
+              stroke="#3b82f6"
+              name="Humidity (%)"
+              dot
+            />
+          )}
         </LineChart>
       </ResponsiveContainer>
     </div>

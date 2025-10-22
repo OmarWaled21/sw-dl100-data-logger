@@ -110,7 +110,7 @@ class AdminLog(models.Model):
         
 class NotificationSettings(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    devices = models.ManyToManyField("home.Device", blank=True)
+    devices = models.ManyToManyField("home.Device", blank=True, related_name="notified_users")
 
     gmail_is_active = models.BooleanField(default=False)
     email = models.EmailField(blank=True, null=True)

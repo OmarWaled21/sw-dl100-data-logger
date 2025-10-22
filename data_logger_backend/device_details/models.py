@@ -1,5 +1,5 @@
 from django.db import models
-from home.models import Device
+from home.models.device_model import Device
 from home.utils import get_master_time
 
 class DeviceReading(models.Model):

@@ -8,7 +8,7 @@ from rest_framework import status
 from django.utils.dateparse import parse_date
 from django.utils import timezone
 from django.template.loader import render_to_string
-from home.models import Device
+from home.models.device_model import Device
 from home.utils import get_master_time
 from home.serializers import DeviceSerializer
 from .models import ControlFeaturePriority, DeviceControl, DeviceReading

@@ -54,28 +54,35 @@ export default function HomePage() {
         const data = JSON.parse(event.data);
 
         if (data.device) {
-          setAllDevices((prev) => {
-            const updated = prev.map((d) =>
-              d.device_id === data.device.device_id ? { ...d, ...data.device } : d
-            );
-            if (selectedDept) {
-              setDevices(updated.filter((d: any) => d.department === selectedDept));
-            } else {
-              setDevices(updated);
-            }
-            return updated;
+          // تحديث جهاز واحد فقط
+          setAllDevices(prev => {
+            const exists = prev.some(d => d.device_id === data.device.device_id);
+            const updatedDevice = {
+              ...data.device,
+              status: mapStatus(data.device.status), // تأكد من التحويل الصحيح
+            };
+
+            return exists
+              ? prev.map(d =>
+                  d.device_id === data.device.device_id ? updatedDevice : d
+                )
+              : [...prev, updatedDevice];
           });
-        } else if (data.results) {
-          // البيانات كاملة أول مرة
+        }
+
+        else if (data.results?.devices) {
+          // البيانات الأولية
           const mappedDevices = data.results.devices.map((d: any) => ({
             ...d,
             status: mapStatus(d.status),
           }));
+
           setAllDevices(mappedDevices);
-          setDevices(mappedDevices); // أول مرة نعرض الكل
-          setServerOffset(data.results.time_difference * 60 * 1000);
+          setDevices(mappedDevices);
+          setServerOffset((data.results.time_difference ?? 0) * 60 * 1000);
           setLoading(false);
         }
+
       } catch (err) {
         console.error("Error parsing WS message:", err);
       }
@@ -85,6 +92,15 @@ export default function HomePage() {
 
     return () => ws.close();
   }, []);
+
+  // ✅ فلترة الأجهزة المعروضة عند تغير القسم أو تحديث البيانات
+  useEffect(() => {
+    setDevices(
+      selectedDept
+        ? allDevices.filter(d => Number(d.department_id) === Number(selectedDept))
+        : allDevices
+    );
+  }, [allDevices, selectedDept]);
 
   useEffect(() => {
     const token = Cookies.get("token");
@@ -106,29 +122,24 @@ export default function HomePage() {
         const updated = prevAll.map(device => {
           const lastUpdate = new Date(device.last_update).getTime();
           const now = Date.now();
-          // اغلاق الاغلبة بعد 10 دقايق بعد اخر تحديث
+          // إذا لم يتم التحديث لأكثر من 10 دقائق، نعتبره offline
           const offlineThreshold = (device.interval_wifi ?? 0) * 60 * 1000 + 10 * 60 * 1000;
 
-          const status =
-            now - lastUpdate > offlineThreshold
-              ? "offline"
-              : mapStatus(device.status);
+          const status = now - lastUpdate > offlineThreshold ? "offline" : mapStatus(device.status);
 
           return { ...device, status };
         });
 
-        // نحدث الأجهزة المعروضة بناءً على القسم المختار
-        setDevices(selectedDept
-          ? updated.filter(d => d.department_id === Number(selectedDept))
-          : updated
+        setDevices(
+          selectedDept
+            ? allDevices.filter(d => Number(d.department_id) === Number(selectedDept))
+            : allDevices
         );
-
         return updated;
       });
     }, 5000);
-
     return () => clearInterval(interval);
-  }, [selectedDept]);
+  }, [allDevices, selectedDept]);
 
   useEffect(() => {
     const token = Cookies.get("token");
@@ -312,6 +323,9 @@ export default function HomePage() {
                     key={device.device_id}
                     name={device.name}
                     battery={device.battery_level}
+                    has_temperature_sensor={device.has_temperature_sensor}
+                    has_humidity_sensor={device.has_humidity_sensor}
+                    temperature_type={device.temperature_type}
                     temperature={device.temperature}
                     humidity={device.humidity}
                     status={device.status}
@@ -345,6 +359,9 @@ export default function HomePage() {
                         key={device.device_id}
                         name={device.name}
                         battery={device.battery_level}
+                        has_temperature_sensor={device.has_temperature_sensor}
+                        has_humidity_sensor={device.has_humidity_sensor}
+                        temperature_type={device.temperature_type}
                         temperature={device.temperature}
                         humidity={device.humidity}
                         status={device.status}

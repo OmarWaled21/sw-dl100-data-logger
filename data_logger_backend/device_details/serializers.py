@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from home.models import Device
+from home.models.device_model import Device
 from .models import DeviceReading
 
 class DeviceEditSerializer(serializers.ModelSerializer):

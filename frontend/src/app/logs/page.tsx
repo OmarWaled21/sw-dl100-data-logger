@@ -89,56 +89,82 @@ export default function LogsPage() {
     }
   };
 
-  // 🔹 WebSocket connection
+  // 🔹 WebSocket connection - محسّن
   useEffect(() => {
     if (!token) return;
 
-    const ws = new WebSocket(`ws://127.0.0.1:8000/ws/logs/stream/?token=${token}`);
-    wsRef.current = ws;
+    // إذا كان هناك اتصال مفتوح بالفعل، لا تنشئ اتصالاً جديداً
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      console.log("🔗 Logs WebSocket already connected");
+      return;
+    }
 
-    ws.onopen = () => {
-      console.log("%c[Logs WS Connected ✅]", "color: green;");
-      if (reconnectRef.current) clearTimeout(reconnectRef.current);
-    };
+    const connectWebSocket = () => {
+      const ws = new WebSocket(`ws://127.0.0.1:8000/ws/logs/stream/?token=${token}`);
+      wsRef.current = ws;
 
-    ws.onmessage = (event) => {
-      try {
-        const msg = JSON.parse(event.data);
-        if (!msg?.category || !msg?.data) return;
-        const log = msg.data;
+      ws.onopen = () => {
+        console.log("%c[Logs WS Connected ✅]", "color: green;");
+        if (reconnectRef.current) clearTimeout(reconnectRef.current);
+      };
 
-        if (msg.category === "device_log") {
-          setDeviceLogs((prev) => {
-            if (prev.find((l) => l.id === log.id)) return prev;
-            return [log, ...prev];
-          });
-          setUnreadCounts((prev) => ({ ...prev, device: prev.device + 1 }));
-        } else if (msg.category === "admin_log") {
-          setAdminLogs((prev) => {
-            if (prev.find((l) => l.id === log.id)) return prev;
-            return [log, ...prev];
-          });
-          setUnreadCounts((prev) => ({ ...prev, admin: prev.admin + 1 }));
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (!msg?.category || !msg?.data) return;
+          const log = msg.data;
+
+          if (msg.category === "device_log") {
+            setDeviceLogs((prev) => {
+              if (prev.find((l) => l.id === log.id)) return prev;
+              return [log, ...prev];
+            });
+            setUnreadCounts((prev) => ({ ...prev, device: prev.device + 1 }));
+          } else if (msg.category === "admin_log") {
+            setAdminLogs((prev) => {
+              if (prev.find((l) => l.id === log.id)) return prev;
+              return [log, ...prev];
+            });
+            setUnreadCounts((prev) => ({ ...prev, admin: prev.admin + 1 }));
+          }
+        } catch (err) {
+          console.error("WS parse error:", err);
         }
-      } catch (err) {
-        console.error("WS parse error:", err);
-      }
+      };
+
+      ws.onerror = (e) => {
+        console.error("[Logs WS Error ❌]", e);
+      };
+
+      ws.onclose = (e) => {        
+        // إعادة الاتصال فقط للأخطاء غير متعمدة
+        if (e.code !== 1000) { // 1000 = إغلاق طبيعي
+          console.log("🔄 Attempting to reconnect in 3 seconds...");
+          reconnectRef.current = setTimeout(() => {
+            if (token) {
+              connectWebSocket();
+            }
+          }, 3000);
+        }
+      };
     };
 
-    ws.onclose = (e) => {
-      console.warn("[Logs WS Closed ❌]", e.reason || "no reason");
-      reconnectRef.current = setTimeout(() => {
-        if (wsRef.current?.readyState !== WebSocket.OPEN) {
-          wsRef.current = null;
-        }
-      }, 5000);
-    };
+    connectWebSocket();
 
     return () => {
-      ws.close();
-      if (reconnectRef.current) clearTimeout(reconnectRef.current);
+      // تنظيف مؤقت إعادة الاتصال
+      if (reconnectRef.current) {
+        clearTimeout(reconnectRef.current);
+        reconnectRef.current = null;
+      }
+      
+      // إغلاق WebSocket فقط إذا كان مفتوحاً
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.close(1000, "Component unmounting");
+      }
+      wsRef.current = null;
     };
-  }, [token]);
+  }, [token]); // 🚨 اعتماد على token فقط
 
   // 🔹 Initial load
   useEffect(() => {

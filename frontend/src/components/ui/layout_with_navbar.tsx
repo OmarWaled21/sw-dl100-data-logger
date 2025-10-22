@@ -1,7 +1,6 @@
 "use client";
 
 import Navbar from "@/components/navbar";
-import GlobalLogNotifier from "@/components/global/LocalNotificationListener";
 
 export default function LayoutWithNavbar({
   children,
@@ -14,7 +13,6 @@ export default function LayoutWithNavbar({
     <>
       {!fullScreen && <Navbar />}
       {children}
-      <GlobalLogNotifier />
     </>
   );
 }

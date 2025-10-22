@@ -1,6 +1,4 @@
-from django.utils import timezone
-from datetime import timedelta
-from .models import Device
+from .models.device_model import Device
 
 def auto_check_all_devices():
     """

@@ -15,7 +15,8 @@ export default function GlobalLogNotifier() {
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [token] = useState<string | null>(Cookies.get("token") || null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [audioUnlocked, setAudioUnlocked] = useState(false);
+  const audioUnlockedRef = useRef(false); // 🎯 استخدام useRef بدلاً من useState
+  const [, setAudioUnlocked] = useState(false); // للـ UI فقط إذا كان ضرورياً
 
   // 🔊 إعداد عنصر الصوت مرة واحدة
   useEffect(() => {
@@ -25,14 +26,15 @@ export default function GlobalLogNotifier() {
 
     const unlockAudio = () => {
       if (audioRef.current) {
-        audioRef.current.muted = true;  // ⛔ كتم الصوت أثناء التشغيل
+        audioRef.current.muted = true;
         audioRef.current.play().catch(() => {});
-        audioRef.current.pause();        // نوقفه فورًا
+        audioRef.current.pause();
         audioRef.current.currentTime = 0;
-        audioRef.current.muted = false;  // ✅ نرجّع الصوت عادي بعد الكتم
+        audioRef.current.muted = false;
       }
 
-      setAudioUnlocked(true);
+      audioUnlockedRef.current = true; // 🎯 تحديث useRef
+      setAudioUnlocked(true); // للتحديث البصري إذا لزم
       console.log("%c🔊 Audio unlocked after user interaction.", "color: green");
       window.removeEventListener("click", unlockAudio);
       window.removeEventListener("keydown", unlockAudio);
@@ -47,7 +49,7 @@ export default function GlobalLogNotifier() {
     };
   }, []);
 
-  // 🌐 WebSocket
+  // 🌐 WebSocket Connection
   useEffect(() => {
     if (!token) return;
 
@@ -87,11 +89,11 @@ export default function GlobalLogNotifier() {
           setTimeout(() => notif.close(), 5000);
         }
 
-        // Play audio if unlocked
-        if (audioUnlocked && audioRef.current) {
-          audioRef.current.currentTime = 0; // Restart from beginning
+        // 🎯 استخدام audioUnlockedRef.current بدلاً من audioUnlocked
+        if (audioUnlockedRef.current && audioRef.current) {
+          audioRef.current.currentTime = 0;
           audioRef.current.play().catch(() => console.log("🔇 Audio autoplay blocked."));
-        } else if (!audioUnlocked) {
+        } else if (!audioUnlockedRef.current) {
           console.warn("⚠️ Waiting for user interaction to unlock audio.");
         }
 
@@ -114,7 +116,7 @@ export default function GlobalLogNotifier() {
       socket.close();
       if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
     };
-  }, [token, audioUnlocked]);
+  }, [token]); // 🎯 audioUnlocked لم تعد في dependencies
 
   return null;
 }

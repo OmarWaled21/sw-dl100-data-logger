@@ -49,13 +49,17 @@ export default function DeviceDetailsPage() {
           id: data.device_id,
           name: data.name,
           battery: data.battery_level,
+          has_temperature_sensor: data.has_temperature_sensor,
+          has_humidity_sensor: data.has_humidity_sensor,
+          temperature_type: data.temperature_type,
           temperature: data.temperature,
           humidity: data.humidity,
           minTemp: data.min_temp,
           maxTemp: data.max_temp,
           minHum: data.min_hum,
           maxHum: data.max_hum,
-          interval: data.interval_wifi,
+          interval_wifi: data.interval_wifi,
+          interval_local: data.interval_local,
           last_update: data.last_update,
           status: data.status,
         });
@@ -86,7 +90,7 @@ export default function DeviceDetailsPage() {
         if (!prev) return prev;
         const lastUpdate = new Date(prev.last_update).getTime();
         const now = Date.now();
-        const offlineThreshold = (prev.interval ?? 0) * 1000 + 60000; // interval_wifi + 60 ثانية
+        const offlineThreshold = (prev.interval_wifi ?? 0) * 1000 + 10 * 60 * 1000; // interval_wifi + 10 minute
 
         const newStatus =
           now - lastUpdate > offlineThreshold ? "offline" : prev.status === "offline" ? "active" : prev.status;
@@ -167,14 +171,16 @@ export default function DeviceDetailsPage() {
     name: string;
     minTemp: number;
     maxTemp: number;
-    interval: number;
+    interval_wifi: number;
+    interval_local: number;
   }) => {
     try {
       await axios.put(`http://127.0.0.1:8000/device/${deviceId}/`, {
         name: data.name,
         min_temp: data.minTemp,
         max_temp: data.maxTemp,
-        interval_local: data.interval,
+        interval_wifi: data.interval_wifi,
+        interval_local: data.interval_local,
       }, {
         headers: {
           Authorization: `Token ${Cookies.get("token")}`,
@@ -186,21 +192,77 @@ export default function DeviceDetailsPage() {
     }
   };
 
-  
+  // تحديد تخطيط الـ sensors بناءً على العدد
+  const getSensorLayout = () => {
+    const sensors = [];
+    
+    if (device.has_temperature_sensor) {
+      sensors.push(
+        <div key="temperature" className="animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+          <SensorCard
+            title={`Temperature (${device.temperature_type === "air" ? "Air" : "Liquid"})`}
+            icon={
+              <WiThermometer
+                size={32}
+                className={device.temperature_type === "air" ? "text-orange-500" : "text-blue-500"}
+              />
+            }
+            unit="°C"
+            value={device.temperature}
+            min={device.minTemp}
+            max={device.maxTemp}
+            color={tempColor}
+          />
+        </div>
+      );
+    }
+    
+    if (device.has_humidity_sensor) {
+      sensors.push(
+        <div key="humidity" className="animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+          <SensorCard
+            title="Humidity"
+            icon={<WiHumidity size={32} className="text-cyan-500" />}
+            unit="%"
+            value={device.humidity}
+            min={device.minHum}
+            max={device.maxHum}
+            color={humColor}
+          />
+        </div>
+      );
+    }
+
+    // تحديد الـ grid layout بناءً على عدد الـ sensors
+    let gridClass = "";
+    if (sensors.length === 1) {
+      gridClass = "grid-cols-1 justify-center";
+    } else if (sensors.length === 2) {
+      gridClass = "grid-cols-1 md:grid-cols-2 gap-8";
+    } else if (sensors.length >= 3) {
+      gridClass = "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6";
+    }
+
+    return (
+      <div className={`grid ${gridClass} mb-12`}>
+        {sensors}
+      </div>
+    );
+  };
 
   return (
     <LayoutWithNavbar>
       <div className="p-6">
-        <div className="bg-white shadow-lg rounded-2xl p-6">
+        <div className="bg-white shadow-lg rounded-2xl p-6 animate-fade-in">
           {/* Header */}
           <div className="bg-white border-b border-gray-200 py-6 px-8 flex justify-between items-center relative">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">{device.name}</h1>
-              <div className="flex items-center gap-4">
-                <span className={`px-4 py-2 rounded-full font-semibold text-sm ${getStatusStyles()}`}>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2 animate-slide-in-left">{device.name}</h1>
+              <div className="flex items-center gap-4 animate-slide-in-left" style={{ animationDelay: '0.1s' }}>
+                <span className={`px-4 py-2 rounded-full font-semibold text-sm ${getStatusStyles()} transition-all duration-300`}>
                   {device.status.toUpperCase()}
                 </span>
-                <span className="text-lg font-medium text-gray-700 flex items-center gap-2">
+                <span className="text-lg font-medium text-gray-700 flex items-center gap-2 transition-all duration-300">
                   {getBatteryIcon()}
                   <span className="text-gray-900">{device.battery}% Battery</span>
                 </span>
@@ -209,42 +271,30 @@ export default function DeviceDetailsPage() {
 
             {/* Settings Button */}
             {role && ["admin", "supervisor"].includes(role) && (
-            <button
-              onClick={() => setOpen(true)}
-              className="absolute top-6 right-6 p-3 rounded-full bg-gray-100 hover:bg-gray-200 shadow cursor-pointer"
-            >
-              <FiSettings size={28} />
-            </button>
-          )}
+              <button
+                onClick={() => setOpen(true)}
+                className="absolute top-6 right-6 p-3 rounded-full bg-gray-100 hover:bg-gray-200 shadow cursor-pointer transition-all duration-300 hover:scale-110 animate-pulse-slow"
+              >
+                <FiSettings size={28} />
+              </button>
+            )}
           </div>
 
           {/* Main Content */}
           <div className="max-w-6xl mx-auto py-8 px-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-              <SensorCard
-                title="Temperature"
-                icon={<WiThermometer size={32} className="text-red-500" />}
-                unit="°"
-                value={device.temperature}
-                min={device.minTemp}
-                max={device.maxTemp}
-                color={tempColor}
-              />
+            {/* Sensors Grid - Dynamic Layout */}
+            {getSensorLayout()}
 
-              <SensorCard
-                title="Humidity"
-                icon={<WiHumidity size={32} className="text-blue-500" />}
-                unit="%"
-                value={device.humidity}
-                min={device.minHum}
-                max={device.maxHum}
-                color={humColor}
-              />
-            </div>
+            {/* حالة لو مفيش ولا sensor */}
+            {!device.has_temperature_sensor && !device.has_humidity_sensor && (
+              <div className="col-span-2 text-center text-gray-500 text-lg py-12 border border-dashed rounded-xl animate-fade-in">
+                No sensors detected for this device.
+              </div>
+            )}
 
             {/* Recent Readings Section */}
-            <div className="w-full min-h-screen">
-              <DeviceReadingData deviceId={device.id} readings={readings} deviceName={deviceName} />
+            <div className="w-full min-h-screen animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
+              <DeviceReadingData deviceId={device.id} readings={readings} deviceName={deviceName} hasTemperatureSensor={device.has_temperature_sensor} hasHumiditySensor={device.has_humidity_sensor} />
             </div>
           </div>
         </div>
@@ -253,16 +303,64 @@ export default function DeviceDetailsPage() {
         <DeviceModal
           isOpen={open}
           onClose={() => setOpen(false)}
-          deviceId= {device.id}
+          deviceId={device.id}
           name={device.name}
+          hasTemperatureSensor={device.has_temperature_sensor}
+          hasHumiditySensor={device.has_humidity_sensor}
+          temperatureType={device.temperature_type}
           minTemp={device.minTemp}
           maxTemp={device.maxTemp}
           minHum={device.minHum}
           maxHum={device.maxHum}
-          interval={device.interval}
+          interval_wifi={device.interval_wifi}
+          interval_local={device.interval_local}
           onSave={handleSave}
         />
       </div>
+
+      {/* إضافة الـ CSS للـ animations */}
+      <style jsx>{`
+        @keyframes fade-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes fade-in-up {
+          from { 
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to { 
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        @keyframes slide-in-left {
+          from {
+            opacity: 0;
+            transform: translateX(-20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+        @keyframes pulse-slow {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.05); }
+        }
+        .animate-fade-in {
+          animation: fade-in 0.6s ease-out;
+        }
+        .animate-fade-in-up {
+          animation: fade-in-up 0.6s ease-out;
+        }
+        .animate-slide-in-left {
+          animation: slide-in-left 0.5s ease-out;
+        }
+        .animate-pulse-slow {
+          animation: pulse-slow 2s infinite;
+        }
+      `}</style>
     </LayoutWithNavbar>
   );
 }

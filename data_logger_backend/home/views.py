@@ -2,7 +2,10 @@ from datetime import timedelta
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from .models import Department, Device, ESPDiscovery, MasterClock
+from .models.device_model import Device
+from .models.departments import Department
+from .models.master_clock import MasterClock
+from .models.esp_discovery import ESPDiscovery
 from device_details.models import DeviceReading
 from .serializers import DeviceSerializer, MasterClockSerializer, DeviceReadingSerializer, DepartmentSerializer
 from .utils import get_master_time
@@ -120,8 +123,9 @@ class AddDeviceView(APIView):
 
     def post(self, request):
         user = request.user
-        data = request.data
-        
+        data = request.data.copy()  # خليه copy عشان نقدر نعدّل فيه
+        data.pop("devices", None)   # 🧹 احذف المفتاح devices لو موجود
+
         device_id = data.get("device_id")
         name = data.get("name")
         min_temp = data.get("min_temp")
@@ -129,11 +133,19 @@ class AddDeviceView(APIView):
         min_hum = data.get("min_hum")
         max_hum = data.get("max_hum")
 
-        # تحقق من ID
+        # ✅ الحساسات
+        has_temperature_sensor = data.get("has_temperature_sensor", True)
+        has_humidity_sensor = data.get("has_humidity_sensor", True)
+        temperature_type = data.get("temperature_type")  # air/liquid
+
+        # ✅ تحقق من الـ ID
         if not device_id:
             return Response({"message": "device_id is required"}, status=400)
 
-        # department
+        if Device.objects.filter(device_id=device_id).exists():
+            return Response({"message": "Device with this ID already exists"}, status=400)
+
+        # ✅ department
         if user.role == "admin":
             department_id = data.get("department_id")
             if not department_id:
@@ -142,28 +154,50 @@ class AddDeviceView(APIView):
                 department = Department.objects.get(id=department_id)
             except Department.DoesNotExist:
                 return Response({"message": "Invalid department"}, status=400)
+            admin_user = user
+
         elif user.role == "manager":
             department = user.department
             if not department:
                 return Response({"message": "Manager has no department assigned"}, status=400)
+            admin_user = getattr(user, "manager", None)
+            if not admin_user:
+                return Response({"message": "Manager is not linked to an admin"}, status=400)
         else:
             return Response({"message": "Unauthorized"}, status=403)
 
-        # إنشاء الجهاز
-        device = Device.objects.create(
-            admin=user if user.role == "admin" else user.manager,  # لو مانجر نخلي الأدمن صاحب الفريق
-            device_id=device_id,
-            name=name,
-            department=department,
-            min_temp=min_temp,
-            max_temp=max_temp,
-            min_hum=min_hum,
-            max_hum=max_hum,
-            last_update=get_master_time(), 
-        )
+        # ✅ لو مفيش حساس حرارة، احذف نوع الحرارة
+        if not has_temperature_sensor:
+            temperature_type = None
 
+        # ✅ إنشاء الجهاز
+        try:
+            device = Device.objects.create(
+                admin=admin_user,
+                device_id=device_id,
+                name=name,
+                department=department,
+                has_temperature_sensor=has_temperature_sensor,
+                has_humidity_sensor=has_humidity_sensor,
+                temperature_type=temperature_type,
+                min_temp=min_temp,
+                max_temp=max_temp,
+                min_hum=min_hum,
+                max_hum=max_hum,
+                last_update=get_master_time(),
+            )
+        except Exception as e:
+            return Response({"message": f"Failed to create device: {str(e)}"}, status=400)
+        
         serializer = DeviceSerializer(device)
-        return Response({"success": True, "message": "Device added successfully", "results": serializer.data})
+        return Response(
+            {
+                "success": True,
+                "message": "Device added successfully",
+                "results": serializer.data,
+            },
+            status=201,
+        )
 
 class IsRegisteredView(APIView):
     permission_classes = []  # ممكن تخليها مفتوحة عشان ESP يقدر يسأل

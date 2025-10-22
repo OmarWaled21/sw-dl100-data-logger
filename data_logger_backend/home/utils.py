@@ -1,14 +1,8 @@
 # master/utils.py
 from django.utils.timezone import now
-from datetime import datetime, timedelta
-from statistics import mean, mode
-import pytz
-from django.core.mail import EmailMessage
-from django.conf import settings
-from django.db import models
 
 def get_master_time():
-    from .models import MasterClock
+    from .models.master_clock import MasterClock
     master_clock = MasterClock.objects.first()
     if master_clock:
         adjusted_time = master_clock.get_adjusted_time()  # استرجاع الوقت المعدل
@@ -18,7 +12,7 @@ def get_master_time():
     return adjusted_time   
 
 def get_user_devices(user):
-    from .models import Device
+    from .models.device_model import Device
 
     if user.role == 'admin':
         return Device.objects.filter(admin=user)

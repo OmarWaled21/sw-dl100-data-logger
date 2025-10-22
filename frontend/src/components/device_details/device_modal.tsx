@@ -7,18 +7,23 @@ interface DeviceModalProps {
   onClose: () => void;
   deviceId: string;
   name: string;
+  hasTemperatureSensor: boolean;
+  hasHumiditySensor: boolean;
+  temperatureType: string;
   minTemp: number;
   maxTemp: number;
   minHum: number;
   maxHum: number;
-  interval: number;
+  interval_wifi: number;
+  interval_local: number; 
   onSave: (data: {
     name: string;
     minTemp: number;
     maxTemp: number;
     minHum: number;
     maxHum: number;
-    interval: number;
+    interval_wifi: number;
+    interval_local: number;
   }) => void;
 }
 
@@ -27,11 +32,15 @@ export default function DeviceModal({
   onClose,
   deviceId,
   name,
+  hasTemperatureSensor,
+  hasHumiditySensor,
+  temperatureType,
   minTemp,
   maxTemp,
   minHum,
   maxHum,
-  interval,
+  interval_wifi,
+  interval_local,
   onSave,
 }: DeviceModalProps) {
   const [formName, setFormName] = useState(name);
@@ -39,7 +48,8 @@ export default function DeviceModal({
   const [formMaxTemp, setFormMaxTemp] = useState(maxTemp);
   const [formMinHum, setFormMinHum] = useState(minHum);
   const [formMaxHum, setFormMaxHum] = useState(maxHum);
-  const [formInterval, setFormInterval] = useState(interval);
+  const [formIntervalWifi, setFormIntervalWifi] = useState(interval_wifi);
+  const [formIntervalLocal, setFormIntervalLocal] = useState(interval_local);
 
   const handleSave = () => {
     onSave({
@@ -48,7 +58,8 @@ export default function DeviceModal({
       maxTemp: formMaxTemp,
       minHum: formMinHum,
       maxHum: formMaxHum,
-      interval: formInterval,
+      interval_wifi: formIntervalWifi,
+      interval_local: formIntervalLocal,
     });
   };
 
@@ -129,75 +140,128 @@ export default function DeviceModal({
               </div>
 
               {/* Temperature Range */}
-              <div className="space-y-3">
-                <label className="block text-sm font-semibold text-gray-800">
-                  🌡️ Temperature Range (°C)
-                </label>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium text-gray-600">Minimum</label>
-                    <input
-                      type="number"
-                      value={formMinTemp}
-                      onChange={(e) => setFormMinTemp(Number(e.target.value))}
-                      className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-2xl focus:ring-3 focus:ring-red-500/20 focus:border-red-500 transition-all duration-300"
-                      placeholder="Min"
-                    />
+              {hasTemperatureSensor && (
+                <div className="space-y-3">
+                  <label className="block text-sm font-semibold text-gray-800">
+                    🌡️ {temperatureType === "air" ? "Air" : "Liquid"} Temperature Range (°C)
+                  </label>
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Minimum */}
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium text-gray-600">Minimum</label>
+                      <input
+                        type="number"
+                        value={formMinTemp}
+                        onChange={(e) => {
+                          let value = Number(e.target.value);
+                          if (temperatureType === "air") {
+                            if (value < 0) value = 0;
+                            if (value > 100) value = 100;
+                          } else {
+                            if (value < -55) value = -55;
+                            if (value > 120) value = 120;
+                          }
+                          setFormMinTemp(value);
+                        }}
+                        className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-2xl focus:ring-3 focus:ring-red-500/20 focus:border-red-500 transition-all duration-300"
+                        placeholder="Min"
+                      />
+                    </div>
+
+                    {/* Maximum */}
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium text-gray-600">Maximum</label>
+                      <input
+                        type="number"
+                        value={formMaxTemp}
+                        onChange={(e) => {
+                          let value = Number(e.target.value);
+                          if (temperatureType === "air") {
+                            if (value < 0) value = 0;
+                            if (value > 100) value = 100;
+                          } else {
+                            if (value < -55) value = -55;
+                            if (value > 120) value = 120;
+                          }
+                          setFormMaxTemp(value);
+                        }}
+                        className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-2xl focus:ring-3 focus:ring-red-500/20 focus:border-red-500 transition-all duration-300"
+                        placeholder="Max"
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium text-gray-600">Maximum</label>
-                    <input
-                      type="number"
-                      value={formMaxTemp}
-                      onChange={(e) => setFormMaxTemp(Number(e.target.value))}
-                      className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-2xl focus:ring-3 focus:ring-red-500/20 focus:border-red-500 transition-all duration-300"
-                      placeholder="Max"
-                    />
-                  </div>
+
+                  {/* Optional note below the fields */}
+                  <p className="text-xs text-gray-500">
+                    {temperatureType === "air"
+                      ? "Allowed range: 0°C to 100°C"
+                      : "Allowed range: -55°C to 120°C"}
+                  </p>
                 </div>
-              </div>
+              )}
 
               {/* Humidity Range */}
-              <div className="space-y-3">
-                <label className="block text-sm font-semibold text-gray-800">
-                  💧 Humidity Range (%)
-                </label>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium text-gray-600">Minimum</label>
-                    <input
-                      type="number"
-                      value={formMinHum}
-                      onChange={(e) => setFormMinHum(Number(e.target.value))}
-                      className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-2xl focus:ring-3 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-300"
-                      placeholder="Min"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium text-gray-600">Maximum</label>
-                    <input
-                      type="number"
-                      value={formMaxHum}
-                      onChange={(e) => setFormMaxHum(Number(e.target.value))}
-                      className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-2xl focus:ring-3 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-300"
-                      placeholder="Max"
-                    />
+              {hasHumiditySensor && (
+                <div className="space-y-3">
+                  <label className="block text-sm font-semibold text-gray-800">
+                    💧 Humidity Range (%)
+                  </label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium text-gray-600">Minimum</label>
+                      <input
+                        type="number"
+                        value={formMinHum}
+                        onChange={(e) => setFormMinHum(Number(e.target.value))}
+                        className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-2xl focus:ring-3 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-300"
+                        placeholder="Min"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium text-gray-600">Maximum</label>
+                      <input
+                        type="number"
+                        value={formMaxHum}
+                        onChange={(e) => setFormMaxHum(Number(e.target.value))}
+                        className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-2xl focus:ring-3 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-300"
+                        placeholder="Max"
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
-              {/* Update Interval */}
+              {/* Update Intervals */}
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-gray-800">
-                  ⏱️ Update Interval (seconds)
+                  ⏱️ Update Interval WiFi (minutes)
                 </label>
                 <div className="relative">
                   <input
                     type="number"
-                    value={formInterval}
-                    onChange={(e) => setFormInterval(Number(e.target.value))}
+                    value={formIntervalWifi}
+                    onChange={(e) => setFormIntervalWifi(Number(e.target.value))}
                     className="w-full px-4 py-3.5 bg-white border-2 border-gray-200 rounded-2xl focus:ring-3 focus:ring-green-500/20 focus:border-green-500 transition-all duration-300"
-                    placeholder="Interval in seconds"
+                    placeholder="Interval in minutes"
+                  />
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-gray-800">
+                  ⏱️ Update Interval Local (minutes)
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={formIntervalLocal}
+                    onChange={(e) => setFormIntervalLocal(Number(e.target.value))}
+                    className="w-full px-4 py-3.5 bg-white border-2 border-gray-200 rounded-2xl focus:ring-3 focus:ring-green-500/20 focus:border-green-500 transition-all duration-300"
+                    placeholder="Interval in minutes"
                   />
                   <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                     <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
