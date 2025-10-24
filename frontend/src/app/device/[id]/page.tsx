@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import { WiThermometer, WiHumidity } from "react-icons/wi";
+import { useTranslation } from "react-i18next";
 import {
   FaBatteryFull,
   FaBatteryThreeQuarters,
@@ -35,6 +36,7 @@ export default function DeviceDetailsPage() {
   const [readings, setReadings] = useState<Reading[]>([]); // هنا array للـ readings
   const [deviceName, setDeviceName] = useState("");     // لو محتاج الاسم في الـ child
   const ws = useRef<WebSocket | null>(null);
+  const { t } = useTranslation();
 
   useEffect(() => {
     ws.current = new WebSocket(`ws://127.0.0.1:8000/ws/device/${deviceId}/?token=${Cookies.get("token")}`);
@@ -200,7 +202,7 @@ export default function DeviceDetailsPage() {
       sensors.push(
         <div key="temperature" className="animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
           <SensorCard
-            title={`Temperature (${device.temperature_type === "air" ? "Air" : "Liquid"})`}
+            title={device.temperature_type === "air" ? t("temperature") : t("temperature(liquid)")}
             icon={
               <WiThermometer
                 size={32}
@@ -221,7 +223,7 @@ export default function DeviceDetailsPage() {
       sensors.push(
         <div key="humidity" className="animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
           <SensorCard
-            title="Humidity"
+            title={t("humidity")}
             icon={<WiHumidity size={32} className="text-cyan-500" />}
             unit="%"
             value={device.humidity}
@@ -260,11 +262,11 @@ export default function DeviceDetailsPage() {
               <h1 className="text-3xl font-bold text-gray-900 mb-2 animate-slide-in-left">{device.name}</h1>
               <div className="flex items-center gap-4 animate-slide-in-left" style={{ animationDelay: '0.1s' }}>
                 <span className={`px-4 py-2 rounded-full font-semibold text-sm ${getStatusStyles()} transition-all duration-300`}>
-                  {device.status.toUpperCase()}
+                  {t(device.status)}
                 </span>
                 <span className="text-lg font-medium text-gray-700 flex items-center gap-2 transition-all duration-300">
                   {getBatteryIcon()}
-                  <span className="text-gray-900">{device.battery}% Battery</span>
+                  <span className="text-gray-900">{device.battery}% {t("Battery")}</span>
                 </span>
               </div>
             </div>
@@ -273,7 +275,7 @@ export default function DeviceDetailsPage() {
             {role && ["admin", "supervisor"].includes(role) && (
               <button
                 onClick={() => setOpen(true)}
-                className="absolute top-6 right-6 p-3 rounded-full bg-gray-100 hover:bg-gray-200 shadow cursor-pointer transition-all duration-300 hover:scale-110 animate-pulse-slow"
+                className="absolute top-6 end-6 p-3 rounded-full bg-gray-100 hover:bg-gray-200 shadow cursor-pointer transition-all duration-300 hover:scale-110 animate-pulse-slow"
               >
                 <FiSettings size={28} />
               </button>
@@ -288,7 +290,7 @@ export default function DeviceDetailsPage() {
             {/* حالة لو مفيش ولا sensor */}
             {!device.has_temperature_sensor && !device.has_humidity_sensor && (
               <div className="col-span-2 text-center text-gray-500 text-lg py-12 border border-dashed rounded-xl animate-fade-in">
-                No sensors detected for this device.
+                {t("No sensors detected for this device.")}
               </div>
             )}
 

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import EditClock from "@/components/settings/edit_clock";
 import Users from "@/components/settings/users";
 import Notifications from "@/components/settings/notifications";
@@ -20,6 +21,7 @@ export default function SettingsPage() {
   const [role, setRole] = useState<string>("");
   const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("");
+  const { t } = useTranslation();
 
   useEffect(() => {
     setRole(Cookies.get("role") || "");
@@ -27,10 +29,10 @@ export default function SettingsPage() {
   }, []);
 
   const tabs: Tab[] = [
-    { id: "clock", label: "Edit Clock", component: <EditClock />, allowedRoles: ["admin", "manager"] },
-    { id: "users", label: "Users", component: <Users />, allowedRoles: ["admin", "manager"] },
-    { id: "notifications", label: "Notifications", component: <Notifications />, allowedRoles: ["admin", "manager"] },
-    { id: "devices", label: "Devices", component: <DiscoverDevices />, allowedRoles: ["admin", "manager"] },
+    { id: "clock", label: t("Edit Clock"), component: <EditClock />, allowedRoles: ["admin", "manager"] },
+    { id: "users", label: t("Users"), component: <Users />, allowedRoles: ["admin", "manager"] },
+    { id: "notifications", label: t("Notifications"), component: <Notifications />, allowedRoles: ["admin", "manager"] },
+    { id: "devices", label: t("Devices"), component: <DiscoverDevices />, allowedRoles: ["admin", "manager"] },
   ];
 
   // بس الـ tabs اللي مسموح لهم حسب الـ role
@@ -52,7 +54,7 @@ export default function SettingsPage() {
       <div className="flex min-h-[calc(89.8vh)]">
         {/* Sidebar */}
         <div className="w-64 text-white p-4" style={{ backgroundColor: "#212529" }}>
-          <h2 className="text-xl font-bold mb-6">Settings</h2>
+          <h2 className="text-xl font-bold mb-6">{t("settings")}</h2>
           <ul className="space-y-3">
             {allowedTabs.map((tab) => (
               <li

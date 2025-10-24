@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import UserModal from "@/components/settings/user_modal";
 import { User } from "@/types/user";
+import { useTranslation } from "react-i18next";
 
 export default function Users() {
   const [users, setUsers] = useState<User[]>([]);
@@ -31,6 +32,8 @@ export default function Users() {
   // modal state
   const [openModal, setOpenModal] = useState(false);
   const [editUser, setEditUser] = useState<User | undefined>(undefined);
+
+  const { t } = useTranslation();
 
   useEffect(() => {
     fetchUsers();
@@ -139,8 +142,8 @@ export default function Users() {
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <div className="mb-4 sm:mb-0">
-              <h1 className="text-3xl font-bold text-gray-900">User Management</h1>
-              <p className="text-gray-600 mt-2">Manage system users and their permissions</p>
+              <h1 className="text-3xl font-bold text-gray-900">{t("User Management")}</h1>
+              <p className="text-gray-600 mt-2">{t("Manage system users and their permissions")}</p>
             </div>
             <div className="flex items-center space-x-3">
               <div className="bg-blue-50 rounded-lg p-2">
@@ -148,7 +151,7 @@ export default function Users() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
                 </svg>
               </div>
-              <span className="text-sm text-gray-500">{filteredUsers.length} users</span>
+              <span className="text-sm text-gray-500">{filteredUsers.length} {t("users")}</span>
             </div>
           </div>
         </div>
@@ -159,7 +162,8 @@ export default function Users() {
             <div className="flex flex-col sm:flex-row gap-3 flex-1">
               <div className="relative flex-1 max-w-md">
                 <Input
-                  placeholder="Search users by name or email..."
+                  placeholder={t("Search users by name or email...")}
+                  dir="ltr"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-10 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
@@ -176,10 +180,10 @@ export default function Users() {
                   <SelectValue placeholder="Filter by role" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Roles</SelectItem>
-                  <SelectItem value="user">User</SelectItem>
-                  <SelectItem value="supervisor">Supervisor</SelectItem>
-                  <SelectItem value="manager">Manager</SelectItem>
+                  <SelectItem value="all">{t("All Roles")}</SelectItem>
+                  <SelectItem value="user">{t("user")}</SelectItem>
+                  <SelectItem value="supervisor">{t("supervisor")}</SelectItem>
+                  <SelectItem value="manager">{t("manager")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -194,7 +198,7 @@ export default function Users() {
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
-              Add New User
+              {t("Add New User")}
             </Button>
           </div>
         </div>
@@ -236,7 +240,7 @@ export default function Users() {
                     return groups;
                   }, {})
               ).map(([dept, usersInDept]: [string, typeof filteredUsers]) => (
-                <div key={dept} className="mb-10">
+                <div key={dept} className="mb-10" dir="ltr">
                   {/* عنوان القسم */}
                   <h2 className="text-xl font-semibold text-gray-800 mb-4 border-b border-gray-200 pb-2 px-4">
                     {dept}
@@ -244,13 +248,13 @@ export default function Users() {
 
                   {/* الجدول الخاص بكل قسم */}
                   <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                    <Table>
+                    <Table dir="ltr">
                       <TableHeader>
                         <TableRow className="bg-gray-50 hover:bg-gray-50">
-                          <TableCell className="font-semibold text-gray-900 py-4">Username</TableCell>
-                          <TableCell className="font-semibold text-gray-900 py-4">Email</TableCell>
-                          <TableCell className="font-semibold text-gray-900 py-4">Role</TableCell>
-                          <TableCell className="font-semibold text-gray-900 py-4 text-right">Actions</TableCell>
+                          <TableCell className="font-semibold text-gray-900 py-4">{t("Username")}</TableCell>
+                          <TableCell className="font-semibold text-gray-900 py-4">{t("Email")}</TableCell>
+                          <TableCell className="font-semibold text-gray-900 py-4">{t("Role")}</TableCell>
+                          <TableCell className="font-semibold text-gray-900 py-4 text-right">{t("Actions")}</TableCell>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -271,7 +275,7 @@ export default function Users() {
                                     : "bg-green-100 text-green-800"
                                 }`}
                               >
-                                {u.role.charAt(0).toUpperCase() + u.role.slice(1)}
+                                {t(u.role)}
                               </span>
                             </TableCell>
                             <TableCell className="py-4">
@@ -285,7 +289,7 @@ export default function Users() {
                                     setOpenModal(true);
                                   }}
                                 >
-                                  Edit
+                                  {t("Edit")}
                                 </Button>
                                 <Button
                                   size="sm"
@@ -293,7 +297,7 @@ export default function Users() {
                                   variant="destructive"
                                   onClick={() => u.user_id && handleDeleteUser(u)}
                                 >
-                                  Delete
+                                  { t("Delete")}
                                 </Button>
                               </div>
                             </TableCell>

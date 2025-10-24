@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslation } from "react-i18next";
 
 interface DeviceModalProps {
   isOpen: boolean;
@@ -51,6 +52,8 @@ export default function DeviceModal({
   const [formIntervalWifi, setFormIntervalWifi] = useState(interval_wifi);
   const [formIntervalLocal, setFormIntervalLocal] = useState(interval_local);
 
+  const { t } = useTranslation();
+
   const handleSave = () => {
     onSave({
       name: formName,
@@ -97,7 +100,7 @@ export default function DeviceModal({
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-                    Edit  {name}
+                    {t("Edit")} {name}
                   </h2>
                   <p className="text-sm text-gray-500 mt-1 flex items-center gap-2">
                     <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-md text-xs font-medium">
@@ -121,11 +124,12 @@ export default function DeviceModal({
               {/* Device Name */}
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-gray-800">
-                  Device Name
+                  {t("Device Name")}
                 </label>
                 <div className="relative">
                   <input
                     type="text"
+                    dir="ltr"
                     value={formName}
                     onChange={(e) => setFormName(e.target.value)}
                     className="w-full px-4 py-3.5 bg-white border-2 border-gray-200 rounded-2xl focus:ring-3 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-300 placeholder-gray-400"
@@ -143,14 +147,15 @@ export default function DeviceModal({
               {hasTemperatureSensor && (
                 <div className="space-y-3">
                   <label className="block text-sm font-semibold text-gray-800">
-                    🌡️ {temperatureType === "air" ? "Air" : "Liquid"} Temperature Range (°C)
+                    🌡️ {t("Temperature Range")}  {temperatureType === "air" ? "" : t("fridge")}(°C)
                   </label>
                   <div className="grid grid-cols-2 gap-4">
                     {/* Minimum */}
                     <div className="space-y-2">
-                      <label className="text-xs font-medium text-gray-600">Minimum</label>
+                      <label className="text-xs font-medium text-gray-600">{t("Minimum")}</label>
                       <input
                         type="number"
+                        dir="ltr"
                         value={formMinTemp}
                         onChange={(e) => {
                           let value = Number(e.target.value);
@@ -170,9 +175,10 @@ export default function DeviceModal({
 
                     {/* Maximum */}
                     <div className="space-y-2">
-                      <label className="text-xs font-medium text-gray-600">Maximum</label>
+                      <label className="text-xs font-medium text-gray-600">{t("Maximum")}</label>
                       <input
                         type="number"
+                        dir="ltr"
                         value={formMaxTemp}
                         onChange={(e) => {
                           let value = Number(e.target.value);
@@ -194,8 +200,8 @@ export default function DeviceModal({
                   {/* Optional note below the fields */}
                   <p className="text-xs text-gray-500">
                     {temperatureType === "air"
-                      ? "Allowed range: 0°C to 100°C"
-                      : "Allowed range: -55°C to 120°C"}
+                      ? `${t("Allowed range")}: 0°C ${t("to")} 100°C`
+                      : `${t("Allowed range")}: -55°C ${t("to")} 120°C`}
                   </p>
                 </div>
               )}
@@ -204,11 +210,11 @@ export default function DeviceModal({
               {hasHumiditySensor && (
                 <div className="space-y-3">
                   <label className="block text-sm font-semibold text-gray-800">
-                    💧 Humidity Range (%)
+                    💧 {t("Humidity Range")} (%)
                   </label>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="text-xs font-medium text-gray-600">Minimum</label>
+                      <label className="text-xs font-medium text-gray-600">{t("Minimum")}</label>
                       <input
                         type="number"
                         value={formMinHum}
@@ -218,9 +224,10 @@ export default function DeviceModal({
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-xs font-medium text-gray-600">Maximum</label>
+                      <label className="text-xs font-medium text-gray-600">{t("Maximum")}</label>
                       <input
                         type="number"
+                        dir="ltr"
                         value={formMaxHum}
                         onChange={(e) => setFormMaxHum(Number(e.target.value))}
                         className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-2xl focus:ring-3 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-300"
@@ -234,11 +241,12 @@ export default function DeviceModal({
               {/* Update Intervals */}
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-gray-800">
-                  ⏱️ Update Interval WiFi (minutes)
+                  ⏱️ {t("Update Interval WiFi")} ({t("minutes")})
                 </label>
                 <div className="relative">
                   <input
                     type="number"
+                    dir="ltr"
                     value={formIntervalWifi}
                     onChange={(e) => setFormIntervalWifi(Number(e.target.value))}
                     className="w-full px-4 py-3.5 bg-white border-2 border-gray-200 rounded-2xl focus:ring-3 focus:ring-green-500/20 focus:border-green-500 transition-all duration-300"
@@ -253,11 +261,12 @@ export default function DeviceModal({
               </div>
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-gray-800">
-                  ⏱️ Update Interval Local (minutes)
+                  ⏱️ {t("Update Interval Local")} ({t("minutes")})
                 </label>
                 <div className="relative">
                   <input
                     type="number"
+                    dir="ltr"
                     value={formIntervalLocal}
                     onChange={(e) => setFormIntervalLocal(Number(e.target.value))}
                     className="w-full px-4 py-3.5 bg-white border-2 border-gray-200 rounded-2xl focus:ring-3 focus:ring-green-500/20 focus:border-green-500 transition-all duration-300"
@@ -279,13 +288,13 @@ export default function DeviceModal({
                   onClick={onClose}
                   className="px-8 py-3.5 text-gray-700 font-semibold rounded-2xl border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-50 transition-all duration-300 active:scale-95 cursor-pointer"
                 >
-                  Cancel
+                  {t("Cancel")}
                 </button>
                 <button
                   onClick={handleSave}
                   className="px-8 py-3.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-2xl hover:from-blue-700 hover:to-blue-800 focus:ring-4 focus:ring-blue-500/30 shadow-lg hover:shadow-xl transition-all duration-300 active:scale-95 cursor-pointer"
                 >
-                  Save Changes
+                  {t("Save Changes")} 
                 </button>
               </div>
             </div>

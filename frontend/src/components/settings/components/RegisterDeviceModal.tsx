@@ -1,5 +1,6 @@
 "use client";
 import { Dispatch, SetStateAction } from "react";
+import { useTranslation } from "react-i18next";
 import Cookies from "js-cookie";
 
 interface Props {
@@ -22,6 +23,8 @@ export default function RegisterDeviceModal({
   show, setShow, selectedDevice, sensorType, setSensorType, tempType, setTempType, form,
   setForm, isAdmin, departments, saving, setSaving,
 }: Props) {
+  const { t } = useTranslation();
+
   if (!show || !selectedDevice) return null;
 
   const handleTempTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -125,8 +128,8 @@ export default function RegisterDeviceModal({
         {/* Header */}
         <div className="px-8 py-6 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-2xl">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Register Device</h2>
-            <p className="text-sm text-gray-600 mt-1 font-medium">Device ID: <span className="text-blue-600">{selectedDevice.device_id}</span></p>
+            <h2 className="text-2xl font-bold text-gray-900">{t("Register Device")}</h2>
+            <p className="text-sm text-gray-600 mt-1 font-medium">{t("Device ID")}: <span className="text-blue-600">{selectedDevice.device_id}</span></p>
           </div>
           <button 
             onClick={() => setShow(false)} 
@@ -142,21 +145,22 @@ export default function RegisterDeviceModal({
         <div className="px-8 py-6 max-h-[70vh] overflow-y-auto space-y-6">
           {/* Name */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-3">Device Name</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-3">{t("Device Name")}</label>
             <input
               type="text"
               name="name"
+              dir="ltr"
               value={form.name}
               onChange={handleChange}
               className="w-full px-4 py-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-              placeholder="Enter device name"
+              placeholder={t("Enter device name")}
             />
           </div>
 
           {/* Sensor Type */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-3">
-              Sensor Type <span className="text-red-500">*</span>
+              {t("Sensor Type")} <span className="text-red-500">*</span>
             </label>
             <div className="flex gap-6">
               {["temperature", "humidity"].map((type) => (
@@ -184,38 +188,39 @@ export default function RegisterDeviceModal({
                       )}
                     </div>
                   </div>
-                  <span className="capitalize font-medium text-gray-700">{type}</span>
+                  <span className="capitalize font-medium text-gray-700">{t(type)}</span>
                 </label>
               ))}
             </div>
-            {sensorType.length === 0 && <p className="text-red-500 text-sm mt-2">Select at least one sensor type.</p>}
+            {sensorType.length === 0 && <p className="text-red-500 text-sm mt-2">{t("Select at least one sensor type.")}</p>}
           </div>
 
           {/* Temperature */}
           {sensorType.includes("temperature") && (
             <div className="space-y-5 bg-blue-50 p-5 rounded-xl border border-blue-100">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-3">Temperature Type</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-3">{t("Temperature Type")}</label>
                 <select
                   name="temp_type"
                   value={tempType}
                   onChange={handleTempTypeChange}
                   className="w-full px-4 py-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                 >
-                  <option value="">Select temperature type</option>
-                  <option value="air">Air</option>
-                  <option value="liquid">Liquid</option>
+                  <option value="">{t("Select temperature type")}</option>
+                  <option value="air">{t("air")}</option>
+                  <option value="liquid">{t("liquid")}</option>
                 </select>
-                {!tempType && <p className="text-red-500 text-sm mt-2">Please select temperature type.</p>}
+                {!tempType && <p className="text-red-500 text-sm mt-2">{t("Please select temperature type.")}</p>}
               </div>
               
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-3">Temperature Range</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-3">{t("Temperature Range")}</label>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-2">Min Temperature</label>
+                    <label className="block text-xs font-medium text-gray-500 mb-2">{t("Min Temperature")}</label>
                     <input
                       type="number"
+                      dir="ltr"
                       name="min_temp"
                       value={form.min_temp}
                       onChange={handleChange}
@@ -224,9 +229,10 @@ export default function RegisterDeviceModal({
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-2">Max Temperature</label>
+                    <label className="block text-xs font-medium text-gray-500 mb-2">{t("Max Temperature")}</label>
                     <input
                       type="number"
+                      dir="ltr"
                       name="max_temp"
                       value={form.max_temp}
                       onChange={handleChange}
@@ -242,12 +248,13 @@ export default function RegisterDeviceModal({
           {/* Humidity */}
           {sensorType.includes("humidity") && (
             <div className="space-y-5 bg-green-50 p-5 rounded-xl border border-green-100">
-              <label className="block text-sm font-semibold text-gray-700 mb-3">Humidity Range</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-3">{t("Humidity Range")}</label>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-2">Min Humidity</label>
+                  <label className="block text-xs font-medium text-gray-500 mb-2">{t("Min Humidity")}</label>
                   <input
                     type="number"
+                    dir="ltr"
                     name="min_hum"
                     value={form.min_hum}
                     onChange={handleChange}
@@ -256,9 +263,10 @@ export default function RegisterDeviceModal({
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-2">Max Humidity</label>
+                  <label className="block text-xs font-medium text-gray-500 mb-2">{t("Max Humidity")}</label>
                   <input
                     type="number"
+                    dir="ltr"
                     name="max_hum"
                     value={form.max_hum}
                     onChange={handleChange}
@@ -273,14 +281,14 @@ export default function RegisterDeviceModal({
           {/* Department */}
           {isAdmin && (
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-3">Department</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-3">{t("department")}</label>
               <select 
                 name="department_id" 
                 value={form.department_id} 
                 onChange={handleChange} 
                 className="w-full px-4 py-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
               >
-                <option value="">Select department</option>
+                <option value="">{t("Select department")}</option>
                 {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
               </select>
             </div>
@@ -293,7 +301,7 @@ export default function RegisterDeviceModal({
             onClick={() => setShow(false)} 
             className="px-7 py-3 border border-gray-300 text-gray-700 font-medium rounded-xl hover:bg-gray-100 transition-colors"
           >
-            Cancel
+            {t("Cancel")}
           </button>
           <button
             onClick={handleSave}
@@ -313,7 +321,7 @@ export default function RegisterDeviceModal({
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
-                Save Device
+                {t("Save Device")}
               </>
             )}
           </button>

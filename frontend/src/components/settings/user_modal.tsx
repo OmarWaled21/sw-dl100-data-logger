@@ -19,7 +19,7 @@ import {
   SelectItem,
   SelectValue,
 } from "@/components/ui/select";
-import { User } from "@/types/user";
+import { useTranslation } from "react-i18next";
 
 interface UserModalProps {
   open: boolean;
@@ -45,6 +45,8 @@ export default function UserModal({
   const [loading, setLoading] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const [departments, setDepartments] = useState<Array<{ id: number; name: string }>>([]);
+
+  const { t } = useTranslation();
 
   useEffect(() => {
     // read role from cookie once
@@ -119,10 +121,10 @@ export default function UserModal({
             </div>
             <div>
               <DialogTitle className="text-xl font-bold text-gray-900">
-                {isEditing ? "Edit User" : "Add New User"}
+                {isEditing ? `${t("Edit User")}` : `${t("Add New User")}`}
               </DialogTitle>
               <p className="text-sm text-gray-500 mt-1">
-                {isEditing ? "Update user information" : "Create a new user account"}
+                {isEditing ? `${t("Update user information")}` : `${t("Create a new user account")}`}
               </p>
             </div>
           </div>
@@ -136,10 +138,11 @@ export default function UserModal({
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
-              Username
+              {t("Username")}
             </label>
             <Input
-              placeholder="Enter username"
+              placeholder={t("Enter username")}
+              dir="ltr"
               value={form.username}
               onChange={(e) => setForm({ ...form, username: e.target.value })}
               className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
@@ -152,10 +155,11 @@ export default function UserModal({
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
               </svg>
-              Email Address
+              {t("Email Address")}
             </label>
             <Input
-              placeholder="Enter email address"
+              placeholder={t("Enter email address")}
+              dir="ltr"
               type="email"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
@@ -169,14 +173,14 @@ export default function UserModal({
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
-              User Role
+              {t("User Role")}
             </label>
             <Select
               onValueChange={(v) => setForm({ ...form, role: v })}
               value={form.role}
             >
               <SelectTrigger className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
-                <SelectValue placeholder="Select user role" />
+                <SelectValue placeholder={`${t("Select user role")}`} />
               </SelectTrigger>
               <SelectContent className="bg-white border border-gray-200 rounded-xl shadow-lg">
                 <SelectItem value="user" className="flex items-center p-3">
@@ -184,7 +188,7 @@ export default function UserModal({
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
-                    <span>User</span>
+                    <span>{t("user")}</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="supervisor" className="flex items-center p-3">
@@ -192,7 +196,7 @@ export default function UserModal({
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                     </svg>
-                    <span>Supervisor</span>
+                    <span>{t("supervisor")}</span>
                   </div>
                 </SelectItem>
                 {currentUserRole === "admin" && (
@@ -201,7 +205,7 @@ export default function UserModal({
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6h4m-2 4h.01M12 20a8 8 0 100-16 8 8 0 000 16z" />
                       </svg>
-                      <span>Manager</span>
+                      <span>{t("manager")}</span>
                     </div>
                   </SelectItem>
                 )}
@@ -216,14 +220,14 @@ export default function UserModal({
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7h18M3 12h18M3 17h18" />
                 </svg>
-                Department
+                {t("department")}
               </label>
               <Select
                 onValueChange={(v) => setForm({ ...form, department: v })}
                 value={form.department ? String(form.department) : ""}
               >
                 <SelectTrigger className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
-                  <SelectValue placeholder="Select department" />
+                  <SelectValue placeholder={t("Select department")} />
                 </SelectTrigger>
                 <SelectContent className="bg-white border border-gray-200 rounded-xl shadow-lg">
                   {departments.map((dept) => (
@@ -243,17 +247,18 @@ export default function UserModal({
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                 </svg>
-                Password
+                {t("Password")}
               </label>
               <Input
-                placeholder="Enter password"
+                placeholder={t("Enter password")}
                 type="password"
+                dir="ltr"
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
                 className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
               />
               <p className="text-xs text-gray-500">
-                Create a strong password with at least 8 characters
+                {t("Create a strong password with at least 8 characters")}
               </p>
             </div>
           )}
@@ -268,7 +273,7 @@ export default function UserModal({
               disabled={loading}
               className="flex-1 border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
             >
-              Cancel
+              {t("Cancel")}
             </Button>
             <Button
               onClick={handleSubmit}
@@ -295,7 +300,7 @@ export default function UserModal({
                   {isEditing ? "Updating..." : "Creating..."}
                 </div>
               ) : (
-                isEditing ? "Update User" : "Create User"
+                isEditing ? t("Update User") : t("Create User")
               )}
             </Button>
           </div>

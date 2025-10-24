@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
+import { useTranslation } from "react-i18next";
 import {
   LineChart,
   Line,
@@ -26,6 +27,7 @@ export default function DeviceReadingChart({
 }: Props) {
   const [chartData, setChartData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const { t } = useTranslation();
 
   useEffect(() => {
     let intervalId: NodeJS.Timeout;
@@ -74,7 +76,7 @@ export default function DeviceReadingChart({
   if (!hasTemperatureSensor && !hasHumiditySensor) {
     return (
       <div className="bg-white rounded-2xl p-8 border border-gray-200 text-center text-gray-600">
-        No sensors available for this device.
+        {t("No sensors available for this device.")}
       </div>
     );
   }
@@ -82,7 +84,7 @@ export default function DeviceReadingChart({
   return (
     <div className="bg-white rounded-2xl p-8 border border-gray-200">
       <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">
-        Last 12 Hours (Avg per Hour)
+        {t("Last 12 Hours (Avg per Hour)")}
       </h2>
       <ResponsiveContainer width="100%" height={400}>
         <LineChart data={chartData}>
@@ -98,7 +100,7 @@ export default function DeviceReadingChart({
               type="linear"
               dataKey="temperature"
               stroke="#ef4444"
-              name="Temperature (°C)"
+              name={`${t('temperature')} (°C)`}
               dot
             />
           )}
@@ -108,7 +110,7 @@ export default function DeviceReadingChart({
               type="linear"
               dataKey="humidity"
               stroke="#3b82f6"
-              name="Humidity (%)"
+              name={`${t('humidity')} (%)`}
               dot
             />
           )}

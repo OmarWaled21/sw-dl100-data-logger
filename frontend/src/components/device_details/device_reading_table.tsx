@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState, useRef } from "react";
 import { downloadDevicePdf } from "./download_pdf_device";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   readings: Reading[];
@@ -31,7 +32,7 @@ export default function DeviceReadingTable({
   const [allReadings, setAllReadings] = useState<Reading[]>([]);
   const [filteredReadings, setFilteredReadings] = useState<Reading[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
-  const wsRef = useRef<WebSocket | null>(null);
+  const { t } = useTranslation();
 
   const pageSize = 10;
 
@@ -98,9 +99,9 @@ export default function DeviceReadingTable({
       {/* Header */}
       <div className="flex items-start justify-between mb-8">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Recent Readings</h2>
+          <h2 className="text-2xl font-bold text-gray-900">{t("Recent Readings")}</h2>
           <p className="text-gray-500 text-sm mt-1">
-            Real-time temperature and humidity data
+            {t("Real-time data")}
           </p>
         </div>
 
@@ -108,7 +109,7 @@ export default function DeviceReadingTable({
           <div className="flex items-center justify-end space-x-4">
             <div className="flex items-center space-x-2 bg-blue-50 px-4 py-2 rounded-xl">
               <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-              <span className="text-blue-700 text-sm font-medium">Live</span>
+              <span className="text-blue-700 text-sm font-medium">{t("Live")}</span>
             </div>
 
             <button
@@ -138,14 +139,14 @@ export default function DeviceReadingTable({
                   d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"
                 />
               </svg>
-              Download PDF
+              {t("Download PDF")}
             </button>
           </div>
 
           {/* Filter type */}
           <div className="flex items-center justify-end space-x-4 pt-4">
             <label className="text-sm font-medium text-gray-700">
-              Filter type:
+              {t("Filter type:")}
             </label>
             <div className="flex items-center space-x-2">
               <label className="flex items-center space-x-1">
@@ -155,7 +156,7 @@ export default function DeviceReadingTable({
                   onChange={() => setFilterType("single")}
                   className="accent-blue-600"
                 />
-                <span>Single Date</span>
+                <span>{t("Single Date")}</span>
               </label>
               <label className="flex items-center space-x-1">
                 <input
@@ -164,7 +165,7 @@ export default function DeviceReadingTable({
                   onChange={() => setFilterType("range")}
                   className="accent-blue-600"
                 />
-                <span>Date Range</span>
+                <span>{t("Date Range")}</span>
               </label>
             </div>
           </div>
@@ -186,7 +187,7 @@ export default function DeviceReadingTable({
                   onChange={(e) => setFilterDateStart(e.target.value)}
                   className="px-3 py-2 border border-gray-300 rounded-xl text-sm"
                 />
-                <span className="text-gray-500">to</span>
+                <span className="text-gray-500">{t("to")}</span>
                 <input
                   type="date"
                   value={filterDateEnd}
@@ -203,7 +204,7 @@ export default function DeviceReadingTable({
                 }}
                 className="px-3 py-2 bg-gray-200 rounded-xl text-sm hover:bg-gray-300 transition"
               >
-                Clear
+                {t("Clear")}
               </button>
             )}
           </div>
@@ -235,7 +236,7 @@ export default function DeviceReadingTable({
                         d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                       />
                     </svg>
-                    <span>Timestamp</span>
+                    <span>{t("Timestamp")}</span>
                   </div>
                 </th>
 
@@ -255,7 +256,7 @@ export default function DeviceReadingTable({
                           d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
                         />
                       </svg>
-                      <span>Temperature</span>
+                      <span>{t("temperature")}</span>
                     </div>
                   </th>
                 )}
@@ -276,7 +277,7 @@ export default function DeviceReadingTable({
                           d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"
                         />
                       </svg>
-                      <span>Humidity</span>
+                      <span>{t("humidity")}</span>
                     </div>
                   </th>
                 )}
@@ -344,10 +345,10 @@ export default function DeviceReadingTable({
               />
             </svg>
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              No readings available
+              {t("No readings available")}
             </h3>
             <p className="text-gray-500">
-              Device readings will appear here once data is received.
+              {t("Device readings will appear here once data is received.")}
             </p>
           </div>
         )}
@@ -356,17 +357,17 @@ export default function DeviceReadingTable({
         {readings.length > 0 && (
           <div className="flex items-center justify-between mt-6 px-2">
             <div className="text-sm text-gray-500">
-              Showing{" "}
+              {t("showing")}{" "}
               <span className="font-semibold text-gray-900">{start + 1}</span>{" "}
-              to{" "}
+              {t("to")}{" "}
               <span className="font-semibold text-gray-900">
                 {Math.min(end, readings.length)}
               </span>{" "}
-              of{" "}
+              {t("of")}{" "}
               <span className="font-semibold text-gray-900">
                 {filteredReadings.length}
               </span>{" "}
-              results
+              {t("results")}
             </div>
 
             <div className="flex items-center space-x-2">
@@ -388,7 +389,7 @@ export default function DeviceReadingTable({
                     d="M15 19l-7-7 7-7"
                   />
                 </svg>
-                Previous
+                {t("previous")}
               </button>
 
               <div className="flex items-center space-x-1">
@@ -414,7 +415,7 @@ export default function DeviceReadingTable({
                 }
                 className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
               >
-                Next
+                {t("next")}
                 <svg
                   className="w-4 h-4 ml-2"
                   fill="none"

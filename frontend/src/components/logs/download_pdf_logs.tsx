@@ -2,6 +2,7 @@
 
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   logs: Record<string, any>[];
@@ -14,6 +15,8 @@ export default function DownloadPDFButton({
   logoUrl = "/tomatiki_logo.png",
   title = "System Logs",
 }: Props) {
+  const { t } = useTranslation();
+  
   const handleDownload = async () => {
     if (!logs || logs.length === 0) {
       alert("No logs to export!");
@@ -158,7 +161,7 @@ export default function DownloadPDFButton({
       onClick={handleDownload}
       className="px-4 py-2 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors cursor-pointer"
     >
-      Download PDF
+      {t("Download PDF")}
     </button>
   );
 }

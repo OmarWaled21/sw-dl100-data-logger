@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import DeviceReadingChart from "./device_reading_charts";
 import DeviceReadingTable from "./device_reading_table";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   deviceId: string;
@@ -20,6 +21,7 @@ interface Reading {
 
 export default function DeviceReadingsPage({ deviceId, readings, deviceName, hasTemperatureSensor, hasHumiditySensor }: Props) {
   const [view, setView] = useState<"chart" | "table">("chart");
+  const { t } = useTranslation();
 
   return (
     <div className="p-6">
@@ -31,7 +33,7 @@ export default function DeviceReadingsPage({ deviceId, readings, deviceName, has
             view === "chart" ? "bg-blue-600 text-white" : "bg-gray-200"
           }`}
         >
-          Chart
+          {t("chart")}
         </button>
         <button
           onClick={() => setView("table")}
@@ -39,7 +41,7 @@ export default function DeviceReadingsPage({ deviceId, readings, deviceName, has
             view === "table" ? "bg-blue-600 text-white" : "bg-gray-200"
           }`}
         >
-          Table
+          {t("table")}
         </button>
       </div>
 

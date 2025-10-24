@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import axios from "axios";
 import Cookies from "js-cookie";
 import RegisterDeviceModal from "./components/RegisterDeviceModal";
@@ -18,6 +19,8 @@ export default function DiscoverDevices() {
     department_id: "",
   });
   const [saving, setSaving] = useState(false);
+
+  const { t } = useTranslation();
 
   useEffect(() => {
     const fetchDevices = () => {
@@ -80,8 +83,8 @@ export default function DiscoverDevices() {
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Discovered Devices</h1>
-          <p className="text-gray-600">Manage and register new devices in your network</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">{t("Discovered Devices")}</h1>
+          <p className="text-gray-600">{t("Manage and register new devices in your network")}</p>
         </div>
 
         {/* Devices Grid */}
@@ -106,7 +109,7 @@ export default function DiscoverDevices() {
                   </div>
                 </div>
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                  Online
+                  {t("Online")}
                 </span>
               </div>
             
@@ -117,7 +120,7 @@ export default function DiscoverDevices() {
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
-                <span>Register Device</span>
+                <span>{t("Register Device")}</span>
               </button>
             </div>
           ))}
@@ -131,8 +134,8 @@ export default function DiscoverDevices() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2z" />
               </svg>
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No devices found</h3>
-            <p className="text-gray-500">No devices are currently available for registration.</p>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">{t("No devices found")}</h3>
+            <p className="text-gray-500">{t("No devices are currently available for registration.")}</p>
           </div>
         )}
       </div>

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
+import { useTranslation } from "react-i18next";
 import RoleProtected from "@/components/global/RoleProtected";
 import LogsTable from "@/components/logs/LogsTable";
 import DownloadPDFButton from "@/components/logs/download_pdf_logs";
@@ -38,6 +39,8 @@ export default function LogsPage() {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectRef = useRef<NodeJS.Timeout | null>(null);
   const token = Cookies.get("token");
+
+  const { t } = useTranslation();
 
   // 🔹 Fetch initial logs
   const fetchInitialLogs = useCallback(async () => {
@@ -234,20 +237,20 @@ export default function LogsPage() {
             <div className="mb-8">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900 mb-2">System Logs</h1>
+                  <h1 className="text-3xl font-bold text-gray-900 mb-2">{t("System Logs")}</h1>
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                      <p className="text-gray-600 text-sm">Real-time monitoring active</p>
+                      <p className="text-gray-600 text-sm">{t("Real-time monitoring active")}</p>
                     </div>
                     <div className="hidden sm:flex items-center gap-4 text-sm text-gray-500">
                       <span className="flex items-center gap-1">
                         <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                        Device Logs: {deviceLogs.length}
+                        {t("Device Logs")}: {deviceLogs.length}
                       </span>
                       <span className="flex items-center gap-1">
                         <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                        Admin Logs: {adminLogs.length}
+                        {t("Admin Logs")}: {adminLogs.length}
                       </span>
                     </div>
                   </div>
@@ -273,7 +276,7 @@ export default function LogsPage() {
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2z" />
                       </svg>
-                      Device Logs
+                      {t("Device Logs")}
                       {unreadCounts.device > 0 && (
                         <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
                           {unreadCounts.device}
@@ -292,7 +295,7 @@ export default function LogsPage() {
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                       </svg>
-                      Admin Logs
+                      {t("Admin Logs")}
                       {unreadCounts.admin > 0 && (
                         <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
                           {unreadCounts.admin}
@@ -310,7 +313,7 @@ export default function LogsPage() {
                         checked={dateMode === "single"}
                         onChange={() => setDateMode("single")}
                       />
-                      Single Date
+                      {t("Single Date")}
                     </label>
                     <label className="flex items-center gap-2">
                       <input
@@ -320,7 +323,7 @@ export default function LogsPage() {
                         checked={dateMode === "range"}
                         onChange={() => setDateMode("range")}
                       />
-                      Date Range
+                      {t("Date Range")}
                     </label>
 
                     {/* Conditional Inputs */}
@@ -378,8 +381,8 @@ export default function LogsPage() {
                 {totalPages > 1 && (
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mt-6 pt-6 border-t border-gray-200">
                     <p className="text-sm text-gray-600">
-                      Showing <span className="font-semibold">{indexOfFirstLog + 1}-{Math.min(indexOfLastLog, logs.length)}</span> of{" "}
-                      <span className="font-semibold">{logs.length}</span> logs
+                      {t("showing")} <span className="font-semibold">{indexOfFirstLog + 1}-{Math.min(indexOfLastLog, logs.length)}</span> {t("of")}{" "}
+                      <span className="font-semibold">{logs.length}</span> {t("logs")}
                     </p>
                     
                     <div className="flex items-center gap-2">
@@ -391,7 +394,7 @@ export default function LogsPage() {
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                         </svg>
-                        Previous
+                        {t("previous")}
                       </button>
                       
                       <div className="flex items-center gap-1">
@@ -428,7 +431,7 @@ export default function LogsPage() {
                         disabled={currentPage === totalPages}
                         className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 flex items-center gap-2 cursor-pointer"
                       >
-                        Next
+                        {t("next")}
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
@@ -449,7 +452,7 @@ export default function LogsPage() {
                     </svg>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-blue-700">Device Logs</p>
+                    <p className="text-sm font-medium text-blue-700">{t("Device Logs")}</p>
                     <p className="text-2xl font-bold text-blue-900">{deviceLogs.length}</p>
                   </div>
                 </div>
@@ -463,7 +466,7 @@ export default function LogsPage() {
                     </svg>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-purple-700">Admin Logs</p>
+                    <p className="text-sm font-medium text-purple-700">{t("Admin Logs")}</p>
                     <p className="text-2xl font-bold text-purple-900">{adminLogs.length}</p>
                   </div>
                 </div>

@@ -111,7 +111,7 @@ export default function Navbar() {
   const cleanPathname = pathname === "/" ? "/" : pathname.replace(/\/$/, "");
 
   return (
-    <nav className="text-white sticky top-0 shadow-md z-50" style={{ backgroundColor: "#212529" }}>
+    <nav className="text-white sticky top-0 shadow-md z-50" style={{ backgroundColor: "#212529" }} dir="ltr">
       <div className="container mx-auto flex items-center justify-between px-4 py-3">
         {/* Logo */}
         <Link href="/" className="flex items-center">

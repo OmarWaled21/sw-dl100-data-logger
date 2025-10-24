@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import "./globals.css";
 import "../i18n";
+import DirectionWrapper from "@/components/global/direction_wrapper"; // 👈 مكون جديد
 import GlobalLogNotifier from "@/components/global/LocalNotificationListener";
 
 const geistSans = Geist({
@@ -25,11 +26,15 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}>
-        <main className="flex-1 w-full">
-          <GlobalLogNotifier />
-          {children}
-        </main>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
+      >
+        <DirectionWrapper>
+          <main className="flex-1 w-full">
+            <GlobalLogNotifier />
+            {children}
+          </main>
+        </DirectionWrapper>
       </body>
     </html>
   );

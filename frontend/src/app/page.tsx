@@ -345,7 +345,7 @@ export default function HomePage() {
                   return acc;
                 }, {})
               ).map(([deptName, deptDevices]) => (
-                <div key={deptName} className="mb-10 last:mb-0">
+                <div key={deptName} className="mb-10 last:mb-0" dir="ltr">
                   <div className="flex items-center mb-4 pb-2 border-b border-gray-200">
                     <div className="w-3 h-8 bg-blue-500 rounded-full mr-3"></div>
                     <h2 className="text-xl font-bold text-gray-800">{deptName}</h2>

@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useTranslation } from "react-i18next";
 
 interface Log {
   id: number;
@@ -22,6 +23,8 @@ interface LogsTableProps {
 }
 
 export default function LogsTable({ logs, isLoading, mode }: LogsTableProps) {
+  const { t } = useTranslation();
+  
   if (isLoading) {
     return (
       <div className="flex justify-center items-center py-12">
@@ -58,7 +61,7 @@ export default function LogsTable({ logs, isLoading, mode }: LogsTableProps) {
     <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-100">
-          <thead className="bg-gray-50">
+          <thead className="bg-gray-50" dir="ltr">
             <tr>
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Time</th>
               {mode === "device" ? (
@@ -75,7 +78,7 @@ export default function LogsTable({ logs, isLoading, mode }: LogsTableProps) {
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Message</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-gray-100" dir="ltr">
             {logs.map((log) => (
               <tr key={log.id} className="hover:bg-gray-50 transition-all duration-150 group">
                 {/* Time */}

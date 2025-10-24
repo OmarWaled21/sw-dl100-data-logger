@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import axios from "axios";
 import Cookies from "js-cookie";
 
@@ -8,6 +9,8 @@ export default function EditClock() {
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+
+  const { t } = useTranslation();
 
   // ⏰ Fetch initial value
   useEffect(() => {
@@ -104,8 +107,8 @@ export default function EditClock() {
         <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-6 text-white">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold">Edit Master Clock</h1>
-              <p className="text-blue-100 mt-1 text-sm">Adjust system time settings</p>
+              <h1 className="text-2xl font-bold">{t("Edit Master Clock")}</h1>
+              <p className="text-blue-100 mt-1 text-sm">{t("Adjust system time settings")}</p>
             </div>
             <div className="bg-white/20 p-2 rounded-lg">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -121,7 +124,7 @@ export default function EditClock() {
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Live Clock Display */}
               <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-5 border border-blue-100 text-center">
-                <p className="text-blue-600 text-sm font-medium mb-3">CURRENT SYSTEM TIME</p>
+                <p className="text-blue-600 text-sm font-medium mb-3">{t("CURRENT SYSTEM TIME")}</p>
                 <div className="text-3xl font-mono font-bold text-gray-800 mb-1">
                   {currentTime.toLocaleTimeString('en-US', { 
                     hour12: true, 
@@ -143,7 +146,7 @@ export default function EditClock() {
               {/* DateTime Input */}
               <div>
                 <label className="block text-gray-700 font-semibold mb-3 text-sm uppercase tracking-wide">
-                  Adjust Date & Time
+                  {t("Adjust Date & Time")}
                 </label>
                 <div className="relative">
                   <input
@@ -173,10 +176,10 @@ export default function EditClock() {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
-                      Saving Changes...
+                      {t("Saving Changes")}...
                     </>
                   ) : (
-                    "Save Changes"
+                    t("Save Changes")
                   )}
                 </button>
 
@@ -186,7 +189,7 @@ export default function EditClock() {
                   disabled={loading}
                   className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-4 py-3.5 rounded-xl font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shadow-md hover:shadow-lg"
                 >
-                  {loading ? "Setting..." : "Set to Current Time"}
+                  {loading ? "Setting..." : t("Set to Current Time")}
                 </button>
               </div>
             </form>
@@ -198,7 +201,7 @@ export default function EditClock() {
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
               </div>
-              <p className="text-gray-600 font-medium">Loading clock settings...</p>
+              <p className="text-gray-600 font-medium">{t("Loading clock settings")}...</p>
             </div>
           )}
 

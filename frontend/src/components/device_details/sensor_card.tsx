@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+import { useTranslation } from "react-i18next";
 
 interface SensorCardProps {
   title: string;
@@ -14,6 +15,7 @@ interface SensorCardProps {
 const SensorCard: React.FC<SensorCardProps> = ({ title, icon, unit, value, min, max, color }) => {
   const circumference = 2 * Math.PI * 54; // 2πr , r=54
   const offset = circumference - (value / 100) * circumference;
+  const { t } = useTranslation();
 
   return (
     <div className="bg-white rounded-2xl p-8 border border-gray-200 hover:shadow-lg transition-shadow duration-300">
@@ -57,16 +59,16 @@ const SensorCard: React.FC<SensorCardProps> = ({ title, icon, unit, value, min, 
               <div className="text-3xl font-bold text-gray-900">
                 {value}{unit}
               </div>
-              <div className="text-sm text-gray-500 mt-1">Current</div>
+              <div className="text-sm text-gray-500 mt-1">{t("Current")}</div>
             </div>
           </div>
         </div>
       </div>
 
       <div className="text-center text-sm text-gray-600 bg-gray-50 py-2 px-4 rounded-lg border border-gray-100">
-        Operating Range:{" "}
+        {t("Operating Range")}:{" "}
         <span className="font-semibold text-gray-900">
-          {min}{unit} - {max}{unit}
+          {t("from")} {min}{unit} {t("to")} {max}{unit}
         </span>
       </div>
     </div>
