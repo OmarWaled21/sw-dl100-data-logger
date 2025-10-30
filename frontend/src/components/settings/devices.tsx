@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import axios from "axios";
 import Cookies from "js-cookie";
 import RegisterDeviceModal from "./components/RegisterDeviceModal";
+import { useIP } from "@/lib/IPContext";
 
 export default function DiscoverDevices() {
   const [devices, setDevices] = useState<DiscoveredDevice[]>([]);
@@ -21,10 +22,12 @@ export default function DiscoverDevices() {
   const [saving, setSaving] = useState(false);
 
   const { t } = useTranslation();
+  const { ipHost, ipLoading } = useIP();
 
   useEffect(() => {
+    if (ipLoading) return;
     const fetchDevices = () => {
-      axios.get("http://127.0.0.1:8000/discover/")
+      axios.get(`https://${ipHost}/discover/`)
         .then((res) => {
           const data = Array.isArray(res.data) ? res.data : res.data.results;
           setDevices(data || []);
@@ -39,22 +42,23 @@ export default function DiscoverDevices() {
 
     // تنظيف عند اغلاق الصفحه او عند اعاده التحميل
     return () => clearInterval(interval);
-  }, []);
+  }, [ipHost, ipLoading]);
 
   useEffect(() => {
+    if (ipLoading) return;
     const token = Cookies.get("token");
     const role = Cookies.get("role");
     if (!token || !role) return;
 
     if (role === "admin") {
       setIsAdmin(true);
-      axios.get("http://127.0.0.1:8000/departments/", {
+      axios.get(`https://${ipHost}/departments/`, {
         headers: { Authorization: `Token ${token}` },
       })
         .then((res) => setDepartments(res.data))
         .catch(() => setDepartments([]));
     }
-  }, []);
+  }, [ipHost, ipLoading]);
 
   const openModal = (device: DiscoveredDevice) => {
     setSelectedDevice(device);

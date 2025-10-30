@@ -28,8 +28,6 @@ def device_update_signal(sender, instance, **kwargs):
         'type': 'details',
         'device_id': instance.device_id,
         'name': instance.name,
-        'temperature': instance.temperature,
-        'humidity': instance.humidity,
         'min_temp': instance.min_temp,
         'max_temp': instance.max_temp,
         'min_hum': instance.min_hum,
@@ -41,19 +39,23 @@ def device_update_signal(sender, instance, **kwargs):
         'last_update': instance.last_update.strftime("%Y-%m-%d %H:%M:%S")
     }
     send_ws_update(group_name, data)
-
+    
 @receiver(post_save, sender=DeviceReading)
 def device_reading_signal(sender, instance, **kwargs):
     group_name = f'device_{safe_group_name(instance.device.device_id)}'
+    
+    readings_item = {'timestamp': instance.timestamp.strftime("%Y-%m-%d %H:%M:%S")}
+    
+    if instance.device.has_temperature_sensor:
+        readings_item['temperature'] = instance.temperature
+
+    if instance.device.has_humidity_sensor:
+        readings_item['humidity'] = instance.humidity
+
     data = {
         'type': 'readings',
         'device_id': instance.device.device_id,
-        'readings': [  # مهم
-            {
-                'timestamp': instance.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-                'temperature': instance.temperature,
-                'humidity': instance.humidity
-            }
-        ]
+        'last_update': instance.device.last_update.strftime("%Y-%m-%d %H:%M:%S"),
+        'readings': [readings_item]  # ✅ دايمًا array
     }
     send_ws_update(group_name, data)

@@ -10,4 +10,5 @@ urlpatterns = [
     path('edit/', EditMasterClockView.as_view(), name='data-logger-edit'),
     path('reading/', DeviceReadingView.as_view(), name='data-logger-reading'),
     path('firmware/', FirmwareUpdateView.as_view(), name='data-logger-firmware'),
+    path('home/<str:device_id>/', DataLoggerListView.as_view(), name='data-logger-detail'),
 ]

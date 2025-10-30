@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import Cookies from "js-cookie";
+import { useIP } from "@/lib/IPContext";
 
 interface LogData {
   id: number;
@@ -17,6 +18,8 @@ export default function GlobalLogNotifier() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioUnlockedRef = useRef(false); // 🎯 استخدام useRef بدلاً من useState
   const [, setAudioUnlocked] = useState(false); // للـ UI فقط إذا كان ضرورياً
+
+  const { ipHost, ipLoading } = useIP();
 
   // 🔊 إعداد عنصر الصوت مرة واحدة
   useEffect(() => {
@@ -52,12 +55,13 @@ export default function GlobalLogNotifier() {
   // 🌐 WebSocket Connection
   useEffect(() => {
     if (!token) return;
+    if (ipLoading) return;
 
     if (Notification.permission !== "granted") {
       Notification.requestPermission();
     }
 
-    const wsUrl = `ws://127.0.0.1:8000/ws/logs/latest/?token=${token}`;
+    const wsUrl = `wss://${ipHost}/ws/logs/latest/?token=${token}`;
     const socket = new WebSocket(wsUrl);
     wsRef.current = socket;
 
@@ -116,7 +120,7 @@ export default function GlobalLogNotifier() {
       socket.close();
       if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
     };
-  }, [token]); // 🎯 audioUnlocked لم تعد في dependencies
+  }, [token, ipLoading, ipHost]); // 🎯 audioUnlocked لم تعد في dependencies
 
   return null;
 }

@@ -4,6 +4,7 @@ import { useParams } from "next/navigation";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import LayoutWithNavbar from "@/components/ui/layout_with_navbar";
+import { useIP } from "@/lib/IPContext";
 
 export default function ResetPasswordPage() {
   const { uid, token } = useParams() as { uid: string; token: string };
@@ -14,8 +15,12 @@ export default function ResetPasswordPage() {
   
   const router = useRouter();
 
+  const { ipHost, ipLoading } = useIP();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if(ipLoading) return;
 
     if (newPassword !== confirmPassword) {
       setMessage("Passwords do not match");
@@ -24,7 +29,7 @@ export default function ResetPasswordPage() {
 
     try {
       const res = await fetch(
-        `http://127.0.0.1:8000/auth/password-reset-confirm/${uid}/${token}/`,
+        `https://${ipHost}/auth/password-reset-confirm/${uid}/${token}/`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

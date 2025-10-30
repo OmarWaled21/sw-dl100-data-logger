@@ -8,6 +8,7 @@ import RoleProtected from "@/components/global/RoleProtected";
 import LogsTable from "@/components/logs/LogsTable";
 import DownloadPDFButton from "@/components/logs/download_pdf_logs";
 import LayoutWithNavbar from "@/components/ui/layout_with_navbar";
+import { useIP } from "@/lib/IPContext";
 
 interface Log {
   id: number;
@@ -42,16 +43,19 @@ export default function LogsPage() {
 
   const { t } = useTranslation();
 
+  const { ipHost, ipLoading } = useIP();
+
   // 🔹 Fetch initial logs
   const fetchInitialLogs = useCallback(async () => {
     if (!token) return;
+    if (ipLoading) return;
     setIsLoading(true);
     try {
       const [deviceRes, adminRes] = await Promise.all([
-        axios.get("http://127.0.0.1:8000/logs/device/", {
+        axios.get(`https://${ipHost}/logs/device/`, {
           headers: { Authorization: `Token ${token}` },
         }),
-        axios.get("http://127.0.0.1:8000/logs/admin/", {
+        axios.get(`https://${ipHost}/logs/admin/`, {
           headers: { Authorization: `Token ${token}` },
         }),
       ]);
@@ -62,27 +66,29 @@ export default function LogsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [token]);
+  }, [token, ipHost, ipLoading]);
 
   // 🔹 Fetch unread counts
   const fetchUnreadCounts = useCallback(async () => {
     if (!token) return;
+    if (ipLoading) return;
     try {
-      const res = await axios.get("http://127.0.0.1:8000/logs/unread/", {
+      const res = await axios.get(`https://${ipHost}/logs/unread/`, {
         headers: { Authorization: `Token ${token}` },
       });
       setUnreadCounts({ device: res.data.device_logs, admin: res.data.admin_logs });
     } catch (err) {
       console.error("Failed fetching unread counts:", err);
     }
-  }, [token]);
+  }, [token, ipHost, ipLoading]);
 
   // 🔹 Mark logs as read
   const markAsRead = async (type: "device" | "admin") => {
     if (!token) return;
+    if (ipLoading) return;
     try {
       await axios.post(
-        "http://127.0.0.1:8000/logs/read/",
+        `https://${ipHost}/logs/read/`,
         { type },
         { headers: { Authorization: `Token ${token}` } }
       );
@@ -95,6 +101,7 @@ export default function LogsPage() {
   // 🔹 WebSocket connection - محسّن
   useEffect(() => {
     if (!token) return;
+    if (ipLoading) return;
 
     // إذا كان هناك اتصال مفتوح بالفعل، لا تنشئ اتصالاً جديداً
     if (wsRef.current?.readyState === WebSocket.OPEN) {
@@ -103,7 +110,7 @@ export default function LogsPage() {
     }
 
     const connectWebSocket = () => {
-      const ws = new WebSocket(`ws://127.0.0.1:8000/ws/logs/stream/?token=${token}`);
+      const ws = new WebSocket(`wss://${ipHost}/ws/logs/stream/?token=${token}`);
       wsRef.current = ws;
 
       ws.onopen = () => {
@@ -167,7 +174,7 @@ export default function LogsPage() {
       }
       wsRef.current = null;
     };
-  }, [token]); // 🚨 اعتماد على token فقط
+  }, [token, ipHost, ipLoading]); // 🚨 اعتماد على token فقط
 
   // 🔹 Initial load
   useEffect(() => {

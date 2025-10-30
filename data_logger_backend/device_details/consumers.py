@@ -80,6 +80,7 @@ class DeviceConsumer(AsyncJsonWebsocketConsumer):
         await self.send_json({
             "type": "readings",
             "device_id": self.device_id,
+            "last_update": device.last_update.strftime("%Y-%m-%d %H:%M:%S"),
             "readings": data
         })
 
@@ -117,9 +118,14 @@ class DeviceConsumer(AsyncJsonWebsocketConsumer):
             return
 
         filtered_data = {
-            "type": "update",
+            "type": "readings",
             "device_id": device.device_id,
+            "last_update": device.last_update.strftime("%Y-%m-%d %H:%M:%S")
         }
+        
+        # إرسال الـ readings لو موجودة
+        if "readings" in data:
+            filtered_data["readings"] = data["readings"]
 
         if device.has_temperature_sensor and "temperature" in data:
             filtered_data["temperature"] = data["temperature"]

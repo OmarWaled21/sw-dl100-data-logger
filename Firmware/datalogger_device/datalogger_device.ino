@@ -1,7 +1,6 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
-
 // إعدادات الشبكة
 #define WIFI_SSID "Mohsen"
 #define WIFI_PASSWORD "wsos1234"

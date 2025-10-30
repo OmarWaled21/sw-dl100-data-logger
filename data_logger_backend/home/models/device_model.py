@@ -67,7 +67,7 @@ class Device(models.Model):
     last_calibrated = models.DateTimeField(default=get_master_time)
 
     # intervals
-    interval_wifi = models.IntegerField(default=5, help_text="مدة الإرسال عبر WiFi بالدقائق")
+    interval_wifi = models.IntegerField(default=20, help_text="مدة الإرسال عبر WiFi بالدقائق")
     interval_local = models.IntegerField(default=5, help_text="مدة الإرسال المحلي بالدقائق")
     
     # battery

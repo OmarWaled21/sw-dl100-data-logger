@@ -37,7 +37,11 @@ export default function DeviceReadingTable({
   const pageSize = 10;
 
   useEffect(() => {
-    setAllReadings(readings);
+    // sort by timestamp (newest first)
+    const sorted = [...readings].sort(
+      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
+    setAllReadings(sorted);
     setLoading(false);
   }, [readings]);
 
@@ -299,7 +303,7 @@ export default function DeviceReadingTable({
                   {hasTemperatureSensor && (
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-lg font-semibold text-gray-900">
-                        {reading.temperature}°
+                        {reading.temperature.toFixed(2)}°
                       </div>
                     </td>
                   )}
@@ -308,7 +312,7 @@ export default function DeviceReadingTable({
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center space-x-2">
                         <div className="text-lg font-semibold text-gray-900">
-                          {reading.humidity}%
+                          {reading.humidity.toFixed(2)}%
                         </div>
                         <div
                           className={`w-2 h-2 rounded-full ${

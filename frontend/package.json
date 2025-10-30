@@ -1,8 +1,8 @@
 {
   "main": "main.js",
   "build": {
-    "appId": "com.yourcompany.myapp",
-    "productName": "MyNextApp",
+    "appId": "com.tomatiki.myapp",
+    "productName": "Data Logger",
     "directories": {
       "output": "dist"
     },
@@ -15,10 +15,11 @@
       "node_modules/**/*"
     ],
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "tomatiki_k.ico"
     }
   },
-  "name": "frontend",
+  "name": "data-logger",
   "version": "0.1.0",
   "private": true,
   "scripts": {

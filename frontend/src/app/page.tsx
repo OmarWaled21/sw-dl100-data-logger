@@ -7,6 +7,8 @@ import DeviceCard from "@/components/home/device_card";
 import axios from "axios";
 import { Device } from "@/types/device";
 import LayoutWithNavbar from "@/components/ui/layout_with_navbar";
+import { useIP } from "@/lib/IPContext";
+
 
 // تحويل حالة السيرفر إلى حالة مفهومة للـ DeviceCard
 const mapStatus = (status: string): "active" | "offline" | "error" => {
@@ -40,12 +42,16 @@ export default function HomePage() {
   const { t } = useTranslation();
   const role = Cookies.get("role");
 
+  const { ipHost, ipLoading } = useIP();
+
   useEffect(() => {
+    if(ipLoading) return;
     const token = Cookies.get("token");
+    if (!ipHost) return console.error("Server host not loaded yet");
     if (!token) return;
 
     // فتح WebSocket مرة واحدة فقط
-    const ws = new WebSocket(`ws://127.0.0.1:8000/ws/home/?token=${token}`);
+    const ws = new WebSocket(`wss://${ipHost}/ws/home/?token=${token}`);
     wsRef.current = ws;
 
     ws.onopen = () => console.log("WebSocket connected");
@@ -91,7 +97,7 @@ export default function HomePage() {
     ws.onclose = (event) => console.log(`WebSocket closed. Code: ${event.code}, Reason: ${event.reason}`);
 
     return () => ws.close();
-  }, []);
+  }, [ipHost, loading]);
 
   // ✅ فلترة الأجهزة المعروضة عند تغير القسم أو تحديث البيانات
   useEffect(() => {
@@ -103,18 +109,19 @@ export default function HomePage() {
   }, [allDevices, selectedDept]);
 
   useEffect(() => {
+    if(ipLoading) return;
     const token = Cookies.get("token");
     if (!token) return;
 
     axios
-      .get("http://127.0.0.1:8000/departments/", {
+      .get(`https://${ipHost}/departments/`, {
         headers: { Authorization: `Token ${token}` },
       })
       .then((res) => {
         setDepartments(res.data); // تأكد من شكل الـ API
       })
       .catch((err) => console.error("Error fetching departments:", err));
-  }, []);
+  }, [ipLoading, ipHost]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -142,6 +149,7 @@ export default function HomePage() {
   }, [allDevices, selectedDept]);
 
   useEffect(() => {
+    if(ipLoading) return;
     const token = Cookies.get("token");
     if (!token) return;
 
@@ -151,7 +159,7 @@ export default function HomePage() {
 
     const fetchServerTime = async () => {
       try {
-        const res = await axios.get("http://127.0.0.1:8000/", {
+        const res = await axios.get(`https://${ipHost}/`, {
           headers: {
             Authorization: `Token ${token}`,
           },
@@ -189,7 +197,7 @@ export default function HomePage() {
     // fetch كل ساعة
     const interval = setInterval(fetchServerTime, 60 * 60 * 1000); // 1 ساعة
     return () => clearInterval(interval);
-  }, []);
+  }, [ipLoading, ipHost]);
 
   useEffect(() => {
     setLocalTime(new Date());

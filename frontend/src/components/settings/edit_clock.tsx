@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import axios from "axios";
 import Cookies from "js-cookie";
+import { useIP } from "@/lib/IPContext";
 
 export default function EditClock() {
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
@@ -11,12 +12,14 @@ export default function EditClock() {
   const [message, setMessage] = useState("");
 
   const { t } = useTranslation();
+  const { ipHost, ipLoading } = useIP();
 
   // ⏰ Fetch initial value
   useEffect(() => {
+    if (ipLoading) return;
     async function fetchClock() {
       try {
-        const res = await axios.get("http://127.0.0.1:8000/", {
+        const res = await axios.get(`https://${ipHost}/`, {
           headers: { Authorization: `Token ${Cookies.get("token")}` },
         });
         const diffMinutes = res.data.results.time_difference;
@@ -30,7 +33,7 @@ export default function EditClock() {
       }
     }
     fetchClock();
-  }, []);
+  }, [ipHost, ipLoading]);
 
   // ⏱️ Update time locally every second
   useEffect(() => {
@@ -59,6 +62,7 @@ export default function EditClock() {
 
   // 📡 General save function
   async function saveClock(time: Date | null) {
+    if (ipLoading) return;
     setLoading(true);
     setMessage("");
     try {
@@ -73,14 +77,14 @@ export default function EditClock() {
       );
 
       await axios.post(
-        "http://127.0.0.1:8000/edit/",
+        `https://${ipHost}/edit/`,
         { time_difference: diffMinutes },
         { headers: { "Content-Type": "application/json", Authorization: `Token ${Cookies.get("token")}` } }
       );
 
       setMessage("✅ Master clock updated successfully");
 
-      fetch("http://127.0.0.1:8000/logs/create/", {
+      fetch(`https://${ipHost}/logs/create/`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

@@ -2,6 +2,7 @@
 import { Dispatch, SetStateAction } from "react";
 import { useTranslation } from "react-i18next";
 import Cookies from "js-cookie";
+import { useIP } from "@/lib/IPContext";
 
 interface Props {
   show: boolean;
@@ -24,6 +25,8 @@ export default function RegisterDeviceModal({
   setForm, isAdmin, departments, saving, setSaving,
 }: Props) {
   const { t } = useTranslation();
+
+  const { ipHost, ipLoading } = useIP();
 
   if (!show || !selectedDevice) return null;
 
@@ -66,6 +69,7 @@ export default function RegisterDeviceModal({
   };
 
   const handleSave = async () => {
+    if (!ipHost || ipLoading) return;
     if (!selectedDevice) return;
     setSaving(true);
     const token = Cookies.get("token");
@@ -93,7 +97,7 @@ export default function RegisterDeviceModal({
       console.log("📤 Sending data:", JSON.stringify(bodyData, null, 2));
 
       // ✅ إرسال البيانات فقط، بدون أي form كامل أو extra keys
-      const response = await fetch("http://127.0.0.1:8000/add/", {
+      const response = await fetch(`https://${ipHost}/add/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

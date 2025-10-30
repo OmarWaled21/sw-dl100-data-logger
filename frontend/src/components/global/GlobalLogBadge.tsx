@@ -2,16 +2,19 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
+import { useIP } from "@/lib/IPContext";
 
 export default function GlobalLogBadge() {
   const [counts, setCounts] = useState({ total: 0, device_logs: 0, admin_logs: 0 });
+  const { ipHost, ipLoading } = useIP();
 
   const fetchUnread = async () => {
     const token = Cookies.get("token");
+    if(ipLoading) return;
     if (!token) return;
 
     try {
-      const res = await axios.get("http://127.0.0.1:8000/logs/unread/", {
+      const res = await axios.get(`https://${ipHost}/logs/unread/`, {
         headers: { Authorization: `Token ${token}` },
       });
       setCounts(res.data);

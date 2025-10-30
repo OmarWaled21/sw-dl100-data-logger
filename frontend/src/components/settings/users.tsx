@@ -22,6 +22,7 @@ import {
 import UserModal from "@/components/settings/user_modal";
 import { User } from "@/types/user";
 import { useTranslation } from "react-i18next";
+import { useIP } from "@/lib/IPContext";
 
 export default function Users() {
   const [users, setUsers] = useState<User[]>([]);
@@ -34,18 +35,20 @@ export default function Users() {
   const [editUser, setEditUser] = useState<User | undefined>(undefined);
 
   const { t } = useTranslation();
+  const { ipHost, ipLoading } = useIP();
 
   useEffect(() => {
     fetchUsers();
   }, []);
 
   async function fetchUsers() {
+    if (ipLoading) return;
     try {
       setLoading(true);
-      const res = await axios.get("http://127.0.0.1:8000/users/", {
+      const res = await axios.get(`https://${ipHost}/users/`, {
         headers: { Authorization: `Token ${Cookies.get("token")}` },
       });
-      setUsers(res.data);
+      setUsers(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error("Error loading users", err);
     } finally {
@@ -54,16 +57,17 @@ export default function Users() {
   }
 
   async function handleSaveUser(user: User) {
+    if (ipLoading) return;
     try {
       if (user.user_id) {
-        await axios.put(`http://127.0.0.1:8000/users/${user.user_id}/edit/`, user, {
+        await axios.put(`https://${ipHost}/users/${user.user_id}/edit/`, user, {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Token ${Cookies.get("token")}`,
           },
         });
 
-        fetch("http://127.0.0.1:8000/logs/create/", {
+        fetch(`https://${ipHost}/logs/create/`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -75,14 +79,14 @@ export default function Users() {
           })
         }).catch(console.error);
       } else {
-        await axios.post("http://127.0.0.1:8000/users/add/", user, {
+        await axios.post(`https://${ipHost}/users/add/`, user, {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Token ${Cookies.get("token")}`,
           },
         });
 
-        fetch("http://127.0.0.1:8000/logs/create/", {
+        fetch(`https://${ipHost}/logs/create/`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -102,14 +106,15 @@ export default function Users() {
   }
 
   async function handleDeleteUser(user: User) {
+    if (ipLoading) return;
     if (!confirm("Are you sure you want to delete this user?")) return;
 
     try {
-      await axios.delete(`http://127.0.0.1:8000/users/${user.user_id}/delete/`, {
+      await axios.delete(`https://${ipHost}/users/${user.user_id}/delete/`, {
         headers: { Authorization: `Token ${Cookies.get("token")}` },
       });
 
-      fetch("http://127.0.0.1:8000/logs/create/", {
+      fetch(`https://${ipHost}/logs/create/`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -126,7 +131,7 @@ export default function Users() {
     }
   }
 
-  const filteredUsers = users.filter(
+  const filteredUsers = (users || []).filter(
     (u) =>
       (roleFilter && roleFilter !== "all" ? u.role === roleFilter : true) &&
       (search

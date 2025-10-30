@@ -239,43 +239,46 @@ export default function DeviceModal({
               )}
 
               {/* Update Intervals */}
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-gray-800">
-                  ⏱️ {t("Update Interval WiFi")} ({t("minutes")})
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    dir="ltr"
-                    value={formIntervalWifi}
-                    onChange={(e) => setFormIntervalWifi(Number(e.target.value))}
-                    className="w-full px-4 py-3.5 bg-white border-2 border-gray-200 rounded-2xl focus:ring-3 focus:ring-green-500/20 focus:border-green-500 transition-all duration-300"
-                    placeholder="Interval in minutes"
-                  />
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+              <div className="space-y-6">
+                {/* WiFi Interval */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-gray-800">
+                    ⏱️ {t("Update Interval WiFi")} ({t("minutes")})
+                  </label>
+                  <div className="flex items-center gap-4">
+                    <input
+                      type="range"
+                      min={5}
+                      max={60}
+                      step={5}
+                      value={formIntervalWifi}
+                      onChange={(e) => setFormIntervalWifi(Number(e.target.value))}
+                      className="w-full accent-green-600"
+                    />
+                    <span className="text-sm font-medium text-gray-700 w-10 text-center">
+                      {formIntervalWifi}
+                    </span>
                   </div>
                 </div>
-              </div>
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-gray-800">
-                  ⏱️ {t("Update Interval Local")} ({t("minutes")})
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    dir="ltr"
-                    value={formIntervalLocal}
-                    onChange={(e) => setFormIntervalLocal(Number(e.target.value))}
-                    className="w-full px-4 py-3.5 bg-white border-2 border-gray-200 rounded-2xl focus:ring-3 focus:ring-green-500/20 focus:border-green-500 transition-all duration-300"
-                    placeholder="Interval in minutes"
-                  />
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+
+                {/* Local Interval */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-gray-800">
+                    ⏱️ {t("Update Interval Local")} ({t("minutes")})
+                  </label>
+                  <div className="flex items-center gap-4">
+                    <input
+                      type="range"
+                      min={5}
+                      max={60}
+                      step={5}
+                      value={formIntervalLocal}
+                      onChange={(e) => setFormIntervalLocal(Number(e.target.value))}
+                      className="w-full accent-green-600"
+                    />
+                    <span className="text-sm font-medium text-gray-700 w-10 text-center">
+                      {formIntervalLocal}
+                    </span>
                   </div>
                 </div>
               </div>

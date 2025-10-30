@@ -7,6 +7,9 @@ dist/
 *.docx
 .docx
 *.bat
+Secrets.*
+key_holder.*
+obf/
 run*.py
 run_dist/
 run.*/

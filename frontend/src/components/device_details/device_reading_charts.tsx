@@ -13,6 +13,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import { useIP } from "@/lib/IPContext";
 
 interface Props {
   deviceId: string;
@@ -29,13 +30,16 @@ export default function DeviceReadingChart({
   const [loading, setLoading] = useState(true);
   const { t } = useTranslation();
 
+  const { ipHost, ipLoading } = useIP();
+
   useEffect(() => {
+    if (ipLoading) return;
     let intervalId: NodeJS.Timeout;
 
     const fetchAverages = async () => {
       try {
         const res = await axios.get(
-          `http://127.0.0.1:8000/device/${deviceId}/averages/`,
+          `https://${ipHost}/device/${deviceId}/averages/`,
           {
             headers: { Authorization: `Token ${Cookies.get("token")}` },
           }
@@ -66,7 +70,7 @@ export default function DeviceReadingChart({
     intervalId = setInterval(fetchAverages, 60000);
 
     return () => clearInterval(intervalId);
-  }, [deviceId]);
+  }, [deviceId, ipLoading, ipHost]);
 
   if (loading) {
     return <div>Loading chart...</div>;

@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import Link from "next/link";
 import Cookies from "js-cookie";
 import axios from "axios";
+import { useIP } from "@/lib/IPContext";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -17,6 +18,8 @@ export default function Navbar() {
 
   const router = useRouter();
   const pathname = usePathname();
+
+  const { ipHost, ipLoading } = useIP();
 
   const toggleLang = () => {
     const newLang = i18n.language === "en" ? "ar" : "en";
@@ -42,12 +45,13 @@ export default function Navbar() {
 
   // ✅ قراءة عدد اللوجات الغير مقروءة (admin + device)
   useEffect(() => {
+    if (ipLoading) return;
     const token = Cookies.get("token");
     if (!token) return;
 
     const fetchUnreadLogs = async () => {
       try {
-        const res = await axios.get("http://127.0.0.1:8000/logs/unread/", {
+        const res = await axios.get(`https://${ipHost}/logs/unread/`, {
           headers: { Authorization: `Token ${token}` },
         });
         if (res.data) {
@@ -62,7 +66,7 @@ export default function Navbar() {
     fetchUnreadLogs();
     const interval = setInterval(fetchUnreadLogs, 5000); // يحدث كل 5 ثانية
     return () => clearInterval(interval);
-  }, []);
+  }, [ipLoading, ipHost]);
 
   const role = Cookies.get("role");
 
@@ -75,11 +79,12 @@ export default function Navbar() {
   const links = allLinks.filter((link) => role && link.roles.includes(role));
 
   const handleLogout = async () => {
+    if (ipLoading) return;
     const token = Cookies.get("token");
     const username = Cookies.get("username");
     try {
       if (token) {
-        await fetch("http://127.0.0.1:8000/logs/create/", {
+        await fetch(`https://${ipHost}/logs/create/`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -91,7 +96,7 @@ export default function Navbar() {
           }),
         }).catch(console.error);
 
-        await fetch("http://127.0.0.1:8000/auth/logout/", {
+        await fetch(`https://${ipHost}/auth/logout/`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

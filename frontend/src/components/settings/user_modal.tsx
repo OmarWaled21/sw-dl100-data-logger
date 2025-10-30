@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useTranslation } from "react-i18next";
+import { useIP } from "@/lib/IPContext";
 
 interface UserModalProps {
   open: boolean;
@@ -48,6 +49,8 @@ export default function UserModal({
 
   const { t } = useTranslation();
 
+  const { ipHost, ipLoading } = useIP();
+
   useEffect(() => {
     // read role from cookie once
     const role = Cookies.get("role");
@@ -68,12 +71,13 @@ export default function UserModal({
 
   // جلب الأقسام فقط لو اليوزر Admin
   useEffect(() => {
+    if (ipLoading) return;
     const token = Cookies.get("token");
     if (!token) return;
 
     if (currentUserRole === "admin") {
       axios
-        .get("http://127.0.0.1:8000/departments/", {
+        .get(`https://${ipHost}/departments/`, {
           headers: { Authorization: `Token ${token}` },
         })
         .then((res) => {
@@ -84,7 +88,7 @@ export default function UserModal({
           console.error("Error fetching departments:", err);
         });
     }
-  }, [currentUserRole]);
+  }, [currentUserRole, ipHost, ipLoading]);
 
   async function handleSubmit() {
     setLoading(true);

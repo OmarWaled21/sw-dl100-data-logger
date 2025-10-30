@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import axios from "axios";
 import Cookies from "js-cookie";
+import { useIP } from "@/lib/IPContext";
 
 export default function NotificationManagerPanel() {
   const [tree, setTree] = useState<any[]>([]);
@@ -16,10 +17,13 @@ export default function NotificationManagerPanel() {
 
   const { t } = useTranslation();
 
+  const { ipHost, ipLoading } = useIP();
+
   // Load tree (departments + users + department devices)
   useEffect(() => {
+    if (ipLoading) return;
     axios
-      .get("http://127.0.0.1:8000/logs/notifications/tree/", {
+      .get(`https://${ipHost}/logs/notifications/tree/`, {
         headers: { Authorization: `Token ${token}` },
       })
       .then((res) => {
@@ -27,15 +31,16 @@ export default function NotificationManagerPanel() {
         setTree(res.data);
       })
       .catch((err) => console.error("Error loading tree:", err));
-  }, []);
+  }, [ipHost, ipLoading]);
 
   // Load settings for specific user - FIXED VERSION
   const loadUserSettings = async (userId: number) => {
+    if (ipLoading) return;
     setLoading(true);
     try {
       // First, get user settings
       const settingsRes = await axios.get(
-        `http://127.0.0.1:8000/logs/notifications/settings/?user_id=${userId}`,
+        `https://${ipHost}/logs/notifications/settings/?user_id=${userId}`,
         { headers: { Authorization: `Token ${token}` } }
       );
 
@@ -102,13 +107,14 @@ export default function NotificationManagerPanel() {
 
   // Save changes
   const handleSave = async () => {
+    if (ipLoading) return;
     if (!selectedUser) return alert("Please select a user first");
 
     try {
       console.log("💾 Saving with devices:", devices);
       
       await axios.post(
-        "http://127.0.0.1:8000/logs/notifications/settings/",
+        `https://${ipHost}/logs/notifications/settings/`,
         {
           user_id: selectedUser.user_id,
           gmail_is_active: emailEnabled,
@@ -121,7 +127,7 @@ export default function NotificationManagerPanel() {
       
       // Refresh the tree data to get updated device states
       const treeRes = await axios.get(
-        "http://127.0.0.1:8000/logs/notifications/tree/",
+        `https://${ipHost}/logs/notifications/tree/`,
         { headers: { Authorization: `Token ${token}` } }
       );
       setTree(treeRes.data);

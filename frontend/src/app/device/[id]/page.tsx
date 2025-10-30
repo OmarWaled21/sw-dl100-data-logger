@@ -18,6 +18,7 @@ import DeviceModal from "@/components/device_details/device_modal";
 import DeviceReadingData from "@/components/device_details/device_readings_card";
 import { DeviceDetails } from "@/types/device";
 import LayoutWithNavbar from "@/components/ui/layout_with_navbar";
+import { useIP } from "@/lib/IPContext";
 
 interface Reading {
   temperature: number;
@@ -34,12 +35,14 @@ export default function DeviceDetailsPage() {
   const role = Cookies.get("role"); // جايب الدور من الكوكيز
   
   const [readings, setReadings] = useState<Reading[]>([]); // هنا array للـ readings
-  const [deviceName, setDeviceName] = useState("");     // لو محتاج الاسم في الـ child
   const ws = useRef<WebSocket | null>(null);
   const { t } = useTranslation();
 
+  const { ipHost, ipLoading } = useIP();
+
   useEffect(() => {
-    ws.current = new WebSocket(`ws://127.0.0.1:8000/ws/device/${deviceId}/?token=${Cookies.get("token")}`);
+    if (ipLoading) return;
+    ws.current = new WebSocket(`wss://${ipHost}/ws/device/${deviceId}/?token=${Cookies.get("token")}`);
 
     ws.current.onopen = () => {
       console.log("Connected to device WebSocket");
@@ -69,12 +72,35 @@ export default function DeviceDetailsPage() {
       }
 
       if (data.type === "readings") {
-        setReadings((prev) => {
-          // نخلي أحدث 100 قراءة مثلاً
-          const merged = [...data.readings.reverse(), ...prev].slice(0, 100);
-          return merged;
-        });
+        const incomingReadings: Reading[] = [];
+
+        if (Array.isArray(data.readings)) {
+          incomingReadings.push(...data.readings);
+        }
+
+        if (incomingReadings.length > 0) {
+          const latest = incomingReadings[0];
+
+          // تحديث readings
+          setReadings((prev) =>
+            [...incomingReadings.reverse(), ...prev]
+              .slice(0, 100)
+              .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+          );
+
+          // ✅ تحديث القيم في gauge
+          setDevice((prev) => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              temperature: latest.temperature ?? prev.temperature,
+              humidity: latest.humidity ?? prev.humidity,
+              last_update: data.last_update ?? prev.last_update,
+            };
+          });
+        }
       }
+
     };
 
     ws.current.onclose = () => {
@@ -82,7 +108,7 @@ export default function DeviceDetailsPage() {
     };
 
     return () => ws.current?.close();
-  }, [deviceId]);
+  }, [deviceId, ipLoading, ipHost]);
 
   useEffect(() => {
     if (!device) return;
@@ -92,7 +118,7 @@ export default function DeviceDetailsPage() {
         if (!prev) return prev;
         const lastUpdate = new Date(prev.last_update).getTime();
         const now = Date.now();
-        const offlineThreshold = (prev.interval_wifi ?? 0) * 1000 + 10 * 60 * 1000; // interval_wifi + 10 minute
+        const offlineThreshold = (prev.interval_wifi ?? 0) * 60 * 1000 + 10 * 60 * 1000;// interval_wifi + 10 minute
 
         const newStatus =
           now - lastUpdate > offlineThreshold ? "offline" : prev.status === "offline" ? "active" : prev.status;
@@ -177,7 +203,8 @@ export default function DeviceDetailsPage() {
     interval_local: number;
   }) => {
     try {
-      await axios.put(`http://127.0.0.1:8000/device/${deviceId}/`, {
+      if(ipLoading) return;
+      await axios.put(`https://${ipHost}/device/${deviceId}/`, {
         name: data.name,
         min_temp: data.minTemp,
         max_temp: data.maxTemp,
@@ -226,7 +253,7 @@ export default function DeviceDetailsPage() {
             title={t("humidity")}
             icon={<WiHumidity size={32} className="text-cyan-500" />}
             unit="%"
-            value={device.humidity}
+            value={Number(device.humidity.toFixed(2))}
             min={device.minHum}
             max={device.maxHum}
             color={humColor}
@@ -296,7 +323,7 @@ export default function DeviceDetailsPage() {
 
             {/* Recent Readings Section */}
             <div className="w-full min-h-screen animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
-              <DeviceReadingData deviceId={device.id} readings={readings} deviceName={deviceName} hasTemperatureSensor={device.has_temperature_sensor} hasHumiditySensor={device.has_humidity_sensor} />
+              <DeviceReadingData deviceId={device.id} readings={readings} deviceName={device.name} hasTemperatureSensor={device.has_temperature_sensor} hasHumiditySensor={device.has_humidity_sensor} />
             </div>
           </div>
         </div>

@@ -5,6 +5,7 @@ import "./globals.css";
 import "../i18n";
 import DirectionWrapper from "@/components/global/direction_wrapper"; // 👈 مكون جديد
 import GlobalLogNotifier from "@/components/global/LocalNotificationListener";
+import { IPProvider } from "@/lib/IPContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,12 +30,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
       >
-        <DirectionWrapper>
-          <main className="flex-1 w-full">
-            <GlobalLogNotifier />
-            {children}
-          </main>
-        </DirectionWrapper>
+        <IPProvider>
+          <DirectionWrapper>
+            <main className="flex-1 w-full">
+              <GlobalLogNotifier />
+              {children}
+            </main>
+          </DirectionWrapper>
+        </IPProvider>
       </body>
     </html>
   );

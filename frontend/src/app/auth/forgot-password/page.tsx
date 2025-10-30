@@ -1,5 +1,6 @@
 'use client';
 import LayoutWithNavbar from "@/components/ui/layout_with_navbar";
+import { useIP } from "@/lib/IPContext";
 import React, { useState } from "react";
 
 export default function ForgotPasswordPage() {
@@ -7,13 +8,17 @@ export default function ForgotPasswordPage() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const { ipHost, ipLoading } = useIP();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setMessage("");
 
+    if(ipLoading) return;
+
     try {
-      const res = await fetch("http://127.0.0.1:8000/auth/password_reset/", {
+      const res = await fetch(`https://${ipHost}/auth/password_reset/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),

@@ -1,8 +1,8 @@
 'use client';
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
 import LayoutWithNavbar from "@/components/ui/layout_with_navbar";
+import { useIP } from "@/lib/IPContext";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
@@ -13,7 +13,7 @@ export default function LoginPage() {
   const [showCard, setShowCard] = useState(false);
   const [showPassword, setShowPassword] = useState(false); // 👁️ هنا
 
-  const router = useRouter();
+  const { ipHost, ipLoading } = useIP();
 
   useEffect(() => {
     setTimeout(() => setShowCard(true), 100);
@@ -21,11 +21,12 @@ export default function LoginPage() {
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
+
     setError("");
     setLoading(true);
-
+    if(ipLoading) return;
     try {
-      const res = await fetch("http://127.0.0.1:8000/auth/login/", {
+      const res = await fetch(`https://${ipHost}/auth/login/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
@@ -47,7 +48,7 @@ export default function LoginPage() {
         }
 
         // لو الـ role مش admin نسجل log دخول
-        fetch("http://127.0.0.1:8000/logs/create/", {
+        fetch(`https://${ipHost}/logs/create/`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

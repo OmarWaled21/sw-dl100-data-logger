@@ -4,13 +4,18 @@ import { useEffect, useState } from "react";
 import { Device } from "@/types/device";
 import LayoutWithNavbar from "@/components/ui/layout_with_navbar";
 import Cookies from "js-cookie";
+import { useIP } from "@/lib/IPContext";
 
 export default function SecurityScreen() {
   const [devices, setDevices] = useState<Device[]>([]);
   const statusOrder: Record<Device["status"], number> = { offline: 0, error: 1, active: 2 };
 
+  const { ipHost, ipLoading } = useIP();
+
   useEffect(() => {
-    const ws = new WebSocket(`ws://127.0.0.1:8000/ws/home/?token=${Cookies.get("token")}`);
+    if (ipLoading) return;
+
+    const ws = new WebSocket(`wss://${ipHost}/ws/home/?token=${Cookies.get("token")}`);
 
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
@@ -25,7 +30,7 @@ export default function SecurityScreen() {
     };
 
     return () => ws.close();
-  }, []);
+  }, [ipHost, ipLoading]);
 
   const getStatusIcon = (status: Device["status"]) => {
     switch (status) {

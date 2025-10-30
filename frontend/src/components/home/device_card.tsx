@@ -91,8 +91,6 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
   const tempColor = getColor(temperature, minTemp, maxTemp, status);
   const humColor = getColor(humidity, minHum, maxHum, status);
 
-  const tempData = [{ name: "temp", value: temperature, fill: tempColor }];
-  const humData = [{ name: "hum", value: humidity, fill: humColor }];
 
   // Battery icon
   const getBatteryIcon = () => {
@@ -153,7 +151,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
             </RadialBarChart>
             <div className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center ${highlightTemp ? 'animate-pulse' : ''}`}>
               <span className="text-xl sm:text-2xl font-bold" style={{ color: tempColor }}>
-                {temperature}°
+                {temperature.toFixed(1)}°
               </span>
             </div>
           </div>
@@ -192,7 +190,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
             </RadialBarChart>
             <div className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center ${highlightHum ? 'animate-pulse' : ''}`}>
               <span className="text-xl sm:text-2xl font-bold" style={{ color: humColor }}>
-                {humidity}%
+                {humidity.toFixed(1)}%
               </span>
             </div>
           </div>
