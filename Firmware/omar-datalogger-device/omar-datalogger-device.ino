@@ -50,8 +50,10 @@ const int totalPages = 3;
 unsigned long lastBlink = 0;
 bool blinkWiFi = false;
 
-// ================= اسم الجهاز =================
+// ================= معلومات عن الجهاز =================
 String name = "";
+const char* firmwareType = "HT";  // HT or T
+const char* currentVersion = "1.0.0";
 
 // ================= الحدود =================
 float minTemp;
@@ -536,6 +538,145 @@ void saveReadingLocally(float temp, float hum) {
 }
 
 // =================  Server  =================
+//  لجلب التحديثات ووالمقارنات
+// Compute SHA256 of a file in SPIFFS/LittleFS
+String calculateSHA256(Stream &stream) {
+    mbedtls_sha256_context ctx;
+    mbedtls_sha256_init(&ctx);
+    mbedtls_sha256_starts_ret(&ctx, 0); // 0 = SHA-256
+
+    uint8_t buf[512];
+    size_t len = 0;
+    while ((len = stream.readBytes((char*)buf, sizeof(buf))) > 0) {
+        mbedtls_sha256_update_ret(&ctx, buf, len);
+    }
+
+    uint8_t hash[32];
+    mbedtls_sha256_finish_ret(&ctx, hash);
+    mbedtls_sha256_free(&ctx);
+
+    String hashStr;
+    for (int i = 0; i < 32; i++) {
+        if (hash[i] < 16) hashStr += "0";
+        hashStr += String(hash[i], HEX);
+    }
+    hashStr.toLowerCase();
+    return hashStr;
+}
+
+bool downloadFirmware(String url) {
+    WiFiClient client;
+    HTTPClient http;
+
+    Serial.printf("Downloading firmware from: %s\n", url.c_str());
+    if (!http.begin(client, url)) {
+        Serial.println("HTTP begin failed!");
+        return false;
+    }
+    http.addHeader("Authorization", "Token " + getToken());
+
+    int httpCode = http.GET();
+    if (httpCode != 200) {
+        Serial.printf("HTTP GET failed: %d\n", httpCode);
+        http.end();
+        return false;
+    }
+
+    int contentLength = http.getSize();
+    if (contentLength <= 0) {
+        Serial.println("Content length invalid");
+        http.end();
+        return false;
+    }
+
+    bool canBegin = Update.begin(contentLength);
+    if (!canBegin) {
+        Serial.println("Not enough space for OTA");
+        http.end();
+        return false;
+    }
+
+    WiFiClient *stream = http.getStreamPtr();
+    size_t written = Update.writeStream(*stream);
+
+    if (written == contentLength) {
+        Serial.println("Written : " + String(written) + " successfully");
+    } else {
+        Serial.println("Written only : " + String(written) + "/" + String(contentLength));
+        http.end();
+        return false;
+    }
+
+    if (Update.end()) {
+        Serial.println("OTA done!");
+        if (Update.isFinished()) {
+            Serial.println("Update successfully finished. Rebooting...");
+            http.end();
+            return true;
+        } else {
+            Serial.println("Update not finished?");
+            http.end();
+            return false;
+        }
+    } else {
+        Serial.println("Error Occurred. Error #: " + String(Update.getError()));
+        http.end();
+        return false;
+    }
+}
+
+void checkForUpdate() {
+    if (WiFi.status() != WL_CONNECTED) {
+        Serial.println("WiFi not connected");
+        return;
+    }
+
+    WiFiClientSecure client;
+    client.setInsecure();
+    HTTPClient http;
+  
+    String url = String(base_url) + "updates/check/firmware/?type=" + firmwareType + "&version=" + currentVersion;
+    http.begin(url, client);
+
+    int httpCode = http.GET();
+    if (httpCode != 200) {
+        Serial.printf("Check update failed: %d\n", httpCode);
+        http.end();
+        return;
+    }
+
+    String payload = http.getString();
+    http.end();
+
+    StaticJsonDocument<512> doc;
+    auto err = deserializeJson(doc, payload);
+    if (err) {
+        Serial.println("JSON parse failed!");
+        return;
+    }
+
+    bool updateAvailable = doc["update"];
+    if (!updateAvailable) {
+        Serial.println("Firmware up to date: " + String(currentVersion));
+        return;
+    }
+
+    String fwUrl = doc["url"];
+    String fwChecksum = doc["checksum"];
+    String fwVersion = doc["version"];
+
+    Serial.println("New firmware available: v" + fwVersion);
+    Serial.println("URL: " + fwUrl);
+    Serial.println("Expected checksum: " + fwChecksum);
+
+    if (downloadFirmware(fwUrl)) {
+        Serial.println("OTA finished, rebooting...");
+        ESP.restart();
+    } else {
+        Serial.println("OTA failed!");
+    }
+}
+
 // 🔐 جلب التوكين من السيرفر
 bool updateTokenFromServer() {
   if (WiFi.status() != WL_CONNECTED) return false;

@@ -68,6 +68,7 @@ INSTALLED_APPS = [
     'device_details',
     'logs',
     'users',
+    'updates',
 ]
 
 MIDDLEWARE = [
@@ -151,8 +152,8 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': SECRETS['DB_NAME'],
-        'USER': config('DB_USER'),
-        'PASSWORD': config('DB_PASSWORD'),
+        'USER': SECRETS['DB_USER'],
+        'PASSWORD': SECRETS['DB_PASSWORD'],
         'HOST': SECRETS['DB_HOST'],
         'PORT': SECRETS['DB_PORT'],
     }

@@ -1,0 +1,6 @@
+{
+  "github_json_url": "https://raw.githubusercontent.com/OmarWaled21/sw-dl100-data-logger/main/updater/latest.json",
+  "local_api_url": "http://127.0.0.1:8000/updates/sync/",
+  "download_dir": "downloads",
+  "logs_dir": "logs"
+}
