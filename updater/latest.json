@@ -2,7 +2,7 @@
   "firmware": {
     "HT": {
       "version": "1.0.0",
-      "url": "firmware/HT/firmware_HT_V_1.0.0.bin",
+      "url": "https://raw.githubusercontent.com/OmarWaled21/sw-dl100-data-logger/main/updater/firmware/HT/firmware_HT_V_1.0.0.bin",
       "checksum": "b6163d4b6058caa98d6fcd494cdac20820a7c7b32113697bab4898a25f06b863"
     },
     "T": {
@@ -13,7 +13,7 @@
   },
   "app": {
     "version": "1.0.0",
-    "url": "app/updater.exe",
+    "url": "",
     "checksum": "N/A"
   }
 }
