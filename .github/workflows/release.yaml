@@ -26,7 +26,7 @@ jobs:
         run: pip install --upgrade pip
 
       - name: Run update script
-        run: python scripts/update_latest.py
+        run: python updater/scripts/update_latest.py
 
       - name: Commit and push changes
         run: |
