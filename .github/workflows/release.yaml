@@ -1,5 +1,4 @@
 name: Auto Update Firmware JSON
-run: python updater/scripts/update_latest.py
 
 on:
   push:
