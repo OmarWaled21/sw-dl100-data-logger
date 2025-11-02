@@ -1,13 +1,20 @@
 {
   "app": {
     "version": "1.0.0",
-    "url": "https://raw.githubusercontent.com/<USERNAME>/<REPO>/main/updater/app/VSES_Desktop_v1.0.0.zip",
+    "url": "https://raw.githubusercontent.com/OmarWaled21/sw-dl100-data-logger/main/updater/app/VSES_Desktop_v1.0.0.zip",
     "checksum": "sha256:PLACEHOLDER"
   },
   "firmware": {
-    "version": "1.0.0",
-    "url": "https://raw.githubusercontent.com/<USERNAME>/<REPO>/main/updater/firmware/firmware_v1.0.0.bin",
-    "checksum": "sha256:PLACEHOLDER"
+    "HT": {
+      "version": "1.0.0",
+      "url": "https://raw.githubusercontent.com/OmarWaled21/sw-dl100-data-logger/main/updater/firmware/HT/firmware_v1.0.0.bin",
+      "checksum": "sha256:PLACEHOLDER"
+    },
+    "T": {
+      "version": "1.0.0",
+      "url": "https://raw.githubusercontent.com/OmarWaled21/sw-dl100-data-logger/main/updater/firmware/T/firmware_v1.0.0.bin",
+      "checksum": "sha256:PLACEHOLDER"
+    }
   },
   "released_at": "2025-11-02T00:00:00Z"
 }
