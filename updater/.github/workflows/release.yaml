@@ -6,7 +6,7 @@ on:
     paths:
       - 'firmware/**'
       - 'app/**'
-
+    workflow_dispatch:
 jobs:
   update-latest:
     runs-on: ubuntu-latest
