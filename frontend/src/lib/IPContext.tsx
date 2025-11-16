@@ -6,7 +6,7 @@ interface IPContextType {
   ipLoading: boolean;
 }
 
-const IPContext = createContext<IPContextType>({ ipHost: "", ipLoading: true });
+const IPContext = createContext<IPContextType>({ ipHost: "192.168.106.104", ipLoading: true });
 
 export const IPProvider = ({ children }: { children: ReactNode }) => {
   const [ipHost, setIpHost] = useState("");

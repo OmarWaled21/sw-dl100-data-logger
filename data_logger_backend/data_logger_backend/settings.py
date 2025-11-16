@@ -209,7 +209,16 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Media settings
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+if getattr(sys, 'frozen', False):
+    # لو شغال كـ EXE → حط الميديا جنب run.exe
+    MEDIA_ROOT = os.path.join(os.path.dirname(sys.executable), 'media')
+else:
+    # شغال كسورس كود
+    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# تأكد إن المجلد موجود (عشان ميحصلش خطأ أول مرة)
+os.makedirs(MEDIA_ROOT, exist_ok=True)
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

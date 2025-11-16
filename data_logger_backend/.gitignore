@@ -9,3 +9,4 @@ secrets_loader.py
 test.*
 .bat
 run.*
+media/

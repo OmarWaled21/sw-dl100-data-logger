@@ -219,6 +219,9 @@ class AddDeviceView(APIView):
         if not has_temperature_sensor:
             temperature_type = None
 
+        default_temp = 0 if has_temperature_sensor else None
+        default_hum = 0 if has_humidity_sensor else None
+        
         # ✅ إنشاء الجهاز
         try:
             device = Device.objects.create(
@@ -233,6 +236,8 @@ class AddDeviceView(APIView):
                 max_temp=max_temp,
                 min_hum=min_hum,
                 max_hum=max_hum,
+                temperature=default_temp,
+                humidity=default_hum,
                 last_update=get_master_time(),
             )
         except Exception as e:

@@ -71,18 +71,14 @@ unsigned long intervalWifi = 20 * 60000UL;
 unsigned long intervalLocal = 5 * 60000UL;
 unsigned long intervalInterrupt = 60000UL;
 
-// ⚠️ إضافة العدادات الجديدة
-int wifiCounter = 0;
-int localCounter = 0;
 int wifiIntervalMinutes = 20;  // عدد الدقائق لاتصال WiFi
 int localIntervalMinutes = 5;  // عدد الدقائق للحفظ المحلي
 
 // ================= متغيرات للسليب =================
 bool shouldSleep = true;
+bool isSleeping = false;
 bool wifiRequested = false;
 bool wifiTaskRunning = false;
-bool deepSleepInProgress = false;
-bool isSleeping = false;
 
 // ================= بيانات الجهاز =================
 String server_url;
@@ -97,50 +93,25 @@ WebServer server(80);
 DNSServer dnsServer;
 bool configMode = false;
 
-// ================= RTC Memory للبيانات بين دورات السليب =================
-RTC_DATA_ATTR unsigned long rtc_accumulatedLocalTime = 0;
-RTC_DATA_ATTR unsigned long rtc_accumulatedWifiTime = 0;
-RTC_DATA_ATTR bool rtc_wifiRequested = false;
-RTC_DATA_ATTR bool rtc_alertCondition = false;
-
 // ================= دالة السليب =================
-void enterDeepSleep(uint64_t sleepTimeMs) {
-  if (deepSleepInProgress) {
-    Serial.println("⚠️ Deep Sleep قيد التقدم بالفعل");
-    return;
-  }
-  deepSleepInProgress = true;
-
-  Serial.printf("💤 دخول Deep Sleep لمدة %llu ثانية...\n", sleepTimeMs / 1000);
-
-  // حفظ الحالة - الآن نحفظ الأوقات المتراكمة بدل المطلقة
-  rtc_accumulatedLocalTime = localIntervalMinutes * 60000;
-  rtc_accumulatedWifiTime = wifiIntervalMinutes * 60000;
-  rtc_wifiRequested = wifiRequested;
-
-  Serial.printf("💾 حفظ الحالة: Local=%lu, WiFi=%lu, Req=%d\n",
-                localIntervalMinutes, wifiIntervalMinutes, wifiRequested);
-
-  // تنظيف
-  WiFi.disconnect(true);
-  WiFi.mode(WIFI_OFF);
-
-  delay(200);
+void enterLightSleep(uint64_t sleepTimeMs) {
+  Serial.printf("💤 دخول Light Sleep لمدة %llu s...\n", sleepTimeMs / 1000);
   Serial.flush();
-  delay(100);
 
-  // التأكد من وقت السليب
-  if (sleepTimeMs < 1000) {
-    sleepTimeMs = 1000;  // minimum 1 second
-  }
-
+  // إعداد مؤقت الاستيقاظ (يحتاج وقت بالميكروثانية)
   esp_sleep_enable_timer_wakeup(sleepTimeMs * 1000ULL);
 
-  Serial.println("💤 الذهاب إلى Deep Sleep الآن...");
+  // إعداد GPIO للحفاظ على حالة الـ WiFi
+  gpio_hold_en(GPIO_NUM_2);
+
+  // الدخول في السليب
   message = "Sleep mode";
   isSleeping = true;
-  delay(200);
-  esp_deep_sleep_start();
+  esp_light_sleep_start();
+
+  // بعد الاستيقاظ
+  gpio_hold_dis(GPIO_NUM_2);
+  Serial.println("✅ استيقظ من Light Sleep");
 }
 
 // ================= دوال مساعدة =================
@@ -848,11 +819,11 @@ void fetchSettingsFromServer() {
         float newMinHum = doc["min_hum"] | NAN;
         float newMaxHum = doc["max_hum"] | NAN;
 
-        // ⚠️ قراءة الفترات بالدقائق من الـ backend
-        int newWifiIntervalMinutes = doc["interval_wifi"] | 5;    // قيمة افتراضية 5 دقائق
+        // ⚠ قراءة الفترات بالدقائق من الـ backend
+        int newWifiIntervalMinutes = doc["interval_wifi"] | 20;   // قيمة افتراضية 20 دقائق
         int newLocalIntervalMinutes = doc["interval_local"] | 5;  // قيمة افتراضية 5 دقائق
 
-        // ⚠️ إصلاح: قراءة القيم السابقة من المتغيرات الحالية وليس من prefs
+        // ⚠ إصلاح: قراءة القيم السابقة من المتغيرات الحالية وليس من prefs
         String prevName = name;
         float prevMinTemp = minTemp;
         float prevMaxTemp = maxTemp;
@@ -901,13 +872,11 @@ void fetchSettingsFromServer() {
         }
 
 
-        // ⚠️ إصلاح: تحديث متغيرات الفترات مباشرة
+        // ⚠ إصلاح: تحديث متغيرات الفترات مباشرة
         if (prevWifiInterval != newWifiIntervalMinutes) {
           wifiIntervalMinutes = newWifiIntervalMinutes;
           intervalWifi = wifiIntervalMinutes * 60000UL;
           prefs.putInt("wifiInterval", newWifiIntervalMinutes);
-          wifiCounter = 0;
-          prefs.putInt("wifiCounter", 0);
           settingsChanged = true;
           Serial.printf("🔄 تغيير فترة WiFi إلى %d دقائق\n", wifiIntervalMinutes);
         }
@@ -916,8 +885,6 @@ void fetchSettingsFromServer() {
           localIntervalMinutes = newLocalIntervalMinutes;
           intervalLocal = localIntervalMinutes * 60000UL;
           prefs.putInt("localInterval", newLocalIntervalMinutes);
-          localCounter = 0;
-          prefs.putInt("localCounter", 0);
           settingsChanged = true;
           Serial.printf("🔄 تغيير فترة Local إلى %d دقائق\n", localIntervalMinutes);
         }
@@ -926,13 +893,13 @@ void fetchSettingsFromServer() {
         if (settingsChanged) {
           Serial.println("✅ تم تحديث الإعدادات من السيرفر");
         } else {
-          Serial.println("ℹ️ لا توجد تغييرات في الإعدادات");
+          Serial.println("ℹ لا توجد تغييرات في الإعدادات");
         }
 
         Serial.print("📟 اسم الجهاز: ");
         Serial.println(name);
         Serial.printf("✅ الحدود: %.1f~%.1f°C | %.1f~%.1f%%\n", minTemp, maxTemp, minHum, maxHum);
-        Serial.printf("⏱️ الفترات: WiFi كل %d دقائق | Local كل %d دقائق\n", wifiIntervalMinutes, localIntervalMinutes);
+        Serial.printf("⏱ الفترات: WiFi كل %d دقائق | Local كل %d دقائق\n", wifiIntervalMinutes, localIntervalMinutes);
 
         // ✅ تحديث الساعة من current_time
         if (current_time.length() > 0) {
@@ -941,7 +908,7 @@ void fetchSettingsFromServer() {
             rtc.adjust(DateTime(y, M, d, h, m, s));
             Serial.printf("🕒 تم تحديث RTC إلى %s\n", current_time.c_str());
           } else {
-            Serial.println("⚠️ خطأ في صيغة current_time");
+            Serial.println("⚠ خطأ في صيغة current_time");
           }
         }
       } else {
@@ -968,7 +935,7 @@ void sendStoredReadings(float currentTemp, float currentHum) {
   Serial.println("🔍 فحص البيانات المحفوظة: " + stored);
   // تحقق أولاً إذا كانت البيانات فارغة أو غير صالحة
   if (stored == "[]" || stored.length() <= 2) {
-    Serial.println("⚠️ لا توجد قراءات محلية — سيتم استخدام القراءة الحالية فقط");
+    Serial.println("⚠ لا توجد قراءات محلية — سيتم استخدام القراءة الحالية فقط");
     // ... كود إضافة القراءة الحالية
   } else {
     // حاول فك ترميز JSON
@@ -979,10 +946,10 @@ void sendStoredReadings(float currentTemp, float currentHum) {
       Serial.println("❌ خطأ في فك ترميز البيانات المحلية: " + String(err.c_str()));
       Serial.println("📦 البيانات المخزنة: " + stored);
       // استخدم القراءة الحالية فقط في حالة الخطأ
-      Serial.println("⚠️ سيتم استخدام القراءة الحالية فقط بسبب خطأ الترميز");
+      Serial.println("⚠ سيتم استخدام القراءة الحالية فقط بسبب خطأ الترميز");
       // ... كود إضافة القراءة الحالية
     } else if (!doc.is<JsonArray>() || doc.size() == 0) {
-      Serial.println("⚠️ البيانات المحلية ليست مصفوفة أو فارغة");
+      Serial.println("⚠ البيانات المحلية ليست مصفوفة أو فارغة");
       // ... كود إضافة القراءة الحالية
     } else {
       // البيانات صالحة، تابع المعالجة العادية
@@ -1085,7 +1052,7 @@ void sendLog(String error_type, String message) {
   String jsonBody;
   serializeJson(doc, jsonBody);
 
-  Serial.println("⚠️[LOG] Sending: " + jsonBody);
+  Serial.println("⚠[LOG] Sending: " + jsonBody);
   int httpResponseCode = http.POST(jsonBody);
 
   if (httpResponseCode > 0) {
@@ -1132,7 +1099,7 @@ String htmlPage(String networks = "") {
     "</script>"
 
     "</head><body>"
-    "<h2>⚙️ Device WiFi Setup</h2>"
+    "<h2>⚙ Device WiFi Setup</h2>"
     "<form action='/save' method='post'>"
 
     "<label>WiFi Network:</label>"
@@ -1277,11 +1244,12 @@ void wifiTask(void *parameter) {
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
     if (wifiTaskRunning) {
-      Serial.println("⚠️ WiFiTask مشغولة حاليًا، تجاهل wakeup");
+      Serial.println("⚠ WiFiTask مشغولة حاليًا، تجاهل wakeup");
       continue;
     }
 
     wifiTaskRunning = true;
+    wifiRequested = false;  // إعادة تعليم الطلب
 
     Serial.println("🌐 WiFiTask بدأ");
     message = "Wake up";
@@ -1304,7 +1272,6 @@ void wifiTask(void *parameter) {
       Serial.println("\n✅ WiFi متصل SSid: " + ssid);
       Serial.println("\n✅ Server url: " + server_url);
       updateTokenFromServer();
-      checkForUpdate();
 
       registered = checkIfRegistered();
       if (!registered) {
@@ -1314,7 +1281,6 @@ void wifiTask(void *parameter) {
         Serial.println("✅ Device is registered. Starting normal mode...");
 
         fetchSettingsFromServer();
-
         // إرسال القرايات الحالية
         float t, h, v;
         int p;
@@ -1339,41 +1305,20 @@ void wifiTask(void *parameter) {
         }
       }
 
-    } else {
-      Serial.println("❌ فشل الاتصال بالواي فاي");
-      WiFi.disconnect(true);
-      WiFi.mode(WIFI_OFF);
-      vTaskDelay(5000 / portTICK_PERIOD_MS);  // ينتظر 5 ثواني قبل ما يكمل
-    }
+    } 
 
     WiFi.disconnect(true);
     WiFi.mode(WIFI_OFF);
     vTaskDelay(5000 / portTICK_PERIOD_MS);  // ينتظر 5 ثواني قبل ما يكمل
 
-    // ⚠️ إصلاح: تصفير العداد هنا بعد انتهاء مهمة WiFi
-    wifiCounter = 0;
-    localCounter = 0;
-
-    // حفظ العداد في الذاكرة
-    prefs.begin("devicePrefs", false);
-    prefs.putInt("wifiCounter", wifiCounter);
-    prefs.putInt("localCounter", localCounter);
-    prefs.end();
-
-    Serial.printf("🔄 تم تصفير عداد WiFi إلى %d\n", wifiCounter);
-    Serial.printf("🔄 تم تصفير عداد Local إلى %d\n", localCounter);
-
     // السماح بالدخول في السليب مرة أخرى
     shouldSleep = true;
     isSleeping = true;
-    wifiRequested = false;
     wifiTaskRunning = false;
+
     updateHeader();
 
     Serial.println("🌙 WiFiTask انتهى\n");
-
-    // ⚠️ ناقص هذا السطر ⚠️
-    enterDeepSleep(intervalInterrupt);  // إضافة هذا السطر
   }
 }
 
@@ -1384,7 +1329,7 @@ void localTask(void *parameter) {
   if (!bme.begin(0x76)) {
     Serial.println("❌ فشل في تهيئة BME280!");
     delay(2000);
-    ESP.restart();
+    // ESP.restart();
   }
 
   if (!rtc.begin()) {
@@ -1394,11 +1339,15 @@ void localTask(void *parameter) {
   analogSetPinAttenuation(BAT_PIN, ADC_11db);
 
   if (rtc.lostPower()) {
-    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+    rtc.adjust(DateTime(F(_DATE), F(TIME_)));
     Serial.println("⏰ تم ضبط الوقت على وقت الكومبايل.");
   }
+  unsigned long lastLocalSave = millis();
+  unsigned long lastWiFiUpdate = millis();
 
   for (;;) {
+    unsigned long nowMillis = millis();
+
     message = "Wake up";
     DateTime now = rtc.now();
     updateBatteryReading();
@@ -1408,68 +1357,51 @@ void localTask(void *parameter) {
     int p;
     readSensors(t, h, v, p);
 
-    Serial.printf("[%02d:%02d:%02d] 🌡️ %.2f°C | 💧 %.2f%% | 🔋 %.2fV (%d%%)\n",
+    static unsigned long lastPrint = 0;
+    if (nowMillis - lastPrint > 60000UL) {
+    Serial.printf("[%02d:%02d:%02d] 🌡 %.2f°C | 💧 %.2f%% | 🔋 %.2fV (%d%%)\n",
                   now.hour(), now.minute(), now.second(), t, h, v, p);
+    lastPrint = nowMillis;
+  }
 
     // التحقق من الحدود
     bool alert = (t < minTemp) || (t > maxTemp) || (h < minHum) || (h > maxHum) || (p < 20);
-    if (alert && !wifiRequested && !wifiTaskRunning) {
+    if (alert && !wifiRequested) {
       Serial.println("🚨 القيم خارج الحدود! يصحي WiFiTask...");
       wifiRequested = true;
       xTaskNotifyGive(wifiTaskHandle);
-      vTaskDelay(5000 / portTICK_PERIOD_MS);
       continue;
     }
 
-    // ⚠️ زيادة العدادات
-    wifiCounter++;
-    localCounter++;
-
-    Serial.printf("🔢 زيادة العدادات: WiFi=%d/%d, Local=%d/%d\n",
-                  wifiCounter, wifiIntervalMinutes, localCounter, localIntervalMinutes);
+    Serial.printf("⏱ منذ آخر حفظ: %.1f دقيقة | منذ آخر WiFi: %.1f دقيقة\n",
+              (nowMillis - lastLocalSave) / 60000.0,
+              (nowMillis - lastWiFiUpdate) / 60000.0);
 
     // 💾 تخزين محلي كل X دقائق
-    if (localCounter >= localIntervalMinutes) {
+    if (nowMillis - lastLocalSave >= localIntervalMinutes * 60000UL) {
       Serial.println("💾 وقت الحفظ المحلي - حفظ البيانات...");
       saveReadingLocally(t, h);
-      localCounter = 0;
-
-      // حفظ العداد في الذاكرة
-      prefs.begin("devicePrefs", false);
-      prefs.putInt("localCounter", localCounter);
-      prefs.end();
+      lastLocalSave = nowMillis;
     }
 
-    // 🌐 تحديث WiFi دوري كل Y دقائق
-    if (wifiCounter >= wifiIntervalMinutes && !wifiRequested && !wifiTaskRunning) {
+    // 🌐 تحديث WiFi دوري
+    if (nowMillis - lastWiFiUpdate >= wifiIntervalMinutes * 60000UL && !wifiRequested) {
       Serial.println("🔁 وقت تحديث WiFi الدوري — يصحي WiFiTask...");
       wifiRequested = true;
       xTaskNotifyGive(wifiTaskHandle);
-      wifiCounter = 0;
-
-      // حفظ العداد في الذاكرة
-      prefs.begin("devicePrefs", false);
-      prefs.putInt("wifiCounter", wifiCounter);
-      prefs.end();
-
-      vTaskDelay(5000 / portTICK_PERIOD_MS);
+      lastWiFiUpdate = nowMillis;
       continue;
     }
 
-    // حفظ العدادات في الذاكرة
-    prefs.begin("devicePrefs", false);
-    prefs.putInt("wifiCounter", wifiCounter);
-    prefs.putInt("localCounter", localCounter);
-    prefs.end();
+    // الانتظار قليلاً قبل الدخول في السليب
+    vTaskDelay(5000 / portTICK_PERIOD_MS);
 
-    // إذا لم يكن هناك حاجة لـ WiFi، ندخل Deep Sleep
-    if (!wifiRequested && !wifiTaskRunning) {
-      Serial.printf("💤 دخول Deep Sleep لمدة %lu ثانية...\n", intervalInterrupt / 1000);
-      enterDeepSleep(intervalInterrupt);
+    // الدخول في السليب فقط إذا لم يكن هناك طلب لـ WiFi
+    if (shouldSleep && !wifiTaskRunning && !wifiRequested && WiFi.status() != WL_CONNECTED) {
+      enterLightSleep(intervalInterrupt);  // ناقص وقت الانتظار
     } else {
-      // إذا كان هناك طلب WiFi، انتظر فترة قصيرة
-      Serial.println("⏳ في انتظار اكتمال مهمة WiFi...");
-      vTaskDelay(5000 / portTICK_PERIOD_MS);
+      // إذا كان هناك طلب WiFi، انتظر فترة قصيرة فقط
+      vTaskDelay((intervalInterrupt) / portTICK_PERIOD_MS);
     }
   }
 }
@@ -1477,10 +1409,12 @@ void localTask(void *parameter) {
 // ================= Setup =================
 void setup() {
   Serial.begin(115200);
-  delay(2000);
+  delay(2000);  // انتظار الاستقرار
 
-  Serial.println("\n\n🔷 بدء نظام المراقبة مع Deep Sleep 🔷");
   isSleeping = false;
+  wifiTaskRunning = false;
+  wifiRequested = false;
+  shouldSleep = true;
   updateHeader();
 
   // تحقق من سبب الاستيقاظ
@@ -1494,7 +1428,7 @@ void setup() {
     Serial.printf("🔔 استيقاظ بسبب: %d\n", wakeup_reason);
   }
 
-  // ⚠️ إضافة تهيئة الشاشة هنا
+  // ⚠ إضافة تهيئة الشاشة هنا
   u8g2.begin();
 
   // glcd open splash
@@ -1515,33 +1449,30 @@ void setup() {
   password = prefs.getString("password", "");
   server_url = prefs.getString("server_url", "");
 
-  // ⚠️ تحميل الإعدادات - استخدم قيم افتراضية صحيحة
+  // ⚠ تحميل الإعدادات - استخدم قيم افتراضية صحيحة
   name = prefs.getString("name", "Device");
 
-  // ⚠️ القيم الافتراضية كانت غلط - استخدم NAN بدل القيم الثابتة
+  // ⚠ القيم الافتراضية كانت غلط - استخدم NAN بدل القيم الثابتة
   minTemp = prefs.getFloat("minTemp", NAN);
   maxTemp = prefs.getFloat("maxTemp", NAN);
   minHum = prefs.getFloat("minHum", NAN);
   maxHum = prefs.getFloat("maxHum", NAN);
 
-  // ⚠️ تحميل الفترات من الذاكرة مباشرة
-  wifiIntervalMinutes = prefs.getInt("wifiInterval", 5);
+  // ⚠ تحميل الفترات من الذاكرة مباشرة
+  wifiIntervalMinutes = prefs.getInt("wifiInterval", 20);
   localIntervalMinutes = prefs.getInt("localInterval", 5);
 
-  // ⚠️ تحميل العدادات من الذاكرة
-  wifiCounter = prefs.getInt("wifiCounter", 0);
-  localCounter = prefs.getInt("localCounter", 0);
   prefs.end();
 
-  // ⚠️ إعادة حساب الـ intervals من القيم المحملة
+  // ⚠ إعادة حساب الـ intervals من القيم المحملة
   intervalWifi = wifiIntervalMinutes * 60000UL;
   intervalLocal = localIntervalMinutes * 60000UL;
 
   base_url = server_url;
 
-  // ⚠️ إضافة تحقق من صحة القيم
+  // ⚠ إضافة تحقق من صحة القيم
   if (isnan(minTemp) || isnan(maxTemp)) {
-    Serial.println("⚠️ الحدود غير مضبوطة - استخدام قيم افتراضية آمنة");
+    Serial.println("⚠ الحدود غير مضبوطة - استخدام قيم افتراضية آمنة");
     minTemp = 10.0;
     maxTemp = 35.0;
   }
@@ -1551,38 +1482,47 @@ void setup() {
     maxHum = 80.0;
   }
 
-  // ⚠️ التأكد من أن الفترات قيم صحيحة
-  if (wifiIntervalMinutes <= 0) wifiIntervalMinutes = 5;
-  if (localIntervalMinutes <= 0) localIntervalMinutes = 5;
+    // ⚠ التأكد من أن الفترات قيم صحيحة
+    if (wifiIntervalMinutes <= 0) wifiIntervalMinutes = 20;
+    if (localIntervalMinutes <= 0) localIntervalMinutes = 5;
 
-  Serial.printf("⚙️ الإعدادات: Temp %.1f-%.1f°C, Hum %.1f-%.1f%%\n", minTemp, maxTemp, minHum, maxHum);
-  Serial.printf("⏱️ الفترات: WiFi كل %d دقائق (عداد: %d/%d), Local كل %d دقائق (عداد: %d/%d)\n",
-                wifiIntervalMinutes, wifiCounter, wifiIntervalMinutes,
-                localIntervalMinutes, localCounter, localIntervalMinutes);
+  Serial.printf("⚙ الإعدادات: Temp %.1f-%.1f°C, Hum %.1f-%.1f%%\n", minTemp, maxTemp, minHum, maxHum);
+  unsigned long nowMillis = millis();
+  float minsSinceWiFi = 0.0;
+  float minsSinceLocal = 0.0;
 
+  Serial.printf("⏱ الفترات المحددة: WiFi كل %d دقيقة / Local كل %d دقيقة\n",
+                wifiIntervalMinutes, localIntervalMinutes);
+  Serial.printf("🕒 منذ الإقلاع: %.2f دقيقة مرّت حتى الآن\n", nowMillis / 60000.0);
+  DateTime now = rtc.now();
+  Serial.printf("🕒 الوقت الحالي: %02d:%02d:%02d\n", now.hour(), now.minute(), now.second());
+
+  // لو أول تشغيل بدون إعدادات، شغل Access Point
   if (ssid == "" || server_url == "") {
-    startConfigAP();
+    startConfigAP();  // دي دالة الـ Access Point اللي فوق
   }
 
+  // إعداد السليب (بدون تفعيل المؤقت هنا - سنفعله عند الحاجة)
   esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON);
-
 
   // إنشاء المهام
   xTaskCreatePinnedToCore(wifiTask, "WiFiTask", 8192, NULL, 1, &wifiTaskHandle, 0);
+
   xTaskCreatePinnedToCore(localTask, "LocalTask", 8192, NULL, 2, &localTaskHandle, 1);
 
-  Serial.println("🚀 النظام بدأ (مع Deep Sleep محسّن)");
+  Serial.println("🚀 النظام بدأ (مع Light Sleep محسّن)");
 
-  if (wakeup_reason != ESP_SLEEP_WAKEUP_TIMER) {
-    Serial.println("⏩ تشغيل WiFiTask عند الإقلاع لأول مرة...");
-    wifiRequested = true;
-    xTaskNotifyGive(wifiTaskHandle);
-  }
+  // ✅ تشغيل WiFiTask أول مرة
+  Serial.println("⏩ تشغيل WiFiTask عند الإقلاع لأول مرة...");
+  wifiRequested = true;
+
+  xTaskNotifyGive(wifiTaskHandle);
 }
 
 void loop() {
   // الـ loop الرئيسي يمكن أن يكون فارغًا
   vTaskDelay(10000 / portTICK_PERIOD_MS);
+
   unsigned long now = millis();
 
   // ====================== تحديث الرسائل المؤقتة ======================

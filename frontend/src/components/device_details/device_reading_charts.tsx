@@ -95,7 +95,7 @@ export default function DeviceReadingChart({
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="hour" interval={0} tick={{ fontSize: 12 }} />
           <YAxis />
-          <Tooltip />
+          <Tooltip formatter={(value: number, name: string) => [value.toFixed(2), name]}/>
           <Legend />
 
           {/* ✅ عرض الخطوط حسب نوع الحساسات */}

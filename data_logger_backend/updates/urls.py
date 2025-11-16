@@ -1,9 +1,9 @@
 from django.urls import path
 
-from updates.views import LatestUpdateView, CheckFirmwareUpdateView, SyncUpdatesView
+from updates.views import CheckFirmwareView, LatestFirmwareView
+
 
 urlpatterns = [
-  path('latest/', LatestUpdateView.as_view(), name='latest-update'),
-  path('sync/', SyncUpdatesView.as_view(), name='sync-updates'),
-  path('check/firmware/', CheckFirmwareUpdateView.as_view(), name='check-firmware-update'),
+  path("firmware/latest/", LatestFirmwareView.as_view(), name="latest-firmware"),
+  path("firmware/check/", CheckFirmwareView.as_view(), name="check-firmware"),
 ]
